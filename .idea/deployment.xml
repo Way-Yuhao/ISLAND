@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="Zelda" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="Foresight">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/workspace/EarthEngine" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="Zelda">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/workspace/EarthEngine" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

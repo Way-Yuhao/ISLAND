@@ -1,0 +1,10 @@
+numpy~=1.22.0
+earthengine-api~=0.1.295
+geemap~=0.13.1
+matplotlib~=3.5.1
+landsatxplore~=0.13.0
+tqdm~=4.62.3
+scikit-learn~=0.23.2
+opencv-python~=4.5.5.62
+torch~=1.10.2
+torchvision~=0.11.3
