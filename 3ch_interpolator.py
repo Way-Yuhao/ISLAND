@@ -11,6 +11,7 @@ import cv2
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
+import pandas as pd
 from config import *
 from util.filters import *
 
@@ -192,14 +193,15 @@ class Interpolator(abc.ABC):
             self.reconstructed_target[self.synthetic_occlusion] = avg
             print(f"Using baseline average interpolator, with avg = {avg:.2f}")
         else:
-            raise AttributeError("Reconstruction target already exists")
+            # raise AttributeError("Reconstruction target already exists")
+            pass  # might need this
 
     def run_interpolation(self):
         self.spatial_interp()
 
     def spatial_interp(self):
-        # self._nlm_local()
-        self._nlm_global()
+        self._nlm_local()
+        # self._nlm_global()
 
     def _nlm_global(self):
         print(f"SPATIAL FILTER: global filter")
@@ -209,9 +211,10 @@ class Interpolator(abc.ABC):
             temp_for_c = self.occluded_target.copy()
             temp_for_c[self.nlcd != c] = 0  # remove other classes
 
-            plt.imshow(temp_for_c)
-            plt.title(c)
-            plt.show()
+            # show map for each class
+            # plt.imshow(temp_for_c)
+            # plt.title(c)
+            # plt.show()
 
             px_count = np.count_nonzero(temp_for_c)
             avg_temp = np.sum(temp_for_c) / px_count if px_count else None
@@ -318,6 +321,7 @@ class Interpolator(abc.ABC):
 
 
 def evaluate():
+    stats_fpath = './data/spatial_intperp_series.csv'
     interp = Interpolator(root='./data/export/', target_date='20181221')
     dataset_path = os.listdir(p.join(interp.root, 'cloud'))
     print(f"Evaluating {len(dataset_path)} scenes")
@@ -328,14 +332,10 @@ def evaluate():
         cloud_perc = interp.add_occlusion(p.join(interp.root, 'cloud', f))
 
         try:
-            interp.spatial_interp()
+            # interp.spatial_interp()
+            interp.fill_average()
         except ValueError:
             pass
-
-        if 0 < cloud_perc < .02:  # FIXME: remove this
-            print(f)
-            interp.display_target(mode='error')
-
         mae = interp.calc_loss(print_=False, metric='mae')
         mse = interp.calc_loss(print_=False, metric='mse')
         print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
@@ -343,10 +343,10 @@ def evaluate():
         maes.append(mae)
         mses.append(mse)
 
-    print("=================")
-    print('cloud coverages = ', cloud_percs)
-    print('MAEs = ', maes)
-    print('MSEs = ', mses)
+    d = {'cloud_perc': cloud_percs, 'MAE': maes, 'MSE': mses}
+    df = pd.DataFrame(data=d)
+    df.to_csv(stats_fpath)
+    print("CSV file saved to ", stats_fpath)
 
 
 def main():
@@ -354,7 +354,7 @@ def main():
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
     fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
     interp.add_occlusion(fpath)
-    interp.fill_average()
+    # interp.fill_average()
     # interp.display_target(mode='occluded')
     # interp.calc_loss(print_=True)
     # t = interp.calc_avg_temp_for_class(c=11)
@@ -367,12 +367,12 @@ def main():
     # interp.reconstructed_target = mean_img
     interp.calc_loss(print_=True, metric='mae')
     interp.calc_loss(print_=True, metric='mse')
-    # interp.spatial_interp()
+    interp.spatial_interp()
     # interp.calc_loss(print_=True)
     interp.display_target(mode='error')
     interp.display_target(mode='reconst')
 
 
 if __name__ == '__main__':
-    # main()
-    evaluate()
+    main()
+    # evaluate()

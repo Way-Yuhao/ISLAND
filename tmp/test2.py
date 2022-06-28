@@ -9,6 +9,8 @@ def main():
     d = {'col1': a, 'col2': b}
     df = pd.DataFrame(data=d)
     print(df)
-    df.to_csv
+    df.to_csv("file.csv")
+
+
 if __name__ == '__main__':
     main()
