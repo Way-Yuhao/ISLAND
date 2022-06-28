@@ -58,8 +58,11 @@ class Interpolator(abc.ABC):
         self.target_valid_mask[self.target < 0] = False
         self.target[self.target < 0] = 0  # overwrite np.nan or -inf with 0
 
-
     def get_nlcd(self):
+        """
+        Load a pre-aligned NLCD landcover map corresponding to a target LANDSAT temperature map
+        :return:
+        """
         nlcd = cv2.imread(p.join(self.root, 'nlcd_houston_20180103.tif'), -1)
         nlcd_rgb = cv2.imread(p.join(self.root, 'nlcd_houston_color.tif'), -1)
         nlcd_rgb = cv2.cvtColor(nlcd_rgb, cv2.COLOR_BGR2RGB)
@@ -67,7 +70,7 @@ class Interpolator(abc.ABC):
 
     def _clean(self, img):
         """
-        replace pixel values with 0 for all locations where valid mask is False
+        Replace pixel values with 0 for all locations where valid mask is False
         :param img:
         :return:
         """
@@ -80,6 +83,14 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = None
 
     def display_target(self, mode=None, img=None, text=None):
+        """
+        Displays a plot via matplotlib for the desired matrix
+        :param mode:
+        :param img:
+        :param text:
+        :return:
+        """
+
         if mode == 'gt':
             img = self.target
             msg = 'Ground Truth'
@@ -124,19 +135,19 @@ class Interpolator(abc.ABC):
         return 0
 
     def add_occlusion(self, fpath):
-        # sample a random cloud mask
-        # self.synthetic_occlusion = cv2.imread(p.join(self.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif'), -1)
-        # self.synthetic_occlusion = cv2.imread(p.join(self.root, 'cloud', 'LC08_cloud_houston_20190106.tif'), -1)
-        # self.synthetic_occlusion = cv2.imread(p.join(self.root, 'cloud', 'LC08_cloud_houston_20200125.tif'), -1)
-        # self.synthetic_occlusion = cv2.imread(p.join(self.root, 'cloud', 'LC08_cloud_houston_20200226.tif'), -1)
-        # self.synthetic_occlusion = cv2.imread(p.join(self.root, 'cloud', 'LC08_cloud_houston_20190311.tif'), -1)
-
+        """
+        Adds synthetic occlusion according to a bitmap. The occluded region will have pixel values of 0
+        :param fpath: path to the occlusion bitmap file. A synthetic occlusion bitmask will be generated,
+        where occluded regions will have pixel values of True (1).
+        :return: fractions of pixels being occluded
+        """
         assert p.exists(fpath)
         self.synthetic_occlusion = cv2.imread(fpath, -1)
+        self.synthetic_occlusion = np.array(self.synthetic_occlusion, dtype=np.bool_)  # wrap in binary form
         assert (self.synthetic_occlusion is not None)
 
         self.occluded_target = self.target.copy()
-        self.occluded_target[self.synthetic_occlusion != 0] = 0
+        self.occluded_target[self.synthetic_occlusion] = 0
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         # print(f"{occlusion_percentage:.3%} of pixels added arbitrary occlusion")
@@ -166,6 +177,22 @@ class Interpolator(abc.ABC):
         if print_:
             print(f'{metric} loss = {loss:.3f}')
         return loss
+
+    def fill_average(self):
+        """
+        Naive baseline interpolator. Simply fills in occluded regions with the global average
+        :return:
+        """
+        assert self.occluded_target is not None
+        input_bitmask = np.array(~self.synthetic_occlusion, dtype=np.bool_)
+        input_bitmask[~self.target_valid_mask] = False
+        avg = np.average(self.occluded_target[input_bitmask])
+        if self.reconstructed_target is None:
+            self.reconstructed_target = self.occluded_target.copy()
+            self.reconstructed_target[self.synthetic_occlusion] = avg
+            print(f"Using baseline average interpolator, with avg = {avg:.2f}")
+        else:
+            raise AttributeError("Reconstruction target already exists")
 
     def run_interpolation(self):
         self.spatial_interp()
@@ -327,6 +354,7 @@ def main():
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
     fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
     interp.add_occlusion(fpath)
+    interp.fill_average()
     # interp.display_target(mode='occluded')
     # interp.calc_loss(print_=True)
     # t = interp.calc_avg_temp_for_class(c=11)
@@ -337,9 +365,10 @@ def main():
     # mean = np.mean(interp.target)
     # mean_img = np.ones_like(interp.target) * mean
     # interp.reconstructed_target = mean_img
+    interp.calc_loss(print_=True, metric='mae')
     interp.calc_loss(print_=True, metric='mse')
-    interp.spatial_interp()
-    interp.calc_loss(print_=True)
+    # interp.spatial_interp()
+    # interp.calc_loss(print_=True)
     interp.display_target(mode='error')
     interp.display_target(mode='reconst')
 
