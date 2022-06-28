@@ -316,7 +316,6 @@ def evaluate():
         maes.append(mae)
         mses.append(mse)
 
-
     print("=================")
     print('cloud coverages = ', cloud_percs)
     print('MAEs = ', maes)
@@ -347,4 +346,4 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    evaluate()  # hi, yoo
+    evaluate()
