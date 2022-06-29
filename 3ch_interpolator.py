@@ -1,7 +1,8 @@
 """
 Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
 """
-
+import time
+import datetime
 import os
 import os.path as p
 import numpy as np
@@ -187,14 +188,13 @@ class Interpolator(abc.ABC):
         assert self.occluded_target is not None
         input_bitmask = np.array(~self.synthetic_occlusion, dtype=np.bool_)
         input_bitmask[~self.target_valid_mask] = False
-        avg = np.average(self.occluded_target[input_bitmask])
-        if self.reconstructed_target is None:
+        if np.any(input_bitmask):
+            avg = np.average(self.occluded_target[input_bitmask])
             self.reconstructed_target = self.occluded_target.copy()
             self.reconstructed_target[self.synthetic_occlusion] = avg
             print(f"Using baseline average interpolator, with avg = {avg:.2f}")
         else:
-            # raise AttributeError("Reconstruction target already exists")
-            pass  # might need this
+            print('ERROR: 100% of input is occluded. No average temperature can be determined.')
 
     def run_interpolation(self):
         self.spatial_interp()
@@ -235,12 +235,16 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = self.occluded_target
         x_length, y_length = self.occluded_target.shape
 
-        temp_class_c = {}
+        temp_class_c = {}  # temperature map for each class
+        # average temperature for all pixels under each class
+        avg_temp = {}
         for c, _ in NLCD_2019_META['lut'].items():
             c = int(c)
             cur = self.occluded_target.copy()
             cur[self.nlcd != c] = 0  # remove other classes
             temp_class_c[c] = cur
+            px_counts = np.count_nonzero(temp_class_c[c])
+            avg_temp[c] = np.sum(temp_class_c[c]) / px_counts if px_counts != 0 else None
 
         print("processing missing pixels...")
         no_local_data_counter = 0
@@ -252,14 +256,14 @@ class Interpolator(abc.ABC):
             x_left, x_right = max(0, x - f), min(x_length - 1, x + f)
             y_left, y_right = max(0, y - f), min(y_length - 1, y + f)
             local_region = temp_class_c[c][x_left: x_right + 1, y_left: y_right + 1]
-            if np.any(local_region):  # data available in local region
+            local_region_bin = np.array(local_region, dtype=np.bool_)
+            if np.any(local_region_bin):  # data available in local region
                 kernel = gkern(canvas=local_region.shape, center=(x - x_left, y - y_left), sig=f / 2)
-                kernel[local_region == 0] = 0
+                kernel[~local_region_bin] = 0
                 est_temp = np.sum(local_region * kernel) / np.sum(kernel)
                 self.reconstructed_target[x, y] = est_temp
             else:  # data unavailable in local region
-                est_temp = np.sum(temp_class_c[c]) / np.count_nonzero(temp_class_c[c])
-                self.reconstructed_target[x, y] = est_temp
+                self.reconstructed_target[x, y] = avg_temp[c]
                 no_local_data_counter += 1
             pbar.update()
         pbar.close()
@@ -321,6 +325,7 @@ class Interpolator(abc.ABC):
 
 
 def evaluate():
+    start_time = time.monotonic()
     stats_fpath = './data/spatial_intperp_series.csv'
     interp = Interpolator(root='./data/export/', target_date='20181221')
     dataset_path = os.listdir(p.join(interp.root, 'cloud'))
@@ -343,16 +348,20 @@ def evaluate():
         maes.append(mae)
         mses.append(mse)
 
+    print('---------------------------------')
     d = {'cloud_perc': cloud_percs, 'MAE': maes, 'MSE': mses}
     df = pd.DataFrame(data=d)
     df.to_csv(stats_fpath)
     print("CSV file saved to ", stats_fpath)
+    stop_time = time.monotonic()
+    print('Processing time = ', datetime.timedelta(seconds=stop_time - start_time))
 
 
 def main():
     interp = Interpolator(root='./data/export/', target_date='20181221')
+    # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20181018.tif')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
-    fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
+    fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190311.tif')
     interp.add_occlusion(fpath)
     # interp.fill_average()
     # interp.display_target(mode='occluded')
@@ -365,14 +374,15 @@ def main():
     # mean = np.mean(interp.target)
     # mean_img = np.ones_like(interp.target) * mean
     # interp.reconstructed_target = mean_img
-    interp.calc_loss(print_=True, metric='mae')
-    interp.calc_loss(print_=True, metric='mse')
+    # interp.calc_loss(print_=True, metric='mae')
+    # interp.calc_loss(print_=True, metric='mse')
+
     interp.spatial_interp()
-    # interp.calc_loss(print_=True)
+    interp.calc_loss(print_=True)
     interp.display_target(mode='error')
     interp.display_target(mode='reconst')
 
 
 if __name__ == '__main__':
-    main()
-    # evaluate()
+    # main()
+    evaluate()
