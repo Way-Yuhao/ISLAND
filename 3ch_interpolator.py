@@ -117,7 +117,7 @@ class Interpolator(abc.ABC):
             msg = 'Custom'
         else:
             raise AttributeError('Unknown display mode. Choose among {gt, occluded, reconst}')
-        matplotlib.use('macosx')
+        # matplotlib.use('macosx')
         if mode != 'error':
             min_ = img[img > 250].min()
             max_ = min(330, img.max())
