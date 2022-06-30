@@ -2,3 +2,5 @@
 /deprecated/
 /data/export/
 /data/old/
+.DS_Store
+**/.DS_Store

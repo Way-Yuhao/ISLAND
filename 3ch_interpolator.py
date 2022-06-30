@@ -5,6 +5,7 @@ import time
 import datetime
 import os
 import os.path as p
+from multiprocessing import Manager, Pool
 import numpy as np
 from tqdm import tqdm
 import abc
@@ -180,12 +181,17 @@ class Interpolator(abc.ABC):
             print(f'{metric} loss = {loss:.3f}')
         return loss
 
+    def clear_outputs(self):
+        self.reconstructed_target = None
+        return
+
     def fill_average(self):
         """
         Naive baseline interpolator. Simply fills in occluded regions with the global average
         :return:
         """
         assert self.occluded_target is not None
+        self.clear_outputs()
         input_bitmask = np.array(~self.synthetic_occlusion, dtype=np.bool_)
         input_bitmask[~self.target_valid_mask] = False
         if np.any(input_bitmask):
@@ -200,8 +206,8 @@ class Interpolator(abc.ABC):
         self.spatial_interp()
 
     def spatial_interp(self):
-        self._nlm_local()
-        # self._nlm_global()
+        # self._nlm_local()
+        self._nlm_global()
 
     def _nlm_global(self):
         print(f"SPATIAL FILTER: global filter")
@@ -324,6 +330,55 @@ class Interpolator(abc.ABC):
         plt.show()
 
 
+def evaluate_multiprocess(num_procs=4):
+    start_time = time.monotonic()
+    stats_fpath = './data/spatial_intperp_series_mp.csv'
+    interp = Interpolator(root='./data/export/', target_date='20181221')
+    dataset_path = os.listdir(p.join(interp.root, 'cloud'))
+    for f in dataset_path:  # clean up irrelevant input files
+        if f[-3:] != 'tif' or f[:4] == 'nlcd':
+            dataset_path.remove(f)
+    print(f"Evaluating {len(dataset_path)} scenes")
+
+    pool = Pool(num_procs)
+    manager = Manager()
+    lock = manager.Lock()
+    r = None  # return values
+    # empty lists, compatible with multi-processes
+    cloud_percs, maes, mses = manager.list(), manager.list(), manager.list()
+    for f in dataset_path:
+        relative_path = p.join(interp.root, 'cloud', f)
+        r = pool.apply_async(eval_single, args=(relative_path, lock, cloud_percs, maes, mses))
+    r.get()
+    pool.close()
+    pool.join()
+    print('---------------------------------')
+    d = {'cloud_perc': list(cloud_percs), 'MAE': list(maes), 'MSE': list(mses)}
+    df = pd.DataFrame(data=d)
+    df.to_csv(stats_fpath)
+    print("CSV file saved to ", stats_fpath)
+    stop_time = time.monotonic()
+    print('Processing time = ', datetime.timedelta(seconds=stop_time - start_time))
+
+
+def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
+    interp = Interpolator(root='./data/export/', target_date='20181221')
+    cloud_perc = interp.add_occlusion(occlusion_fpath)
+    try:
+        interp.fill_average()
+    except ValueError:
+        pass
+    mae = interp.calc_loss(print_=False, metric='mae')
+    mse = interp.calc_loss(print_=False, metric='mse')
+    print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
+    with lock:
+        cloud_percs.append(cloud_perc)
+        maes.append(mae)
+        mses.append(mse)
+    del interp
+    return
+
+
 def evaluate():
     start_time = time.monotonic()
     stats_fpath = './data/spatial_intperp_series.csv'
@@ -337,8 +392,8 @@ def evaluate():
         cloud_perc = interp.add_occlusion(p.join(interp.root, 'cloud', f))
 
         try:
-            # interp.spatial_interp()
-            interp.fill_average()
+            interp.spatial_interp()
+            # interp.fill_average()
         except ValueError:
             pass
         mae = interp.calc_loss(print_=False, metric='mae')
@@ -386,3 +441,4 @@ def main():
 if __name__ == '__main__':
     # main()
     evaluate()
+    # evaluate_multiprocess(num_procs=10)
