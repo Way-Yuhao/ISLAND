@@ -25,6 +25,8 @@ class Interpolator(abc.ABC):
         self.bt_path = p.join(root, 'bt_series')
         self.cloud_path = p.join(root, 'cloud')
         self.cloud_shadow_path = p.join(root, 'cloud_shadow')
+        self.output_path = p.join(root, 'output')
+        assert p.exists(self.output_path)
         self.target = None
         self.target_valid_mask = None  # true valid mask, constrained by data loss
         if target_date is not None:
@@ -32,6 +34,7 @@ class Interpolator(abc.ABC):
         self.target_date = target_date
         self.nlcd, self.nlcd_rgb = self.get_nlcd()
         self.synthetic_occlusion = None  # artificially introduced occlusion
+        self.occlusion_id = None  # id for synthetic occlusion
         self.occluded_target = None
         self.reconstructed_target = None
         self.anim = None  # matplotlib animation
@@ -154,6 +157,7 @@ class Interpolator(abc.ABC):
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         # print(f"{occlusion_percentage:.3%} of pixels added arbitrary occlusion")
+        self.occlusion_id = fpath[-12:-4]
         return occlusion_percentage
 
     def calc_loss(self, metric='mae', print_=False):
@@ -185,9 +189,22 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = None
         return
 
+    def save_output(self):
+        if self.reconstructed_target is None:
+            raise ValueError('Reconstruction result does not exist. Cannot save image output')
+        else:
+            # save PNG
+            output_filename = f'r_{self.target_date}_{self.occlusion_id}'
+            cv2.imwrite(p.join(self.output_path, output_filename), self.reconstructed_target)
+            print(f'{output_filename} saved to {self.output_path}')
+
+        # implement saving pyplot?
+        return
+
     def fill_average(self):
         """
-        Naive baseline interpolator. Simply fills in occluded regions with the global average
+        Naive baseline interpolator. This is a class-agnostic interpolator, with global rectangular filter.
+        Simply fills in occluded regions with the global average
         :return:
         """
         assert self.occluded_target is not None
@@ -206,10 +223,15 @@ class Interpolator(abc.ABC):
         self.spatial_interp()
 
     def spatial_interp(self):
-        # self._nlm_local()
-        self._nlm_global()
+        self._nlm_local()
+        # self._nlm_global()
 
     def _nlm_global(self):
+        """
+        spatial channel, global rectangular filter. May throw Value Error when there does not exist any
+        replacement candidate for some class in the entire canvas.
+        :return:
+        """
         print(f"SPATIAL FILTER: global filter")
         self.reconstructed_target = self.occluded_target
         for c, _ in NLCD_2019_META['lut'].items():
@@ -237,6 +259,11 @@ class Interpolator(abc.ABC):
             # self.display_target(mode='reconst')
 
     def _nlm_local(self, f=100):
+        """
+        spatial channel, local gaussian filter with kernel size of f
+        :param f: kernel size, in pixels
+        :return:
+        """
         print(f"SPATIAL FILTER: local gaussian filter with f={f}")
         self.reconstructed_target = self.occluded_target
         x_length, y_length = self.occluded_target.shape
@@ -365,7 +392,8 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     interp = Interpolator(root='./data/export/', target_date='20181221')
     cloud_perc = interp.add_occlusion(occlusion_fpath)
     try:
-        interp.fill_average()
+        # interp.fill_average()
+        interp.spatial_interp()
     except ValueError:
         pass
     mae = interp.calc_loss(print_=False, metric='mae')
@@ -440,5 +468,5 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    evaluate()
-    # evaluate_multiprocess(num_procs=10)
+    # evaluate()
+    evaluate_multiprocess(num_procs=10)
