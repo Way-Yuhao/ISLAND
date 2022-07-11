@@ -419,7 +419,7 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     mse = interp.calc_loss(print_=False, metric='mse')
     print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
     interp.save_output()
-    with lock:
+    with lock:  # to ensure atomic IO operations
         cloud_percs.append(cloud_perc)
         maes.append(mae)
         mses.append(mse)
