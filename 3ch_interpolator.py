@@ -21,14 +21,14 @@ from util.filters import *
 class Interpolator(abc.ABC):
 
     def __init__(self, root, target_date=None):
-        self.root = root
+        self.root = root  # root directory
         self.bt_path = p.join(root, 'bt_series')
         self.cloud_path = p.join(root, 'cloud')
         self.cloud_shadow_path = p.join(root, 'cloud_shadow')
         self.output_path = p.join(root, 'output')
         if not p.exists(self.output_path):
             os.mkdir(self.output_path)
-        self.target = None
+        self.target = None  # ground truth image, without synthetic occlusion
         self.target_valid_mask = None  # true valid mask, constrained by data loss
         if target_date is not None:
             self.get_target(target_date)
@@ -203,18 +203,17 @@ class Interpolator(abc.ABC):
             img = self.reconstructed_target
             # save numpy array
             output_filename = f'r_{self.target_date}_{self.occlusion_id}'
-            np.save(p.join(self.output_path, output_filename))  # float32 recommended. float16 only saves 1 decimal
+            np.save(p.join(self.output_path, output_filename), img)  # float32 recommended. float16 only saves 1 decimal
 
             # save pyplot
-            max_delta = max(img.max(), -img.min())
-            max_ = max_delta
-            min_ = -max_delta
-            cmap_ = 'seismic'
+            min_ = img[img > 250].min()
+            max_ = min(330, img.max())
+            cmap_ = 'magma'
             plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
             plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
             plt.colorbar(label='BT(Kelvin)')
             output_filename = f'r_{self.target_date}_{self.occlusion_id}.png'
-            plt.savefig(p.join(self.output_path, output_filename), img)
+            plt.savefig(p.join(self.output_path, output_filename))
             print('Pyplot vis saved to ', output_filename)
             plt.close()
         return
@@ -413,12 +412,14 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     try:
         # interp.fill_average()
         interp.spatial_interp(f=100)
+
+        mae = interp.calc_loss(print_=False, metric='mae')
+        mse = interp.calc_loss(print_=False, metric='mse')
+        print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
+        interp.save_output()
     except ValueError:
         pass
-    mae = interp.calc_loss(print_=False, metric='mae')
-    mse = interp.calc_loss(print_=False, metric='mse')
-    print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
-    interp.save_output()
+
     with lock:  # to ensure atomic IO operations
         cloud_percs.append(cloud_perc)
         maes.append(mae)
