@@ -191,6 +191,12 @@ class Interpolator(abc.ABC):
         return
 
     def save_output(self):
+        """
+        Saves a NumPy array (unscaled) and a PyPlot (scaled for visualization) file for reconstruction
+        result. Requires reconstruction result to exist.
+        :return: None
+        """
+
         if self.reconstructed_target is None:
             raise ValueError('Reconstruction result does not exist. Cannot save image output')
         else:
