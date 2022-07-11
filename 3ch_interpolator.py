@@ -398,6 +398,7 @@ def evaluate_multiprocess(num_procs=4):
     pool.close()
     pool.join()
     print('---------------------------------')
+    print(print(f"{bcolors.WARNING}May have encountered error. Scroll up to view."))
     d = {'cloud_perc': list(cloud_percs), 'MAE': list(maes), 'MSE': list(mses)}
     df = pd.DataFrame(data=d)
     df.to_csv(stats_fpath)
@@ -417,8 +418,8 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
         mse = interp.calc_loss(print_=False, metric='mse')
         print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
         interp.save_output()
-    except ValueError:
-        pass
+    except ValueError as e:
+        print(f"{bcolors.FAIL}ERROR: {e}{bcolors.ENDC}")
 
     with lock:  # to ensure atomic IO operations
         cloud_percs.append(cloud_perc)
