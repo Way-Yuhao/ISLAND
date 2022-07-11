@@ -1,19 +1,12 @@
 """
 Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
 """
-import time
-import datetime
 import os
 import os.path as p
-from multiprocessing import Manager, Pool
-import numpy as np
 from tqdm import tqdm
 import abc
 import cv2
-import matplotlib
 from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
-import pandas as pd
 from config import *
 from util.filters import *
 
@@ -58,7 +51,7 @@ class Interpolator(abc.ABC):
             raise FileNotFoundError(f'Target date {target_date} does not exist in {parent_dir}')
         else:
             raise FileExistsError(
-                f'Multiple ({len(target_file)})files found for target date {target_date} in {parent_dir}')
+                f'Multiple ({len(target_file)}) files found for target date {target_date} in {parent_dir}')
 
         # clean up target (invalid pixels due to registration)
         self.target_valid_mask = np.ones_like(self.target, dtype=np.bool_)
@@ -322,7 +315,9 @@ class Interpolator(abc.ABC):
               f'used global calculations')
 
     def temporal_interp(self):
-        raise NotImplementedError
+        # load one image from the past
+
+        return
 
     def heat_cluster_interp(self):
         raise NotImplementedError
@@ -373,123 +368,3 @@ class Interpolator(abc.ABC):
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
         plt.tight_layout()
         plt.show()
-
-
-def evaluate_multiprocess(num_procs=4):
-    start_time = time.monotonic()
-    stats_fpath = './data/spatial_intperp_series_mp.csv'
-    interp = Interpolator(root='./data/export/', target_date='20181221')
-    dataset_path = os.listdir(p.join(interp.root, 'cloud'))
-    for f in dataset_path:  # clean up irrelevant input files
-        if f[-3:] != 'tif' or f[:4] == 'nlcd':
-            dataset_path.remove(f)
-    print(f"Evaluating {len(dataset_path)} scenes")
-
-    pool = Pool(num_procs)
-    manager = Manager()
-    lock = manager.Lock()
-    r = None  # return values
-    # empty lists, compatible with multi-processes
-    cloud_percs, maes, mses = manager.list(), manager.list(), manager.list()
-    for f in dataset_path:
-        relative_path = p.join(interp.root, 'cloud', f)
-        r = pool.apply_async(eval_single, args=(relative_path, lock, cloud_percs, maes, mses))
-    r.get()
-    pool.close()
-    pool.join()
-    print('---------------------------------')
-    print(print(f"{bcolors.WARNING}May have encountered error. Scroll up to view."))
-    d = {'cloud_perc': list(cloud_percs), 'MAE': list(maes), 'MSE': list(mses)}
-    df = pd.DataFrame(data=d)
-    df.to_csv(stats_fpath)
-    print("CSV file saved to ", stats_fpath)
-    stop_time = time.monotonic()
-    print('Processing time = ', datetime.timedelta(seconds=stop_time - start_time))
-
-
-def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
-    interp = Interpolator(root='./data/export/', target_date='20181221')
-    cloud_perc = interp.add_occlusion(occlusion_fpath)
-    try:
-        # interp.fill_average()
-        interp.spatial_interp(f=100)
-
-        mae = interp.calc_loss(print_=False, metric='mae')
-        mse = interp.calc_loss(print_=False, metric='mse')
-        print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
-        interp.save_output()
-    except ValueError as e:
-        print(f"{bcolors.FAIL}ERROR: {e}{bcolors.ENDC}")
-
-    with lock:  # to ensure atomic IO operations
-        cloud_percs.append(cloud_perc)
-        maes.append(mae)
-        mses.append(mse)
-    del interp
-    return
-
-
-def evaluate():
-    start_time = time.monotonic()
-    stats_fpath = './data/spatial_intperp_series.csv'
-    interp = Interpolator(root='./data/export/', target_date='20181221')
-    dataset_path = os.listdir(p.join(interp.root, 'cloud'))
-    print(f"Evaluating {len(dataset_path)} scenes")
-    cloud_percs, maes, mses = [], [], []
-    for f in dataset_path:
-        if f[-3:] != 'tif' or f[:4] == 'nlcd':
-            continue
-        cloud_perc = interp.add_occlusion(p.join(interp.root, 'cloud', f))
-
-        try:
-            interp.spatial_interp(f=100)
-            # interp.fill_average()
-        except ValueError:
-            pass
-        mae = interp.calc_loss(print_=False, metric='mae')
-        mse = interp.calc_loss(print_=False, metric='mse')
-        print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
-        cloud_percs.append(cloud_perc)
-        interp.save_output()
-        maes.append(mae)
-        mses.append(mse)
-
-    print('---------------------------------')
-    d = {'cloud_perc': cloud_percs, 'MAE': maes, 'MSE': mses}
-    df = pd.DataFrame(data=d)
-    df.to_csv(stats_fpath)
-    print("CSV file saved to ", stats_fpath)
-    stop_time = time.monotonic()
-    print('Processing time = ', datetime.timedelta(seconds=stop_time - start_time))
-
-
-def main():
-    interp = Interpolator(root='./data/export/', target_date='20181221')
-    # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20181018.tif')
-    # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
-    fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190311.tif')
-    interp.add_occlusion(fpath)
-    # interp.fill_average()
-    # interp.display_target(mode='occluded')
-    # interp.calc_loss(print_=True)
-    # t = interp.calc_avg_temp_for_class(c=11)
-    # print(t)
-    # interp.calc_temp_per_class()
-    # interp.plot_scatter_class()
-
-    # mean = np.mean(interp.target)
-    # mean_img = np.ones_like(interp.target) * mean
-    # interp.reconstructed_target = mean_img
-    # interp.calc_loss(print_=True, metric='mae')
-    # interp.calc_loss(print_=True, metric='mse')
-
-    interp.spatial_interp()
-    interp.calc_loss(print_=True)
-    interp.display_target(mode='error')
-    interp.display_target(mode='reconst')
-
-
-if __name__ == '__main__':
-    # main()
-    # evaluate()
-    evaluate_multiprocess(num_procs=10)
