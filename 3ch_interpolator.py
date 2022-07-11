@@ -26,7 +26,8 @@ class Interpolator(abc.ABC):
         self.cloud_path = p.join(root, 'cloud')
         self.cloud_shadow_path = p.join(root, 'cloud_shadow')
         self.output_path = p.join(root, 'output')
-        assert p.exists(self.output_path)
+        if not p.exists(self.output_path):
+            os.mkdir(self.output_path)
         self.target = None
         self.target_valid_mask = None  # true valid mask, constrained by data loss
         if target_date is not None:
@@ -193,12 +194,23 @@ class Interpolator(abc.ABC):
         if self.reconstructed_target is None:
             raise ValueError('Reconstruction result does not exist. Cannot save image output')
         else:
-            # save PNG
+            img = self.reconstructed_target
+            # save numpy array
             output_filename = f'r_{self.target_date}_{self.occlusion_id}'
-            cv2.imwrite(p.join(self.output_path, output_filename), self.reconstructed_target)
-            print(f'{output_filename} saved to {self.output_path}')
+            np.save(p.join(self.output_path, output_filename))  # float32 recommended. float16 only saves 1 decimal
 
-        # implement saving pyplot?
+            # save pyplot
+            max_delta = max(img.max(), -img.min())
+            max_ = max_delta
+            min_ = -max_delta
+            cmap_ = 'seismic'
+            plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
+            plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
+            plt.colorbar(label='BT(Kelvin)')
+            output_filename = f'r_{self.target_date}_{self.occlusion_id}.png'
+            plt.savefig(p.join(self.output_path, output_filename), img)
+            print('Pyplot vis saved to ', output_filename)
+            plt.close()
         return
 
     def fill_average(self):
@@ -222,8 +234,8 @@ class Interpolator(abc.ABC):
     def run_interpolation(self):
         self.spatial_interp()
 
-    def spatial_interp(self):
-        self._nlm_local()
+    def spatial_interp(self, f=None):
+        self._nlm_local(f)
         # self._nlm_global()
 
     def _nlm_global(self):
@@ -264,6 +276,7 @@ class Interpolator(abc.ABC):
         :param f: kernel size, in pixels
         :return:
         """
+        assert f is not None, "filter size cannot be None"
         print(f"SPATIAL FILTER: local gaussian filter with f={f}")
         self.reconstructed_target = self.occluded_target
         x_length, y_length = self.occluded_target.shape
@@ -393,12 +406,13 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     cloud_perc = interp.add_occlusion(occlusion_fpath)
     try:
         # interp.fill_average()
-        interp.spatial_interp()
+        interp.spatial_interp(f=100)
     except ValueError:
         pass
     mae = interp.calc_loss(print_=False, metric='mae')
     mse = interp.calc_loss(print_=False, metric='mse')
     print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
+    interp.save_output()
     with lock:
         cloud_percs.append(cloud_perc)
         maes.append(mae)
@@ -420,7 +434,7 @@ def evaluate():
         cloud_perc = interp.add_occlusion(p.join(interp.root, 'cloud', f))
 
         try:
-            interp.spatial_interp()
+            interp.spatial_interp(f=100)
             # interp.fill_average()
         except ValueError:
             pass
@@ -428,6 +442,7 @@ def evaluate():
         mse = interp.calc_loss(print_=False, metric='mse')
         print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
         cloud_percs.append(cloud_perc)
+        interp.save_output()
         maes.append(mae)
         mses.append(mse)
 

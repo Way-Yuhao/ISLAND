@@ -8,8 +8,9 @@ import numpy as np
 
 
 def main():
-    str = 'LC08_cirrus_houston_20190311.tif'
-    print(str[-12:-4])
+    path = '../data/export/output/r_20181221_20191106.png.npy'
+    a = np.load(path)
+    print(a)
 
 
 if __name__ == '__main__':

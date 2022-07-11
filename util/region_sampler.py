@@ -314,6 +314,12 @@ def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary
 
 
 def resaves_bt_png(source, dest):
+    """
+    Saves a scaled visualization of bt and outputs16-bit PNG files.
+    :param source:
+    :param dest:
+    :return:
+    """
     low, high = 290, 320  # arbitrarily define low and high in kelvin
     assert os.path.exists(source), "ERROR: source directory does not exist"
     if not os.path.exists(dest):
