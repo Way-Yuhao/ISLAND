@@ -91,25 +91,25 @@ class Interpolator(abc.ABC):
         :return:
         """
 
-        if mode == 'gt':
+        if mode == 'gt' and img is None:
             img = self.target
             msg = 'Ground Truth'
-        elif mode == 'occluded':
+        elif mode == 'occluded' and img is None:
             img = self.occluded_target
-            assert self.occluded_target is not None
+            assert self.occluded_target is None
             msg = 'Occluded'
-        elif mode == 'reconst':
+        elif mode == 'reconst' and img is None:
             img = self.reconstructed_target
             assert self.reconstructed_target is not None
             msg = 'Reconstructed'
-        elif mode == 'error':
+        elif mode == 'error' and img is None:
             if self.reconstructed_target is None:
                 img = self._clean(self.occluded_target - self.target)
                 msg = 'Error (occluded)'
             else:
                 img = self._clean(self.reconstructed_target - self.target)
                 msg = 'Error (reconstructed)'
-        elif mode is None and img is not None:
+        elif img is not None:  # img to display is included in args
             if img.max() == img.min():
                 print('Empty image invoked to display. Skipped.')
                 return -1
