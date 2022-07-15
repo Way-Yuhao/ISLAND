@@ -7,8 +7,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd
+from tqdm import tqdm
 from interpolator import Interpolator
 from config import *
+from util.helper import deprecated
+import textwrap
 
 
 def plot_means_trend():
@@ -98,31 +101,30 @@ def swarm_per_pixel_diff():
     interp_1 = Interpolator(root='./data/export/', target_date='20181205')
     interp_2 = Interpolator(root='./data/export/', target_date='20181221')
     diff_img = interp_2.target - interp_1.target
-    plt.figure(figsize=(10, 5))
-    # sns.set(style='darkgrid')
+    df = pd.DataFrame({'class': [], 'bt': []})
+    palette = []
+    plt.figure(figsize=(15, 5))
+    sns.set(style='whitegrid')
     i = 0
-    for c, _ in NLCD_2019_META['lut'].items():
+    for c, _ in tqdm(NLCD_2019_META['lut'].items()):
         c = int(c)
         temp_for_c = diff_img.copy()
         temp_for_c[interp_1.nlcd != c] = 0
-        dp = temp_for_c[np.where(temp_for_c != 0)]
-        dp = dp[(dp > -100) & (dp < 100)]
+        dp = temp_for_c[np.where(temp_for_c != 0)]  # filter out pixels outside of current class
         # filter out invalid pixels (delta greater than 100 Kelvin)
+        dp = dp[(dp > -100) & (dp < 100)]
 
         if len(dp > 0):
-            x = np.ones_like(dp) * i
-            y_mean = np.average(dp)
-            y_std = np.std(dp)
-            plt.scatter(x=x, y=dp, s=3, c='#' + NLCD_2019_META['lut'][str(c)],
-                        label=NLCD_2019_META['class_names'][str(c)])
-            plt.errorbar(x=i, y=y_mean, yerr=y_std, fmt='.', color='black', capsize=3)
-            i += 1
+            x = len(dp) * [NLCD_2019_META['class_names'][str(c)]]
+            new_df = pd.DataFrame({'class': x, 'bt': dp})
+            df = pd.concat([df, new_df], ignore_index=True)
+            palette += ['#' + NLCD_2019_META['lut'][str(c)]]
+        i += 1
+    ax = sns.violinplot(x='class', y='bt', data=df, palette=palette)
+    ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
     plt.xlabel('NLCD Landcover Class')
     plt.ylabel('Brightness Temperature (K)')
-    # plt.ylim(-10, 10)
-    plt.xticks([])
     plt.title('Pixel-wise BT difference between two dates')
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
     plt.tight_layout()
     plt.show()
 
@@ -174,8 +176,8 @@ def disp_per_pixel_diff():
 
 
 def main():
-    # interp = Interpolator(root='./data/export/', target_date='20181221')
-    interp = Interpolator(root='./data/export/', target_date='20181205')
+    interp = Interpolator(root='./data/export/', target_date='20181221')
+    # interp = Interpolator(root='./data/export/', target_date='20181205')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20181018.tif')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190311.tif')
@@ -187,7 +189,7 @@ def main():
     # t = interp.calc_avg_temp_for_class(c=11)
     # print(t)
     # interp.calc_temp_per_class()
-    # interp.plot_scatter_class()
+    interp.plot_violins()
 
     # mean = np.mean(interp.target)
     # mean_img = np.ones_like(interp.target) * mean
@@ -202,7 +204,7 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     # plot_means_trend()
-    plot_per_pixel_diff()
+    # swarm_per_pixel_diff()
     # hist_per_pixel_diff()

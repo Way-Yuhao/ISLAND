@@ -3,12 +3,17 @@ Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
 """
 import os
 import os.path as p
+
+import pandas as pd
 from tqdm import tqdm
 import abc
 import cv2
 from matplotlib import pyplot as plt
+import seaborn as sns
+import textwrap
 from config import *
 from util.filters import *
+from util.helper import deprecated
 
 
 class Interpolator(abc.ABC):
@@ -345,6 +350,7 @@ class Interpolator(abc.ABC):
             t, p_count = self.calc_avg_temp_for_class(c=int(c))
             print(f'cLass {c} | average temp = {t:.2f} | freq = {p_count * 100 / overall_p_count: .2f}%')
 
+    @deprecated
     def plot_scatter_class(self):
         plt.figure(figsize=(10, 5))
         i = 0
@@ -366,5 +372,30 @@ class Interpolator(abc.ABC):
         plt.xticks([])
         plt.title('Distribution of Brightness Temperature per Landcover Class')
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_violins(self):
+        plt.figure(figsize=(15, 5))
+        sns.set(style='whitegrid')
+        df = pd.DataFrame({'class': [], 'bt': []})
+        palette = []
+        i = 0
+        for c, _ in NLCD_2019_META['lut'].items():
+            c = int(c)
+            temp_for_c = self.target.copy()
+            temp_for_c[self.nlcd != c] = 0
+            dp = temp_for_c[np.where(temp_for_c != 0)]
+            if len(dp > 0):
+                x = len(dp) * [NLCD_2019_META['class_names'][str(c)]]
+                new_df = pd.DataFrame({'class': x, 'bt': dp})
+                df = pd.concat([df, new_df], ignore_index=True)
+                palette += ['#' + NLCD_2019_META['lut'][str(c)]]
+            i += 1
+        ax = sns.violinplot(x='class', y='bt', data=df, palette=palette)
+        ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
+        plt.xlabel('NLCD Landcover Class')
+        plt.ylabel('Brightness Temperature (K)')
+        plt.title('Distribution of Brightness Temperature per Landcover Class')
         plt.tight_layout()
         plt.show()

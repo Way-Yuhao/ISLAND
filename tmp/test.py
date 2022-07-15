@@ -1,17 +1,15 @@
-from config import *
-import torch
-import torch.nn as nn
-import argparse
-import re
-from models.model import DeepLabV3PlusRGB
 import numpy as np
-import mss
+import seaborn as sns
+from matplotlib import pyplot as plt
+import pandas as pd
+from util.helper import deprecated
 
 
+@deprecated
 def main():
-    path = '../data/export/output/r_20181221_20191106.png.npy'
-    a = np.load(path)
-    print(a)
+   x = ['hi']
+   y = x * 5
+   print(y)
 
 
 if __name__ == '__main__':
