@@ -28,9 +28,8 @@ class Interpolator(abc.ABC):
             os.mkdir(self.output_path)
         self.target = None  # ground truth image, without synthetic occlusion
         self.target_valid_mask = None  # true valid mask, constrained by data loss
-        if target_date is not None:
-            self.get_target(target_date)
         self.target_date = target_date
+        self.get_target(target_date)
         self.nlcd, self.nlcd_rgb = self.get_nlcd()
         self.synthetic_occlusion = None  # artificially introduced occlusion
         self.occlusion_id = None  # id for synthetic occlusion
@@ -39,16 +38,23 @@ class Interpolator(abc.ABC):
         self._num_classes = len(NLCD_2019_META['lut'].items())  # number of NLCD classes, including those absent
         return
 
-    def _get_frame(self, target_date):
+    def get_frame(self, target_date, mode='bt'):
         """
-        Loads a BT map corresponding to a specified date.
+        Loads an image corresponding to a specified date.
         :param target_date:
         :return: ndarray for the target bt image
         """
-        parent_dir = p.join(self.root, 'bt_series')
-        bt_files = os.listdir(parent_dir)
-
-        target_file = [f for f in bt_files if target_date in f and 'nlcd' not in f]
+        if mode in ['bt', 'bt_series']:
+            mode = 'bt_series'
+        elif mode == 'cloud':
+            pass
+        elif mode == 'shadow':
+            pass
+        else:
+            raise ValueError(f'Unexpected mode encountered. Got {mode}')
+        parent_dir = p.join(self.root, mode)
+        img_files = os.listdir(parent_dir)
+        target_file = [f for f in img_files if target_date in f and 'nlcd' not in f]
         if len(target_file) == 1:
             target = cv2.imread(p.join(parent_dir, target_file[0]), -1)
         elif len(target_file) == 0:
@@ -56,14 +62,12 @@ class Interpolator(abc.ABC):
         else:
             raise FileExistsError(
                 f'Multiple ({len(target_file)}) files found for target date {target_date} in {parent_dir}')
-
         # clean up
         target[np.isnan(target)] = -1
         target[np.isinf(target)] = -1
         if np.any(target == -1):
             print(f"{bcolors.WARNING}{target_file} contains np.nan or np.NIF, which has been converted to -1"
                   f"{bcolors.ENDC}")
-
         return target
 
     def get_target(self, target_date):
@@ -74,11 +78,33 @@ class Interpolator(abc.ABC):
         :param target_date:
         :return:
         """
-        self.target = self._get_frame(target_date=target_date)
+        self.target = self.get_frame(target_date=target_date)
         # clean up target (invalid pixels due to registration)
-        self.target_valid_mask = np.ones_like(self.target, dtype=np.bool_)
-        self.target_valid_mask[self.target < 0] = False
+        # self.target_valid_mask = np.ones_like(self.target, dtype=np.bool_)
+        # self.target_valid_mask[self.target < 0] = False
+        self.target_valid_mask = self.build_valid_mask()
         self.target[self.target < 0] = 0  # overwrite np.nan or -inf with 0
+
+    def build_valid_mask(self, alt_date=None):
+        """
+        computers a binary bitmask representing the validity of pixel values for a BT map on a given day. Pixels marked
+        as True are valid pixels. Valid pixels satisfy (1) no cloud, and (2) no cloud shadow, and (3) bt reading greater
+        than 0 K.
+        :param alt_date:
+        :return:
+        """
+        if alt_date is None:  # using default target date
+            bt_img = self.target.copy()
+            cloud_img = self.get_frame(target_date=self.target_date, mode='cloud')
+            shadow_img = self.get_frame(target_date=self.target_date, mode='shadow')
+        else:
+            bt_img = self.get_frame(target_date=alt_date, mode='bt_series')
+            cloud_img = self.get_frame(target_date=alt_date, mode='cloud')
+            shadow_img = self.get_frame(target_date=alt_date, mode='shadow')
+        valid_mask = cloud_img + shadow_img
+        valid_mask = ~np.array(valid_mask, dtype=np.bool_)
+        valid_mask[bt_img < 0] = False
+        return valid_mask
 
     def get_nlcd(self):
         """
@@ -337,17 +363,32 @@ class Interpolator(abc.ABC):
         print(f'{no_local_data_counter} pixels ({no_local_data_counter / (x_length * y_length):.5%}) '
               f'used global calculations')
 
-    def temporal_interp(self):
+    def temporal_interp_as_is(self, ref_frame_date):
+        past_frame = self.get_frame(ref_frame_date)
+        # need to filter out clouds
+        self.reconstructed_target = past_frame
+        return
+
+    def temporal_interp_global_adj(self, ref_frame_date):
+        target_frame = self.target.copy()
+        past_frame = self.get_frame(ref_frame_date)
+        # need to filter out clouds
+        reconst_img = past_frame + (target_frame.mean() - past_frame.mean())
+        self.reconstructed_target = reconst_img
+        return
+
+    def temporal_interp(self, ref_frame_date):
         # load one image from the past
         # past_frame = self._get_frame('20181205')
-        past_frame = self._get_frame('20180103')
+        # past_frame = self._get_frame('20180103')
+        past_frame = self.get_frame(ref_frame_date)
         target_frame = self.target.copy()  # FIXME: change it to occluded
         reconst_img = np.zeros_like(target_frame, dtype=np.float32)
         target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class
-        diff_img = target_frame - past_frame
-        self.display_target(img=diff_img, mode='error', text='as-is')
-        diff_img -= diff_img.mean()
-        self.display_target(img=diff_img, mode='error', text='global adjusted')
+        # diff_img = target_frame - past_frame
+        # self.display_target(img=diff_img, mode='error', text='as-is')
+        # diff_img -= diff_img.mean()
+        # self.display_target(img=diff_img, mode='error', text='global adjusted')
         for c, _ in NLCD_2019_META['lut'].items():
             c = int(c)
             past_c = past_frame.copy()
@@ -370,12 +411,9 @@ class Interpolator(abc.ABC):
                 compensated_past_c[compensated_past_c != 0] += target_avgs[c] - past_avgs[c]
                 reconst_img += compensated_past_c
             else:
-                # raise AttributeError(c)
+                # raise AttributeError(c)  # TODO
                 pass
         self.display_target(img=target_frame - reconst_img, mode='error', text='temporal')
-        # print(target_avgs)
-        # print(past_avgs)
-        # print(target_avgs - past_avgs)
 
     def heat_cluster_interp(self):
         raise NotImplementedError
