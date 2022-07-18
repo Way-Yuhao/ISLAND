@@ -5,12 +5,10 @@ import pandas as pd
 from util.helper import deprecated
 
 
-@deprecated
 def main():
-   x = ['hi']
-   y = x * 5
-   print(y)
-
+    a = np.array([1, 2, -3, np.NINF, np.nan])
+    if np.isnan(a):
+        print('hell nah')
 
 if __name__ == '__main__':
     main()

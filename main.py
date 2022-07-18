@@ -129,6 +129,37 @@ def swarm_per_pixel_diff():
     plt.show()
 
 
+def vis_per_pixel_diff():
+    interp_1 = Interpolator(root='./data/export/', target_date='20181205')
+    interp_2 = Interpolator(root='./data/export/', target_date='20181221')
+    diff_img = interp_2.target - interp_1.target
+    diff_img[diff_img > 100] = 0
+    diff_img[diff_img < -100] = 0
+    interp_1.display_target(img=diff_img, mode='error')
+
+    i = 0
+    for c, _ in tqdm(NLCD_2019_META['lut'].items()):
+        c = int(c)
+        temp_for_c = diff_img.copy()
+        temp_for_c[interp_1.nlcd != c] = 0
+        interp_1.display_target(img=temp_for_c, mode='error', text=NLCD_2019_META['class_names'][str(c)])
+    #     # filter out invalid pixels (delta greater than 100 Kelvin)
+    #     dp = dp[(dp > -100) & (dp < 100)]
+    #
+    #     if len(dp > 0):
+    #         x = len(dp) * [NLCD_2019_META['class_names'][str(c)]]
+    #         new_df = pd.DataFrame({'class': x, 'bt': dp})
+    #         df = pd.concat([df, new_df], ignore_index=True)
+    #         palette += ['#' + NLCD_2019_META['lut'][str(c)]]
+    #     i += 1
+    # ax = sns.violinplot(x='class', y='bt', data=df, palette=palette)
+    # ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
+    # plt.xlabel('NLCD Landcover Class')
+    # plt.ylabel('Brightness Temperature (K)')
+    # plt.title('Pixel-wise BT difference between two dates')
+    # plt.tight_layout()
+    # plt.show()
+
 def hist_per_pixel_diff():
     interp_1 = Interpolator(root='./data/export/', target_date='20181205')
     interp_2 = Interpolator(root='./data/export/', target_date='20181221')
@@ -175,7 +206,7 @@ def disp_per_pixel_diff():
     plt.show()
 
 
-def main():
+def main_old():
     interp = Interpolator(root='./data/export/', target_date='20181221')
     # interp = Interpolator(root='./data/export/', target_date='20181205')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20181018.tif')
@@ -203,8 +234,14 @@ def main():
     # interp.display_target(mode='reconst')
 
 
+def main():
+    interp = Interpolator(root='./data/export/', target_date='20181221')
+    interp.temporal_interp()
+
+
 if __name__ == '__main__':
     main()
     # plot_means_trend()
     # swarm_per_pixel_diff()
     # hist_per_pixel_diff()
+    # vis_per_pixel_diff()

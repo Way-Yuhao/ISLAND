@@ -3,7 +3,7 @@ Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
 """
 import os
 import os.path as p
-
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import abc
@@ -36,8 +36,35 @@ class Interpolator(abc.ABC):
         self.occlusion_id = None  # id for synthetic occlusion
         self.occluded_target = None
         self.reconstructed_target = None
-        self.anim = None  # matplotlib animation
+        self._num_classes = len(NLCD_2019_META['lut'].items())  # number of NLCD classes, including those absent
         return
+
+    def _get_frame(self, target_date):
+        """
+        Loads a BT map corresponding to a specified date.
+        :param target_date:
+        :return: ndarray for the target bt image
+        """
+        parent_dir = p.join(self.root, 'bt_series')
+        bt_files = os.listdir(parent_dir)
+
+        target_file = [f for f in bt_files if target_date in f and 'nlcd' not in f]
+        if len(target_file) == 1:
+            target = cv2.imread(p.join(parent_dir, target_file[0]), -1)
+        elif len(target_file) == 0:
+            raise FileNotFoundError(f'Target date {target_date} does not exist in {parent_dir}')
+        else:
+            raise FileExistsError(
+                f'Multiple ({len(target_file)}) files found for target date {target_date} in {parent_dir}')
+
+        # clean up
+        target[np.isnan(target)] = -1
+        target[np.isinf(target)] = -1
+        if np.any(target == -1):
+            print(f"{bcolors.WARNING}{target_file} contains np.nan or np.NIF, which has been converted to -1"
+                  f"{bcolors.ENDC}")
+
+        return target
 
     def get_target(self, target_date):
         """
@@ -47,17 +74,7 @@ class Interpolator(abc.ABC):
         :param target_date:
         :return:
         """
-        parent_dir = p.join(self.root, 'bt_series')
-        bt_files = os.listdir(parent_dir)
-        target_file = [f for f in bt_files if target_date in f]
-        if len(target_file) == 1:
-            self.target = cv2.imread(p.join(parent_dir, target_file[0]), -1)
-        elif len(target_file) == 0:
-            raise FileNotFoundError(f'Target date {target_date} does not exist in {parent_dir}')
-        else:
-            raise FileExistsError(
-                f'Multiple ({len(target_file)}) files found for target date {target_date} in {parent_dir}')
-
+        self.target = self._get_frame(target_date=target_date)
         # clean up target (invalid pixels due to registration)
         self.target_valid_mask = np.ones_like(self.target, dtype=np.bool_)
         self.target_valid_mask[self.target < 0] = False
@@ -95,7 +112,7 @@ class Interpolator(abc.ABC):
         :param text:
         :return:
         """
-
+        plt.figure(figsize=(20, 20))
         if mode == 'gt' and img is None:
             img = self.target
             msg = 'Ground Truth'
@@ -127,9 +144,10 @@ class Interpolator(abc.ABC):
             max_ = min(330, img.max())
             cmap_ = 'magma'
         else:
-            max_delta = max(img.max(), -img.min())
-            max_ = max_delta
-            min_ = -max_delta
+            # max_delta = max(img.max(), -img.min())
+            # max_ = max_delta
+            # min_ = -max_delta
+            max_, min_ = -8, 8  # FIXME
             cmap_ = 'seismic'
         plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
         plt.xlabel(text)
@@ -216,6 +234,13 @@ class Interpolator(abc.ABC):
             plt.close()
         return
 
+    def run_interpolation(self):
+        self.spatial_interp()
+
+    def spatial_interp(self, f=None):
+        self._nlm_local(f)
+        # self._nlm_global()
+
     def fill_average(self):
         """
         Naive baseline interpolator. This is a class-agnostic interpolator, with global rectangular filter.
@@ -233,13 +258,6 @@ class Interpolator(abc.ABC):
             print(f"Using baseline average interpolator, with avg = {avg:.2f}")
         else:
             print('ERROR: 100% of input is occluded. No average temperature can be determined.')
-
-    def run_interpolation(self):
-        self.spatial_interp()
-
-    def spatial_interp(self, f=None):
-        self._nlm_local(f)
-        # self._nlm_global()
 
     def _nlm_global(self):
         """
@@ -321,8 +339,43 @@ class Interpolator(abc.ABC):
 
     def temporal_interp(self):
         # load one image from the past
+        # past_frame = self._get_frame('20181205')
+        past_frame = self._get_frame('20180103')
+        target_frame = self.target.copy()  # FIXME: change it to occluded
+        reconst_img = np.zeros_like(target_frame, dtype=np.float32)
+        target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class
+        diff_img = target_frame - past_frame
+        self.display_target(img=diff_img, mode='error', text='as-is')
+        diff_img -= diff_img.mean()
+        self.display_target(img=diff_img, mode='error', text='global adjusted')
+        for c, _ in NLCD_2019_META['lut'].items():
+            c = int(c)
+            past_c = past_frame.copy()
+            target_c = target_frame.copy()
+            past_c[self.nlcd != c] = 0
+            target_c[self.nlcd != c] = 0
 
-        return
+            target_avg_pixels = target_c[np.where(target_c != 0)]
+            target_avg_pixels = target_avg_pixels[target_avg_pixels >= 0]  # clean up invalid pixels
+            past_avg_pixels = past_c[np.where(past_c != 0)]
+            past_avg_pixels = past_avg_pixels[past_avg_pixels >= 0]  # clean up invalid pixels
+            if len(target_avg_pixels) != 0:
+                target_avgs[c] = np.average(target_avg_pixels)
+            if len(past_avg_pixels) != 0:
+                past_avgs[c] = np.average(past_avg_pixels)
+
+            # build reconstruction image class by class
+            if c in target_avgs and c in past_avgs:
+                compensated_past_c = past_c.copy()
+                compensated_past_c[compensated_past_c != 0] += target_avgs[c] - past_avgs[c]
+                reconst_img += compensated_past_c
+            else:
+                # raise AttributeError(c)
+                pass
+        self.display_target(img=target_frame - reconst_img, mode='error', text='temporal')
+        # print(target_avgs)
+        # print(past_avgs)
+        # print(target_avgs - past_avgs)
 
     def heat_cluster_interp(self):
         raise NotImplementedError

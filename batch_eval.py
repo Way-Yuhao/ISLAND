@@ -67,7 +67,7 @@ def evaluate_multiprocess(num_procs=4):
     pool.close()
     pool.join()
     print('---------------------------------')
-    print(print(f"{bcolors.WARNING}May have encountered error. Scroll up to view."))
+    print(f"{bcolors.WARNING}May have encountered error. Scroll up to view.")
     d = {'cloud_perc': list(cloud_percs), 'MAE': list(maes), 'MSE': list(mses)}
     df = pd.DataFrame(data=d)
     df.to_csv(stats_fpath)
