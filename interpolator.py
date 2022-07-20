@@ -138,7 +138,7 @@ class Interpolator(abc.ABC):
         :param text:
         :return:
         """
-        plt.figure(figsize=(20, 20))
+        # plt.figure(figsize=(20, 20))
         if mode == 'gt' and img is None:
             img = self.target
             msg = 'Ground Truth'
@@ -173,7 +173,7 @@ class Interpolator(abc.ABC):
             # max_delta = max(img.max(), -img.min())
             # max_ = max_delta
             # min_ = -max_delta
-            max_, min_ = -8, 8  # FIXME
+            max_, min_ = -15, 15  # FIXME
             cmap_ = 'seismic'
         plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
         plt.xlabel(text)
@@ -203,7 +203,7 @@ class Interpolator(abc.ABC):
         self.occlusion_id = fpath[-12:-4]
         return occlusion_percentage
 
-    def calc_loss(self, metric='mae', print_=False):
+    def calc_loss(self, metric='mae', print_=False, entire_canvas=False):
         """
         calculates the mean absolute error (MAE) over the synthetically occluded area
         :return:
@@ -222,7 +222,11 @@ class Interpolator(abc.ABC):
         else:
             raise AttributeError(f'Unknown loss function encountered: {metric}. ')
         error_map = self._clean(error_map)
-        loss = np.sum(error_map) / np.count_nonzero(self.synthetic_occlusion)
+        if not entire_canvas:  # by default, only calculate loss on synthetic occluded regions
+            loss = np.sum(error_map) / np.count_nonzero(self.synthetic_occlusion)
+        else:  # calculate loss on entire canvas
+            loss = np.average(error_map)
+
 
         if print_:
             print(f'{metric} loss = {loss:.3f}')
@@ -364,12 +368,22 @@ class Interpolator(abc.ABC):
               f'used global calculations')
 
     def temporal_interp_as_is(self, ref_frame_date):
+        """
+        obtain a BT frame from the past as-is. No adjustment or cloud masking applied.
+        :param ref_frame_date:
+        :return:
+        """
         past_frame = self.get_frame(ref_frame_date)
         # need to filter out clouds
         self.reconstructed_target = past_frame
         return
 
     def temporal_interp_global_adj(self, ref_frame_date):
+        """
+        obtain a BT frame from the past, adjusted using global mean (class agnostic). No cloud masking.
+        :param ref_frame_date:
+        :return:
+        """
         target_frame = self.target.copy()
         past_frame = self.get_frame(ref_frame_date)
         # need to filter out clouds
@@ -378,6 +392,7 @@ class Interpolator(abc.ABC):
         return
 
     def temporal_interp(self, ref_frame_date):
+        # TODO: add cloud masking
         # load one image from the past
         # past_frame = self._get_frame('20181205')
         # past_frame = self._get_frame('20180103')
@@ -413,7 +428,8 @@ class Interpolator(abc.ABC):
             else:
                 # raise AttributeError(c)  # TODO
                 pass
-        self.display_target(img=target_frame - reconst_img, mode='error', text='temporal')
+        self.reconstructed_target = reconst_img
+        # self.display_target(img=target_frame - reconst_img, mode='error', text='temporal')
 
     def heat_cluster_interp(self):
         raise NotImplementedError

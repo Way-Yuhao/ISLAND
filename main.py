@@ -160,6 +160,7 @@ def vis_per_pixel_diff():
     # plt.tight_layout()
     # plt.show()
 
+
 def hist_per_pixel_diff():
     interp_1 = Interpolator(root='./data/export/', target_date='20181205')
     interp_2 = Interpolator(root='./data/export/', target_date='20181221')
@@ -236,6 +237,23 @@ def main_old():
     # interp.display_target(mode='reconst')
 
 
+def temp_eval_pairwise():
+    interp = Interpolator(root='./data/export/', target_date='20181221')
+    ref_frame_date = '20180103'
+    # no occlusion
+    # interp.temporal_interp_as_is(ref_frame_date=ref_frame_date)
+    # loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
+    # interp.display_target(mode='error', text=f'no adjustment | MAE loss = {loss:.3f}')
+
+    # interp.temporal_interp_global_adj(ref_frame_date=ref_frame_date)
+    # loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
+    # interp.display_target(mode='error', text=f'global adjustment (class agnostic) | MAE loss = {loss:.3f}')
+
+    interp.temporal_interp(ref_frame_date=ref_frame_date)
+    loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
+    interp.display_target(mode='error', text=f'Ours temporal channel | MAE loss = {loss:.3f}')
+
+
 def main():
     interp = Interpolator(root='./data/export/', target_date='20181221')
     # interp.temporal_interp()
@@ -246,8 +264,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     # plot_means_trend()
     # swarm_per_pixel_diff()
     # hist_per_pixel_diff()
     # vis_per_pixel_diff()
+    temp_eval_pairwise()
