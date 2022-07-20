@@ -239,6 +239,7 @@ def main_old():
 
 def temp_eval_pairwise():
     interp = Interpolator(root='./data/export/', target_date='20181221')
+    interp.occluded_target = interp.target.copy()
     ref_frame_date = '20180103'
     # no occlusion
     # interp.temporal_interp_as_is(ref_frame_date=ref_frame_date)

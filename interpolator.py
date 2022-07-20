@@ -116,15 +116,19 @@ class Interpolator(abc.ABC):
         nlcd_rgb = cv2.cvtColor(nlcd_rgb, cv2.COLOR_BGR2RGB)
         return nlcd, nlcd_rgb
 
-    def _clean(self, img):
+    def _clean(self, img, mask=None):
         """
-        Replace pixel values with 0 for all locations where valid mask is False
+        Replace pixel values with 0 for all locations where valid mask is False. By default, it uses
+        target_valid_mask attribute.
         :param img:
         :return:
         """
-        if self.target_valid_mask is None:
-            raise AttributeError
-        img[~self.target_valid_mask] = 0
+        if mask is None:
+            if self.target_valid_mask is None:
+                raise AttributeError
+            else:
+                mask = self.target_valid_mask
+        img[~mask] = 0
         return img
 
     def _clear_outputs(self):
@@ -392,18 +396,11 @@ class Interpolator(abc.ABC):
         return
 
     def temporal_interp(self, ref_frame_date):
-        # TODO: add cloud masking
         # load one image from the past
-        # past_frame = self._get_frame('20181205')
-        # past_frame = self._get_frame('20180103')
         past_frame = self.get_frame(ref_frame_date)
-        target_frame = self.target.copy()  # FIXME: change it to occluded
+        target_frame = self.occluded_target.copy()
         reconst_img = np.zeros_like(target_frame, dtype=np.float32)
         target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class
-        # diff_img = target_frame - past_frame
-        # self.display_target(img=diff_img, mode='error', text='as-is')
-        # diff_img -= diff_img.mean()
-        # self.display_target(img=diff_img, mode='error', text='global adjusted')
         for c, _ in NLCD_2019_META['lut'].items():
             c = int(c)
             past_c = past_frame.copy()
@@ -429,7 +426,51 @@ class Interpolator(abc.ABC):
                 # raise AttributeError(c)  # TODO
                 pass
         self.reconstructed_target = reconst_img
-        # self.display_target(img=target_frame - reconst_img, mode='error', text='temporal')
+
+    def temporal_interp_cloud(self, ref_frame_date, ref_syn_cloud_date):
+        """
+        Requires target frame
+        :param ref_frame_date:
+        :param ref_syn_cloud_date:
+        :return:
+        """
+        # TODO: add cloud masking
+        target_frame = self.occluded_target.copy()
+        # target_frame = self._clean(target_frame)
+        # load one image from the past
+        past_frame = self.get_frame(ref_frame_date)
+        past_mask = self.get_frame(ref_syn_cloud_date, mode='cloud').astype(np.bool_)
+        # past_mask = self.build_valid_mask(alt_date=ref_syn_cloud_date)
+        past_frame = self._clean(img=past_frame, mask=past_mask)  # TODO: check this
+
+        reconst_img = np.zeros_like(target_frame, dtype=np.float32)
+        target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class
+        for c, _ in NLCD_2019_META['lut'].items():
+            c = int(c)
+            past_c = past_frame.copy()
+            target_c = target_frame.copy()
+            past_c[self.nlcd != c] = 0
+            target_c[self.nlcd != c] = 0
+
+            target_avg_pixels = target_c[np.where(target_c != 0)]
+            target_avg_pixels = target_avg_pixels[target_avg_pixels >= 0]  # clean up invalid pixels
+            past_avg_pixels = past_c[np.where(past_c != 0)]
+            past_avg_pixels = past_avg_pixels[past_avg_pixels >= 0]  # clean up invalid pixels
+            if len(target_avg_pixels) != 0:
+                target_avgs[c] = np.average(target_avg_pixels)
+            if len(past_avg_pixels) != 0:
+                past_avgs[c] = np.average(past_avg_pixels)
+
+            # build reconstruction image class by class
+            if c in target_avgs and c in past_avgs:
+                compensated_past_c = past_c.copy()
+                compensated_past_c[compensated_past_c != 0] += target_avgs[c] - past_avgs[c]
+                reconst_img += compensated_past_c
+            else:
+                # raise AttributeError(c)  # TODO
+                pass
+        reconst_img = self._clean(reconst_img)
+        self.reconstructed_target = reconst_img
 
     def heat_cluster_interp(self):
         raise NotImplementedError
