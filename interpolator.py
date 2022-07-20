@@ -177,7 +177,7 @@ class Interpolator(abc.ABC):
             # max_delta = max(img.max(), -img.min())
             # max_ = max_delta
             # min_ = -max_delta
-            max_, min_ = -15, 15  # FIXME
+            max_, min_ = 15, -15  # FIXME
             cmap_ = 'seismic'
         plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
         plt.xlabel(text)
@@ -438,10 +438,20 @@ class Interpolator(abc.ABC):
         target_frame = self.occluded_target.copy()
         # target_frame = self._clean(target_frame)
         # load one image from the past
-        past_frame = self.get_frame(ref_frame_date)
-        past_mask = self.get_frame(ref_syn_cloud_date, mode='cloud').astype(np.bool_)
+
+        past_interp = Interpolator(root=self.root, target_date=ref_frame_date)
+        past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
+                                               f'LC08_cloud_houston_{ref_syn_cloud_date}.tif'))
+        past_interp._nlm_global()
+        past_frame = past_interp.reconstructed_target  # complete
+
+        # past_interp.display_target(mode='gt')
+
+
+        # past_frame = self.get_frame(ref_frame_date)
+        # past_mask = self.get_frame(ref_syn_cloud_date, mode='cloud').astype(np.bool_)
         # past_mask = self.build_valid_mask(alt_date=ref_syn_cloud_date)
-        past_frame = self._clean(img=past_frame, mask=past_mask)  # TODO: check this
+        # past_frame = self._clean(img=past_frame, mask=past_mask)  # TODO: check this
 
         reconst_img = np.zeros_like(target_frame, dtype=np.float32)
         target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class

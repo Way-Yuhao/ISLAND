@@ -240,17 +240,21 @@ def main_old():
 def temp_eval_pairwise():
     interp = Interpolator(root='./data/export/', target_date='20181221')
     interp.occluded_target = interp.target.copy()
+    # ref_frame_date = '20181205'
+    # ref_frame_date = '20190327'
     ref_frame_date = '20180103'
+
     # no occlusion
     # interp.temporal_interp_as_is(ref_frame_date=ref_frame_date)
     # loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
     # interp.display_target(mode='error', text=f'no adjustment | MAE loss = {loss:.3f}')
-
+    #
     # interp.temporal_interp_global_adj(ref_frame_date=ref_frame_date)
     # loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
     # interp.display_target(mode='error', text=f'global adjustment (class agnostic) | MAE loss = {loss:.3f}')
 
     interp.temporal_interp(ref_frame_date=ref_frame_date)
+    # interp.temporal_interp_cloud(ref_frame_date=ref_frame_date, ref_syn_cloud_date='20180527')
     loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
     interp.display_target(mode='error', text=f'Ours temporal channel | MAE loss = {loss:.3f}')
 
