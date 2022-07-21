@@ -15,7 +15,6 @@ VIS_PARAM = {
     ]
 }
 
-
 ################### URBAN BOUNDARY ##########################
 # coordinates of rectangle surrounding Houston
 HOUSTON_BOUNDING_BOX = [[[-95.690165, 29.5937], [-95.690165, 30.266005],
@@ -48,7 +47,7 @@ NLCD_2019_META = {
     'filter': '2019',
     'selected_bands': ['landcover'],
     'scales': [1],  # no scaling
-    'offsets': [0],   # no offset
+    'offsets': [0],  # no offset
     'lut': {
         '11': '466b9f',
         '12': 'd1def8',
@@ -77,7 +76,7 @@ NLCD_2019_META = {
         '22': 'Developed, low intensity',
         '23': 'Developed, medium intensity',
         '24': 'Developed high intensity',
-        '31': 'Barren land', #  (rock / sand / clay)',
+        '31': 'Barren land',  # (rock / sand / clay)',
         '41': 'Deciduous forest',
         '42': 'Evergreen forest',
         '43': 'Mixed forest',
@@ -92,6 +91,7 @@ NLCD_2019_META = {
         '90': 'Woody wetlands',
         '95': 'Emergent herbaceous wetlands'}
 }
+
 
 # LANDSAT8_META_REFERENCE = {
 #     'name': 'USGS Landsat 8 Level 2, Collection 2, Tier 1',

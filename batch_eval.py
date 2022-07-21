@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib
 import pandas as pd
 from interpolator import Interpolator
+from natsort import natsorted
+from tqdm import tqdm
+import random
 from config import *
 
 
@@ -83,7 +86,6 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     try:
         # interp.fill_average()
         interp.spatial_interp(f=75)
-
         mae = interp.calc_loss(print_=False, metric='mae')
         mse = interp.calc_loss(print_=False, metric='mse')
         print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
@@ -99,6 +101,48 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     return
 
 
+def generate_dps(n=50):
+    files = os.listdir("./data/export/cloud/")
+    fpath = "./data/houston_rand_dates.csv"
+    files = [f for f in files if 'tif' in f and 'nlcd' not in f]
+    dates = natsorted([f[-12:-4] for f in files])
+    d1, d2, d3 = [], [], []
+    for i in range(n):
+        d1 += [random.choice(dates)]
+        d2 += [random.choice(dates)]
+        d3 += [random.choice(dates)]
+        assert d1 != d2 and d2 != d3 and d3 != d1
+    df = pd.DataFrame({'date_1': d1, 'date_2': d2, 'date_3': d3})
+    df.to_csv(fpath, index=False)
+    print('csv file saved to ', fpath)
+
+
+def temp_pairwise_eval():
+    entries = pd.read_csv("./data/houston_rand_dates.csv")
+    target_date = '20181221'
+    ref_date = '20181205'
+    root_ = './data/export/'
+    log_fpath = "./data/temporal_pairwise.csv"
+    assert entries is not None
+    log = []
+    pbar = tqdm(total=len(entries))
+    for _, row in entries.iterrows():
+        target_syn_cloud_date, ref_syn_cloud_date = row['date_1'], row['date_2']
+        interp = Interpolator(root=root_, target_date=target_date)
+        ref_syn_cloud_path = p.join(root_, 'cloud', f'LC08_cloud_houston_{target_syn_cloud_date}.tif')
+        interp.add_occlusion(ref_syn_cloud_path)
+        interp.temporal_interp_cloud(ref_frame_date=ref_date, ref_syn_cloud_date=ref_syn_cloud_date)
+        mae_loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
+        mse_loss = interp.calc_loss(print_=True, metric='mse', entire_canvas=True)
+        log += [(target_date, ref_date, target_syn_cloud_date, ref_syn_cloud_date, mae_loss, mse_loss)]
+        pbar.update()
+    pbar.close()
+    df = pd.DataFrame(log, columns=['target_date', 'ref_date', 'target_syn_cloud_date', 'ref_syn_cloud_date',
+                                    'MAE', 'MSE'])
+    df.to_csv(log_fpath, index=False)
+    print('csv file saved to ', log_fpath)
+
+
 def main():
     pass
 
@@ -106,4 +150,6 @@ def main():
 if __name__ == '__main__':
     # main()
     # evaluate()
-    evaluate_multiprocess(num_procs=10)
+    # evaluate_multiprocess(num_procs=10)
+    # generate_dps()
+    temp_pairwise_eval()

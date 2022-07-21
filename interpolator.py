@@ -13,7 +13,7 @@ import seaborn as sns
 import textwrap
 from config import *
 from util.filters import *
-from util.helper import deprecated
+from util.helper import deprecated, rprint, yprint
 
 
 class Interpolator(abc.ABC):
@@ -301,6 +301,10 @@ class Interpolator(abc.ABC):
         """
         print(f"SPATIAL FILTER: global filter")
         self.reconstructed_target = self.occluded_target
+
+        px_count = np.count_nonzero(self.occluded_target)
+        default_avg_temp = np.sum(self.occluded_target) / px_count  # global, class-agnostic
+
         for c, _ in NLCD_2019_META['lut'].items():
             c = int(c)
             temp_for_c = self.occluded_target.copy()
@@ -322,8 +326,9 @@ class Interpolator(abc.ABC):
             if avg_temp is not None and np.any(replacement_bitmap):  # requires in-paint, data available
                 self.reconstructed_target[replacement_bitmap] = avg_temp
             elif avg_temp is None and np.any(replacement_bitmap):  # requires in-paint, data unavailable
-                raise ValueError(f'Unable to acquire average temperature for class {c}')
-            # self.display_target(mode='reconst')
+                # raise ValueError(f'Unable to acquire average temperature for class {c}')
+                yprint(f'Unable to acquire average temperature for class {c}. Defaulting to global average.')
+                self.reconstructed_target[replacement_bitmap] = default_avg_temp
 
     def _nlm_local(self, f=100):
         """

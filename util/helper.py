@@ -2,6 +2,13 @@ import sys
 import traceback
 import warnings
 import functools
+from config import bcolors
+
+def yprint(msg):
+    print(f"{bcolors.WARNING}{msg}{bcolors.ENDC}")
+
+def rprint(msg):
+    print(f"{bcolors.FAIL}{msg}{bcolors.ENDC}")
 
 
 def deprecated(func):
