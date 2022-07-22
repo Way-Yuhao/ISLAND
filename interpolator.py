@@ -246,25 +246,27 @@ class Interpolator(abc.ABC):
         result. Requires reconstruction result to exist.
         :return: None
         """
-
         if self.reconstructed_target is None:
             raise ValueError('Reconstruction result does not exist. Cannot save image output')
         else:
-            img = self.reconstructed_target
-            # save numpy array
-            output_filename = f'r_{self.target_date}_{self.occlusion_id}'
-            np.save(p.join(self.output_path, output_filename), img)  # float32 recommended. float16 only saves 1 decimal
+            try:
+                img = self.reconstructed_target
+                # save numpy array
+                output_filename = f'r_{self.target_date}_{self.occlusion_id}'
+                np.save(p.join(self.output_path, output_filename), img)  # float32 recommended. float16 only saves 1 decimal
 
-            # save pyplot
-            min_ = img[img > 250].min()
-            max_ = min(330, img.max())
-            cmap_ = 'magma'
-            plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
-            plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
-            plt.colorbar(label='BT(Kelvin)')
-            output_filename = f'r_{self.target_date}_{self.occlusion_id}.png'
-            plt.savefig(p.join(self.output_path, output_filename))
-            print('Pyplot vis saved to ', output_filename)
+                # save pyplot
+                min_ = img[img > 250].min()
+                max_ = min(330, img.max())
+                cmap_ = 'magma'
+                plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
+                plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
+                plt.colorbar(label='BT(Kelvin)')
+                output_filename = f'r_{self.target_date}_{self.occlusion_id}.png'
+                plt.savefig(p.join(self.output_path, output_filename))
+                print('Pyplot vis saved to ', output_filename)
+            except ValueError as e:
+                rprint(f'ERROR: {e}.\n Current image not saved.')
             plt.close()
         return
 
@@ -327,7 +329,7 @@ class Interpolator(abc.ABC):
                 self.reconstructed_target[replacement_bitmap] = avg_temp
             elif avg_temp is None and np.any(replacement_bitmap):  # requires in-paint, data unavailable
                 # raise ValueError(f'Unable to acquire average temperature for class {c}')
-                yprint(f'Unable to acquire average temperature for class {c}. Defaulting to global average.')
+                yprint(f'Unable to acquire average temperature for class {c}. Default to global average.')
                 self.reconstructed_target[replacement_bitmap] = default_avg_temp
 
     def _nlm_local(self, f=100):
@@ -437,7 +439,7 @@ class Interpolator(abc.ABC):
         Requires target frame
         :param ref_frame_date:
         :param ref_syn_cloud_date:
-        :return:
+        :return: synthetic occlusion percentage of the past frame
         """
         # TODO: add cloud masking
         target_frame = self.occluded_target.copy()
@@ -445,7 +447,7 @@ class Interpolator(abc.ABC):
         # load one image from the past
 
         past_interp = Interpolator(root=self.root, target_date=ref_frame_date)
-        past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
+        past_syn_occlusion_perc = past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
                                                f'LC08_cloud_houston_{ref_syn_cloud_date}.tif'))
         past_interp._nlm_global()
         past_frame = past_interp.reconstructed_target  # complete
@@ -486,6 +488,7 @@ class Interpolator(abc.ABC):
                 pass
         reconst_img = self._clean(reconst_img)
         self.reconstructed_target = reconst_img
+        return past_syn_occlusion_perc
 
     def heat_cluster_interp(self):
         raise NotImplementedError

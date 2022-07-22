@@ -3,8 +3,9 @@ import datetime
 import os
 import os.path as p
 from multiprocessing import Manager, Pool
+from matplotlib import pyplot as plt
+import seaborn as sns
 import numpy as np
-import matplotlib
 import pandas as pd
 from interpolator import Interpolator
 from natsort import natsorted
@@ -101,7 +102,7 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     return
 
 
-def generate_dps(n=50):
+def generate_dps(n=200):
     files = os.listdir("./data/export/cloud/")
     fpath = "./data/houston_rand_dates.csv"
     files = [f for f in files if 'tif' in f and 'nlcd' not in f]
@@ -130,17 +131,63 @@ def temp_pairwise_eval():
         target_syn_cloud_date, ref_syn_cloud_date = row['date_1'], row['date_2']
         interp = Interpolator(root=root_, target_date=target_date)
         ref_syn_cloud_path = p.join(root_, 'cloud', f'LC08_cloud_houston_{target_syn_cloud_date}.tif')
-        interp.add_occlusion(ref_syn_cloud_path)
-        interp.temporal_interp_cloud(ref_frame_date=ref_date, ref_syn_cloud_date=ref_syn_cloud_date)
+        target_perc = interp.add_occlusion(ref_syn_cloud_path)
+        ref_perc = interp.temporal_interp_cloud(ref_frame_date=ref_date, ref_syn_cloud_date=ref_syn_cloud_date)
         mae_loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
         mse_loss = interp.calc_loss(print_=True, metric='mse', entire_canvas=True)
-        log += [(target_date, ref_date, target_syn_cloud_date, ref_syn_cloud_date, mae_loss, mse_loss)]
+        log += [(target_date, ref_date, target_syn_cloud_date, target_perc, ref_syn_cloud_date, ref_perc,
+                 mae_loss, mse_loss)]
+        interp.save_output()
+        del interp
         pbar.update()
     pbar.close()
-    df = pd.DataFrame(log, columns=['target_date', 'ref_date', 'target_syn_cloud_date', 'ref_syn_cloud_date',
-                                    'MAE', 'MSE'])
+    df = pd.DataFrame(log, columns=['target_date', 'ref_date', 'target_syn_cloud_date',
+                                    'target_synthetic_occlusion_percentage', 'ref_syn_cloud_date',
+                                    'reference_synthetic_occlusion_percentage', 'MAE', 'MSE'])
     df.to_csv(log_fpath, index=False)
     print('csv file saved to ', log_fpath)
+
+
+def plot_temporal_pairwise():
+    log_fpath = "./data/temporal_pairwise.csv"
+    df = pd.read_csv(log_fpath)
+    df['MAE'] = np.where(df['MAE'] > 1., 1., df['MAE'])
+    x = df['reference_synthetic_occlusion_percentage']
+    y = df['target_synthetic_occlusion_percentage']
+    z = df['MAE']
+    # z[z > 10] = 10
+
+    # f, ax = plt.subplots(figsize=(6, 6))
+    # sns.scatterplot(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
+    #                 s=5, color=".15")
+    # sns.histplot(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
+    #              bins=50, pthresh=.1, cmap="mako")
+    # sns.kdeplot(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
+    #             levels=5, color="w", linewidths=1)
+
+    # sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
+    #             square=True, linewidths=.5, cbar_kws={"shrink": .5})
+
+    # cmap = sns.cubehelix_palette(rot=-.2, as_cmap=True)
+    # g = sns.relplot(
+    #     data=df,
+    #     x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
+    #     hue="MAE",
+    #     palette=cmap, sizes=(0, 10)
+    # )
+    #g = sns.JointGrid(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
+    #                  hue="MAE")
+
+    # sns.relplot(x="reference_synthetic_occlusion_percentage", y="target_synthetic_occlusion_percentage", size="MAE",
+    #             sizes=(40, 400), alpha=.5, data=df)
+
+    plt.figure(num=1, figsize=(8, 5))
+    g = sns.jointplot(x=x, y=y, c=z, joint_kws={"color": None, 'cmap': 'cool'})
+    g.fig.colorbar(g.ax_joint.collections[0], ax=[g.ax_joint, g.ax_marg_y, g.ax_marg_x], use_gridspec=True,
+                   orientation='horizontal', label='MAE loss')
+    g.set_axis_labels('occlusion percentage of the reference frame', 'occlusion percentage of the target frame', )
+    plt.show()
+
 
 
 def main():
@@ -152,4 +199,5 @@ if __name__ == '__main__':
     # evaluate()
     # evaluate_multiprocess(num_procs=10)
     # generate_dps()
-    temp_pairwise_eval()
+    # temp_pairwise_eval()
+    plot_temporal_pairwise()
