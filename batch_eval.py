@@ -149,42 +149,18 @@ def temp_pairwise_eval():
 
 
 def plot_temporal_pairwise():
+    max_clip = 1.0  # where to clip for vis
     log_fpath = "./data/temporal_pairwise.csv"
     df = pd.read_csv(log_fpath)
-    df['MAE'] = np.where(df['MAE'] > 1., 1., df['MAE'])
+    df['MAE'] = np.where(df['MAE'] > max_clip, max_clip, df['MAE'])
     x = df['reference_synthetic_occlusion_percentage']
     y = df['target_synthetic_occlusion_percentage']
     z = df['MAE']
-    # z[z > 10] = 10
-
-    # f, ax = plt.subplots(figsize=(6, 6))
-    # sns.scatterplot(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
-    #                 s=5, color=".15")
-    # sns.histplot(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
-    #              bins=50, pthresh=.1, cmap="mako")
-    # sns.kdeplot(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
-    #             levels=5, color="w", linewidths=1)
-
-    # sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
-    #             square=True, linewidths=.5, cbar_kws={"shrink": .5})
-
-    # cmap = sns.cubehelix_palette(rot=-.2, as_cmap=True)
-    # g = sns.relplot(
-    #     data=df,
-    #     x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
-    #     hue="MAE",
-    #     palette=cmap, sizes=(0, 10)
-    # )
-    #g = sns.JointGrid(data=df, x='reference_synthetic_occlusion_percentage', y='target_synthetic_occlusion_percentage',
-    #                  hue="MAE")
-
-    # sns.relplot(x="reference_synthetic_occlusion_percentage", y="target_synthetic_occlusion_percentage", size="MAE",
-    #             sizes=(40, 400), alpha=.5, data=df)
 
     plt.figure(num=1, figsize=(8, 5))
     g = sns.jointplot(x=x, y=y, c=z, joint_kws={"color": None, 'cmap': 'cool'})
     g.fig.colorbar(g.ax_joint.collections[0], ax=[g.ax_joint, g.ax_marg_y, g.ax_marg_x], use_gridspec=True,
-                   orientation='horizontal', label='MAE loss')
+                   orientation='horizontal', label=f'MAE loss, clipped at {max_clip}')
     g.set_axis_labels('occlusion percentage of the reference frame', 'occlusion percentage of the target frame', )
     plt.show()
 
