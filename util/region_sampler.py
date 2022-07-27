@@ -22,6 +22,7 @@ import tifffile
 import natsort
 import matplotlib
 from matplotlib import pyplot as plt
+from helper import *
 
 
 def verify_date(date_str: str, suppressOutput=False) -> bool:
@@ -351,29 +352,29 @@ def scale(*args):
 def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num_cycles, download=True,
                clip=None):
     if download:
-        export_landsat_series(p.join(output_dir, 'B4'), satellite=satellite, band='B4', scene_id=scene_id,
+        export_landsat_series(pjoin(output_dir, 'B4'), satellite=satellite, band='B4', scene_id=scene_id, getNLCD=False,
+                              start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary, )
+        export_landsat_series(pjoin(output_dir, 'B3'), satellite=satellite, band='B3', scene_id=scene_id, getNLCD=False,
                               start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary)
-        export_landsat_series(p.join(output_dir, 'B3'), satellite=satellite, band='B3', scene_id=scene_id,
-                              start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary)
-        export_landsat_series(p.join(output_dir, 'B2'), satellite=satellite, band='B2', scene_id=scene_id,
+        export_landsat_series(pjoin(output_dir, 'B2'), satellite=satellite, band='B2', scene_id=scene_id, getNLCD=False,
                               start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary)
     # assemble
-    if not p.exists(p.join(output_dir, 'RGB')):
-        os.mkdir(p.join(output_dir, 'RGB'))
-    file_count = len([f for f in os.listdir(p.join(output_dir, 'B4')) if f[-3:] == 'tif'])
-    assert len([f for f in os.listdir(p.join(output_dir, 'B3')) if f[-3:] == 'tif']) == file_count
-    assert len([f for f in os.listdir(p.join(output_dir, 'B2')) if f[-3:] == 'tif']) == file_count
+    if not p.exists(pjoin(output_dir, 'RGB')):
+        os.mkdir(pjoin(output_dir, 'RGB'))
+    file_count = len([f for f in os.listdir(pjoin(output_dir, 'B4')) if f[-3:] == 'tif'])
+    assert len([f for f in os.listdir(pjoin(output_dir, 'B3')) if f[-3:] == 'tif']) == file_count
+    assert len([f for f in os.listdir(pjoin(output_dir, 'B2')) if f[-3:] == 'tif']) == file_count
     for r_file in tqdm(os.listdir(p.join(output_dir, 'B4'))):
         if r_file[-3:] != 'tif':
             continue
         g_file = r_file.replace('B4', 'B3')
         b_file = r_file.replace('B4', 'B2')
-        r = cv2.imread(p.join(output_dir, 'B4', r_file), -1)
-        g = cv2.imread(p.join(output_dir, 'B3', g_file), -1)
-        b = cv2.imread(p.join(output_dir, 'B2', b_file), -1)
+        r = cv2.imread(pjoin(output_dir, 'B4', r_file), -1)
+        g = cv2.imread(pjoin(output_dir, 'B3', g_file), -1)
+        b = cv2.imread(pjoin(output_dir, 'B2', b_file), -1)
         output = np.dstack((b, g, r))
         if clip is None:
-            cv2.imwrite(p.join(output_dir, 'RGB', r_file.replace('B4', 'RGB')), output)
+            cv2.imwrite(pjoin(output_dir, 'RGB', r_file.replace('B4', 'RGB')), output)
         else:
             print(f"clipping to range ", clip)
             output = output.astype('float32')
@@ -382,7 +383,7 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
             # output[output >= clip[1]] = clip[1]
             # output[output <= clip[0]] = clip[0]
             # clip = (clip - np.array(clip[0])) / np.array((clip[1] - clip[0]))
-            cv2.imwrite(p.join(output_dir, 'RGB', r_file.replace('B4', 'RGB')), output)
+            cv2.imwrite(pjoin(output_dir, 'RGB', r_file.replace('B4', 'RGB')), output)
 
 
 def parse_qa_multi(source, dest, affix, bits, threshold=None):
@@ -462,12 +463,22 @@ def run_exports():
     # print(generate_cycles(start_date='20130401', num_cycles=20))
 
 
+def run_exports_win():
+    """
+    Attempting to fix display isses for TIF images on Windows Machines
+    :return:
+    """
+    output_dir = "../data/export2/TOA_RGB"
+    export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
+               num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download=True, clip=None)
+
+
 if __name__ == '__main__':
     ee.Initialize()
     # output_dir = "../data/export/"
     # export_cloud_mask(output_dir, scene_id='025039', date_='20180527', export_boundary=HOUSTON_BOUNDING_BOX)
     # run_exports()
-    parse_qa_single(source="../data/export/qa_series", dest="../data/export/shadow", affix='shadow', bit=4)
+    # parse_qa_single(source="../data/export/qa_series", dest="../data/export/shadow", affix='shadow', bit=4)
     # parse_qa_multi(source="../data/export/qa_series", dest="../data/export/shadow", affix='shadow',
     #                 bits=[8, 9], threshold=3)
     # resaves_bt_png("../data/export/bt_series", "../data/export/bt_series_png")
@@ -478,4 +489,5 @@ if __name__ == '__main__':
     # path = "../data/export/nlcd_houston_20180103.tif"
     # color_map_nlcd(source="../data/export/nlcd_houston_20180103.tif", dest="../data/export/nlcd_houston_color.tif")
     # print(1)
+    run_exports_win()
 

@@ -1,14 +1,37 @@
 import sys
+import os
 import traceback
 import warnings
 import functools
 from config import bcolors
 
+
 def yprint(msg):
+    """
+    Print to stdout console in yellow.
+    :param msg:
+    :return:
+    """
     print(f"{bcolors.WARNING}{msg}{bcolors.ENDC}")
 
+
 def rprint(msg):
+    """
+    Print to stdout console in red.
+    :param msg:
+    :return:
+    """
     print(f"{bcolors.FAIL}{msg}{bcolors.ENDC}")
+
+
+def pjoin(*args):
+    """
+    Joins paths for OS file system while ensuring the corrected slashes are used for Windows machines
+    :param args:
+    :return:
+    """
+    path = os.path.join(*args).replace("\\", "/")
+    return path
 
 
 def deprecated(func):
