@@ -24,6 +24,29 @@ import matplotlib
 from matplotlib import pyplot as plt
 from helper import *
 
+GLOBAL_REFERENCE_DATE = None  # to be defined later
+
+def acquire_reference_date(start_date, scene_id):
+    """
+    Find the first date after which a LANDSAT 8 image is valid for a given scene id
+    :param start_date:
+    :param scene_id:
+    :return:
+    """
+    reference_date = None
+    cur_date = datetime.strptime(start_date, '%Y%m%d')
+    while reference_date is None:
+        cur_date_str = datetime.strftime(cur_date, '%Y%m%d')
+        try:
+            img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{cur_date_str}')
+            img.getInfo()
+        except ee.EEException as e:  # image does not exist
+            cur_date = cur_date + timedelta(days=1)
+            continue
+        # image exists, in the case of no exception
+        reference_date = cur_date_str
+        return reference_date
+
 
 def verify_date(date_str: str, suppressOutput=False) -> bool:
     date = datetime.strptime(date_str, '%Y%m%d')
@@ -349,9 +372,20 @@ def scale(*args):
     raise NotImplementedError
 
 
-def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num_cycles, download=True,
+def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num_cycles, download_monochrome=True,
                clip=None):
-    if download:
+    """
+    :param output_dir:
+    :param satellite:
+    :param scene_id:
+    :param export_boundary:
+    :param start_date:
+    :param num_cycles:
+    :param download_monochrome: True to download B4, B3, B2 bands
+    :param clip: upper bound in pixel value for visualization
+    :return:
+    """
+    if download_monochrome:
         export_landsat_series(pjoin(output_dir, 'B4'), satellite=satellite, band='B4', scene_id=scene_id, getNLCD=False,
                               start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary, )
         export_landsat_series(pjoin(output_dir, 'B3'), satellite=satellite, band='B3', scene_id=scene_id, getNLCD=False,
@@ -374,16 +408,19 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
         b = cv2.imread(pjoin(output_dir, 'B2', b_file), -1)
         output = np.dstack((b, g, r))
         if clip is None:
-            cv2.imwrite(pjoin(output_dir, 'RGB', r_file.replace('B4', 'RGB')), output)
+            output_fname = r_file.replace('B4', 'RGB')
+            output_fname = output_fname.replace('tif', 'png')
+            output = output / output.max()
+            output = output * 2**16
+            output = output.astype(np.uint16)
+            cv2.imwrite(pjoin(output_dir, 'RGB', output_fname), output)
         else:
             print(f"clipping to range ", clip)
-            output = output.astype('float32')
-            # output /= 2 ** 16
-            output /= 2 ** 16 * clip
-            # output[output >= clip[1]] = clip[1]
-            # output[output <= clip[0]] = clip[0]
-            # clip = (clip - np.array(clip[0])) / np.array((clip[1] - clip[0]))
-            cv2.imwrite(pjoin(output_dir, 'RGB', r_file.replace('B4', 'RGB')), output)
+            output_fname = r_file.replace('B4', 'RGB')
+            output_fname = output_fname.replace('tif', 'png')
+            output[output > clip] = clip
+            output = output / output.max() * 255
+            cv2.imwrite(pjoin(output_dir, 'RGB', output_fname), output)
 
 
 def parse_qa_multi(source, dest, affix, bits, threshold=None):
@@ -470,7 +507,13 @@ def run_exports_win():
     """
     output_dir = "../data/export2/TOA_RGB"
     export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
-               num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download=True, clip=None)
+               num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
+
+
+def export_all():
+    start_date = '20170101'
+    scene_id = '025039'
+    GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
 
 if __name__ == '__main__':
@@ -489,5 +532,6 @@ if __name__ == '__main__':
     # path = "../data/export/nlcd_houston_20180103.tif"
     # color_map_nlcd(source="../data/export/nlcd_houston_20180103.tif", dest="../data/export/nlcd_houston_color.tif")
     # print(1)
-    run_exports_win()
+    # run_exports_win()
+    export_all()
 
