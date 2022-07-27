@@ -24,7 +24,8 @@ import matplotlib
 from matplotlib import pyplot as plt
 from helper import *
 
-GLOBAL_REFERENCE_DATE = None  # to be defined later
+GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
+
 
 def acquire_reference_date(start_date, scene_id):
     """
@@ -56,7 +57,7 @@ def verify_date(date_str: str, suppressOutput=False) -> bool:
     #         print(f'Invalid date encountered: {date_str}. Need to specify a date before {NULLIFY_DATES_AFTER}')
     #     return False
     # else:
-    time_delta = datetime.strptime(LANDSAT8_HOUSTON_REFERENCE_DATE, '%Y%m%d') - date
+    time_delta = datetime.strptime(GLOBAL_REFERENCE_DATE, '%Y%m%d') - date
     r = time_delta.days % 16
     if r == 0:
         return True
@@ -85,7 +86,7 @@ def find_next_valid_date(date_str: str, strictly_next=False) -> str:
         else:
             r = 16
     else:  # current date is not a valid date
-        time_delta = datetime.strptime(LANDSAT8_HOUSTON_REFERENCE_DATE, '%Y%m%d') - date_
+        time_delta = datetime.strptime(GLOBAL_REFERENCE_DATE, '%Y%m%d') - date_
         r = time_delta.days % 16
     next_valid_time = date_ + timedelta(days=r)
     next_valid_date = next_valid_time.strftime('%Y%m%d')
@@ -110,7 +111,7 @@ def generate_cycles(start_date: str, end_date=None, num_days=None, num_cycles=No
             cycles.append(cur_date)
             cur_date = find_next_valid_date(cur_date, strictly_next=True)
 
-    print(f'Attempting to generate {len(cycles)} cycles, with start date = {cycles[0]} and end tate = {cycles[-1]}')
+    yprint(f'Attempting to generate {len(cycles)} cycles, with start date = {cycles[0]} and end date = {cycles[-1]}')
     return cycles
 
 
@@ -256,7 +257,7 @@ def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
     dataset = ee.ImageCollection('USGS/NLCD_RELEASES/2019_REL/NLCD')
     nlcd2019 = dataset.filter(ee.Filter.eq('system:index', '2019')).first()
     landcover_2019 = nlcd2019.select('landcover')
-    filename = os.path.join(output_dir, f'nlcd_houston_{date_}.tif')
+    filename = os.path.join(output_dir, f'nlcd_{date_}.tif')
     try:
         projection = reference_landsat_img.projection().getInfo()
         geemap.ee_export_image(landcover_2019, filename=filename, scale=30, region=export_boundary,
@@ -305,7 +306,7 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
         affix = band_name
     tier = 'TOA' if band_name[0] == 'B' else 'L2'
     img = ee.Image(f"LANDSAT/{satellite}/C02/T1_{tier}/{satellite}_{scene_id}_{date_}").select(band_name)
-    filename = os.path.join(output_dir, f'{satellite}_{affix}_houston_{date_}.tif')
+    filename = os.path.join(output_dir, f'{satellite}_{affix}_{date_}.tif')
     try:
         projection = img.projection().getInfo()
         geemap.ee_export_image(img, filename=filename, scale=30, region=export_boundary,
@@ -317,7 +318,7 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
 
 
 def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary, start_date, num_cycles, affix=None,
-                          getNLCD=True):
+                          getNLCD=False):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
         print('Created directory ', output_dir)
@@ -385,6 +386,9 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
     :param clip: upper bound in pixel value for visualization
     :return:
     """
+    if not p.exists(output_dir):
+        os.mkdir(output_dir)
+
     if download_monochrome:
         export_landsat_series(pjoin(output_dir, 'B4'), satellite=satellite, band='B4', scene_id=scene_id, getNLCD=False,
                               start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary, )
@@ -424,6 +428,15 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
 
 
 def parse_qa_multi(source, dest, affix, bits, threshold=None):
+    """
+    https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2
+    :param source:
+    :param dest:
+    :param affix:
+    :param bits:
+    :param threshold:
+    :return:
+    """
     check = lambda x, n: x & (1 << n)  # check if the nth bit in a binary seq is set
     source_filename = source[source.rindex('/') + 1:]
     assert len(bits) == 2 and bits[1] == bits[0] + 1  # can only check 2 consecutive bits
@@ -457,6 +470,7 @@ def parse_qa_multi(source, dest, affix, bits, threshold=None):
 def parse_qa_single(source, dest, affix, bit):
     """
     parse a single bit
+    https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2
     :param source:
     :param dest:
     :param affix:
@@ -511,9 +525,47 @@ def run_exports_win():
 
 
 def export_all():
-    start_date = '20170101'
-    scene_id = '025039'
+    """
+    A collection that includes
+    * Top-of-atmosphere RGB (TOA_RGB)
+    * Brightness Temperature (bt_series)
+    * Rescaled BT for visualization (bt_series_png)
+    * cloud bitmask (cloud)
+    * shadow bitmask (shadow)
+    * cirrus (cirrus)
+    * QA assessment (qa_series)
+    :return:
+    """
+    # root_path = '../data/Houston'
+    root_path = '../data/LA'
+    global GLOBAL_REFERENCE_DATE
+    start_date = '20180101'
+    cycles = 50
+    # scene_id = '025039'
+    scene_id = '041036'
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
+    # bounding_box = HOUSTON_BOUNDING_BOX
+    bounding_box = [[[-118.41654, 33.723626], [-118.41654, 34.333656], [-117.603448, 34.333656], [-117.603448, 33.723626], [-118.41654, 33.723626]]]
+
+    if not p.exists(root_path):
+        os.mkdir(root_path)
+
+
+    ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    return
 
 
 if __name__ == '__main__':
