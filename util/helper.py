@@ -5,7 +5,7 @@ import warnings
 import functools
 from config import bcolors
 import time
-import datetime
+import datetime as dt
 
 
 def yprint(msg):
@@ -58,7 +58,7 @@ def time_func(func):
         func(*args, **kwargs)
         yprint('---------------------------------')
         stop_time = time.monotonic()
-        yprint(f'Processing time = {datetime.timedelta(seconds=stop_time - start_time)}')
+        yprint(f'Processing time = {dt.timedelta(seconds=stop_time - start_time)}')
 
     return inner
 

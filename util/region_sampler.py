@@ -3,8 +3,6 @@ __author__ = 'Yuhao Liu'
 Sequentially sample a defined region from earth engine. 
 
 """
-import time
-import datetime
 import os
 import os.path as p
 # import torch
@@ -530,6 +528,7 @@ def run_exports_win():
                num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
 
 
+@time_func
 def export_all():
     """
     A collection that includes
@@ -542,7 +541,6 @@ def export_all():
     * QA assessment (qa_series)
     :return:
     """
-    start_time = time.monotonic()
     # root_path = '../data/Houston'
     root_path = '../data/Phoenix'
     global GLOBAL_REFERENCE_DATE
@@ -574,11 +572,6 @@ def export_all():
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-
-    print('---------------------------------')
-    stop_time = time.monotonic()
-    print('Processing time = ', datetime.timedelta(seconds=stop_time - start_time))
-
     return
 
 
