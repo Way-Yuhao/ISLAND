@@ -3,7 +3,8 @@ __author__ = 'Yuhao Liu'
 Sequentially sample a defined region from earth engine. 
 
 """
-
+import time
+import datetime
 import os
 import os.path as p
 # import torch
@@ -25,6 +26,11 @@ from matplotlib import pyplot as plt
 from helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
+
+
+def init():
+    # high volume API
+    ee.Initialize(opt_url='https://earthengine-highvolume.googleapis.com')
 
 
 def acquire_reference_date(start_date, scene_id):
@@ -536,20 +542,23 @@ def export_all():
     * QA assessment (qa_series)
     :return:
     """
+    start_time = time.monotonic()
     # root_path = '../data/Houston'
-    root_path = '../data/LA'
+    root_path = '../data/Phoenix'
     global GLOBAL_REFERENCE_DATE
     start_date = '20180101'
     cycles = 50
     # scene_id = '025039'
-    scene_id = '041036'
+    # scene_id = '041036'
+    scene_id = '037037'
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
     # bounding_box = HOUSTON_BOUNDING_BOX
-    bounding_box = [[[-118.41654, 33.723626], [-118.41654, 34.333656], [-117.603448, 34.333656], [-117.603448, 33.723626], [-118.41654, 33.723626]]]
-
+    # LA
+    # bounding_box = [[[-118.41654, 33.723626], [-118.41654, 34.333656], [-117.603448, 34.333656], [-117.603448, 33.723626], [-118.41654, 33.723626]]]
+    # Phoenix
+    bounding_box = [[[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612], [-112.39009, 33.171612]]]
     if not p.exists(root_path):
         os.mkdir(root_path)
-
 
     ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
     export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
@@ -565,11 +574,17 @@ def export_all():
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+
+    print('---------------------------------')
+    stop_time = time.monotonic()
+    print('Processing time = ', datetime.timedelta(seconds=stop_time - start_time))
+
     return
 
 
 if __name__ == '__main__':
-    ee.Initialize()
+    # ee.Initialize()
+    init()
     # output_dir = "../data/export/"
     # export_cloud_mask(output_dir, scene_id='025039', date_='20180527', export_boundary=HOUSTON_BOUNDING_BOX)
     # run_exports()

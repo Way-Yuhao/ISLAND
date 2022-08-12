@@ -4,6 +4,8 @@ import traceback
 import warnings
 import functools
 from config import bcolors
+import time
+import datetime
 
 
 def yprint(msg):
@@ -47,6 +49,18 @@ def deprecated(func):
         warnings.simplefilter('default', DeprecationWarning)  # reset filter
         return func(*args, **kwargs)
     return new_func
+
+
+def time_func(func):
+
+    def inner(*args, **kwargs):
+        start_time = time.monotonic()
+        func(*args, **kwargs)
+        yprint('---------------------------------')
+        stop_time = time.monotonic()
+        yprint(f'Processing time = {datetime.timedelta(seconds=stop_time - start_time)}')
+
+    return inner
 
 
 class Suppressor(object):
