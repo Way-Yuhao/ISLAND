@@ -13,6 +13,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from earth_engine_loader import SeqEarthEngineLoader
 from datetime import date, timedelta, datetime
+from multiprocessing import Manager, Pool
 import shutil
 import glob
 from config import *
@@ -582,6 +583,7 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     ee_init(high_volume=high_volume_api)
     start_date = '20180101'
     cycles = 50
+    num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
     if high_volume_api is False:  # standard Earth Engine API
@@ -600,8 +602,22 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
         parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
         parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     else:  # High Volume Earth Engine API
-        ee_init(high_volume=True)
-        raise NotImplementedError
+        ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+        export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+        color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+                       dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+        export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+                   num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+        export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+        export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+        resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    return
+
 
 
 def export_wrapper(city_name, high_volume_api=False):
@@ -629,25 +645,10 @@ def export_wrapper(city_name, high_volume_api=False):
 
 
 if __name__ == '__main__':
-    # ee.Initialize()
-    # init(high_volume=True)
-    # output_dir = "../data/export/"
-    # export_cloud_mask(output_dir, scene_id='025039', date_='20180527', export_boundary=HOUSTON_BOUNDING_BOX)
-    # run_exports()
-    # parse_qa_single(source="../data/export/qa_series", dest="../data/export/shadow", affix='shadow', bit=4)
-    # parse_qa_multi(source="../data/export/qa_series", dest="../data/export/shadow", affix='shadow',
-    #                 bits=[8, 9], threshold=3)
-    # resaves_bt_png("../data/export/bt_series", "../data/export/bt_series_png")
-    # output_dir = "../data/export/TOA_RGB"
-    # export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
-    #            num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download=False, clip=None)
-
-    # path = "../data/export/nlcd_houston_20180103.tif"
-    # color_map_nlcd(source="../data/export/nlcd_houston_20180103.tif", dest="../data/export/nlcd_houston_color.tif")
-    # print(1)
-    # run_exports_win()
-    # export_city()
-    export_wrapper(city_name='Phoenix', high_volume_api=False)
+    export_wrapper(city_name='Phoenix', high_volume_api=True)
 
 
 # single-program: Processing time = 0:20:36.844000
+# Phoenix, standard API, 23 min
+# Phoenix, high-volume API, 19 min
+
