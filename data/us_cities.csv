@@ -1,21 +1,21 @@
-﻿2021_rank,city,state,scene_id,notes
-1,New York,New York,13032,
-2,Los Angeles,California,41036,cut off Long Beach
-3,Chicago,Illinois,23031,
-4,Houston,Texas,25039,
-5,Phoenix,Arizona,37037,
-6,Philadelphia,Pennsylvania,14032,
-7,San Antonio,Texas,27040,
-8,San Diego,California,40037,
-9,Dallas,Texas,27037,image includes Fort Worth
-10,San Jose,California,44034,same as San Francisco
-11,Austin,Texas,27039,
-12,Jacksonville,Florida,16039,
-13,Fort Worth,Texas,27037,
-14,Columbus,Ohio,19032,
-15,Indianapolis,Indiana,21032,
-16,Charlotte,North Carolina,17036,
-17,San Francisco,California,44034,
-18,Seattle,Washington,46027,
-19,Denver,Colorado,33032,"tri-image intersect, >50%"
-20,Oklahoma City,Oklahoma,28035,
+﻿2021_rank,city,state,scene_id,bounding_box,notes
+1,New York,New York,13032,,
+2,Los Angeles,California,41036,"[[[-118.41654, 33.723626], [-118.41654, 34.333656], [-117.603448, 34.333656], [-117.603448, 33.723626], [-118.41654, 33.723626]]]",cut off Long Beach
+3,Chicago,Illinois,23031,,
+4,Houston,Texas,25039,"[[[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]]",
+5,Phoenix,Arizona,37037,"[[[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612], [-112.39009, 33.171612]]]",
+6,Philadelphia,Pennsylvania,14032,,
+7,San Antonio,Texas,27040,,
+8,San Diego,California,40037,,
+9,Dallas,Texas,27037,,image includes Fort Worth
+10,San Jose,California,44034,,same as San Francisco
+11,Austin,Texas,27039,,
+12,Jacksonville,Florida,16039,,
+13,Fort Worth,Texas,27037,,
+14,Columbus,Ohio,19032,,
+15,Indianapolis,Indiana,21032,,
+16,Charlotte,North Carolina,17036,,
+17,San Francisco,California,44034,,
+18,Seattle,Washington,46027,,
+19,Denver,Colorado,33032,,"tri-image intersect, >50%"
+20,Oklahoma City,Oklahoma,28035,,

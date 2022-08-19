@@ -15,19 +15,6 @@ VIS_PARAM = {
     ]
 }
 
-################### URBAN BOUNDARY ##########################
-# coordinates of rectangle surrounding Houston
-HOUSTON_BOUNDING_BOX = [[[-95.690165, 29.5937], [-95.690165, 30.266005],
-                         [-94.900379, 30.266005], [-94.900379, 29.5937]]]
-
-LANDSAT8_HOUSTON_REFERENCE_DATE = '20130411'
-LANDSAT9_HOUSTON_REFERENCE_DATE = '20211031'
-NULLIFY_DATES_AFTER = '20220501'
-
-CROP_HEIGHT_COORD = .0675 * 2  # degrees in latitude
-CROP_WIDTH_COORD = .0775 * 2  # degrees in longitude
-CROP_SHAPE = (512, 512)  # (h, w) in pixels
-
 ################ SATELLITE SOURCES #########################
 
 LANDSAT8_META = {
@@ -114,3 +101,17 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+################### HOUSTON URBAN BOUNDARY ##########################
+# coordinates of rectangle surrounding Houston
+HOUSTON_BOUNDING_BOX = [[[-95.690165, 29.5937], [-95.690165, 30.266005],
+                         [-94.900379, 30.266005], [-94.900379, 29.5937]]]
+
+LANDSAT8_HOUSTON_REFERENCE_DATE = '20130411'
+LANDSAT9_HOUSTON_REFERENCE_DATE = '20211031'
+NULLIFY_DATES_AFTER = '20220501'
+
+CROP_HEIGHT_COORD = .0675 * 2  # degrees in latitude
+CROP_WIDTH_COORD = .0775 * 2  # degrees in longitude
+CROP_SHAPE = (512, 512)  # (h, w) in pixels
+

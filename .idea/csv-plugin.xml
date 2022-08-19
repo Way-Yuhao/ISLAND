@@ -10,6 +10,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\data\spatial_intperp_series_mp.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\us_cities.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

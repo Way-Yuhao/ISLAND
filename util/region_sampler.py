@@ -17,18 +17,27 @@ import shutil
 import glob
 from config import *
 import cv2
+import pandas as pd
 import tifffile
 import natsort
 import matplotlib
 from matplotlib import pyplot as plt
+from retry import retry
 from helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
 
 
-def init():
-    # high volume API
-    ee.Initialize(opt_url='https://earthengine-highvolume.googleapis.com')
+def ee_init(high_volume=False):
+    if high_volume is True:
+        # high volume API. REQUIRES RETRY MODULE
+        ee.Initialize(opt_url='https://earthengine-highvolume.googleapis.com')
+        yprint('Initialized High Volume API to Earth Engine')
+    else:
+        ee.Initialize()
+        yprint('Initialized standard API to Earth Engine')
+    print('---------------------------------------')
+    return
 
 
 def acquire_reference_date(start_date, scene_id):
@@ -257,6 +266,7 @@ def run_sampler():
 
 ########################################################################################
 
+@retry(tries=10, delay=1, backoff=2)
 def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
     dataset = ee.ImageCollection('USGS/NLCD_RELEASES/2019_REL/NLCD')
     nlcd2019 = dataset.filter(ee.Filter.eq('system:index', '2019')).first()
@@ -275,18 +285,9 @@ def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
 
 def build_nlcd_lux():
     decode_hex = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-    val_range = np.zeros(256, dtype=np.uint8)
     rgb_lut = np.zeros((256, 3), dtype=np.uint8)
     for key, value in NLCD_2019_META['lut'].items():
         rgb_lut[int(key), :] = np.array(decode_hex(value))
-
-    # gray_lut = np.stack([np.sum(rgb_lut, axis=0), np.sum(rgb_lut, axis=0), np.sum(rgb_lut, axis=0)])
-    # red_lut = np.zeros((3, 256), dtype=np.uint8)
-    # red_lut[0, :] = rgb_lut[0, :]
-    #
-    # green_lut = np.zeros((3, 256), dtype=np.uint8)
-    # green_lut[1, :] = rgb_lut[1, :]
-    # ijmeta = {'LUTs': [gray_lut, red_lut, green_lut]}
     return rgb_lut
 
 
@@ -305,6 +306,7 @@ def color_map_nlcd(source, dest):
     return
 
 
+@retry(tries=10, delay=1, backoff=2)
 def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, export_boundary, affix=None):
     if affix is None:
         affix = band_name
@@ -527,7 +529,6 @@ def run_exports_win():
     export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
                num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
 
-
 @time_func
 def export_all():
     """
@@ -575,9 +576,61 @@ def export_all():
     return
 
 
+@time_func
+def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
+    global GLOBAL_REFERENCE_DATE
+    ee_init(high_volume=high_volume_api)
+    start_date = '20180101'
+    cycles = 50
+    GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
+
+    if high_volume_api is False:  # standard Earth Engine API
+        ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+        export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+        color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+                       dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+        export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+                   num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+        export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+        export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+        resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    else:  # High Volume Earth Engine API
+        ee_init(high_volume=True)
+        raise NotImplementedError
+
+
+def export_wrapper(city_name, high_volume_api=False):
+    cities_list_path = "../data/us_cities.csv"
+    print(f'Parsing metadata from {cities_list_path}')
+    cols = list(pd.read_csv(cities_list_path, nrows=1))
+    cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
+    row = cities_meta.loc[cities_meta['city'] == city_name]
+    if row.empty:
+        raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
+    scene_id = str(row.iloc[0]['scene_id'])
+    if len(scene_id) == 5:
+        scene_id = '0' + scene_id
+    bounding_box = row.iloc[0]['bounding_box']
+    assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
+    assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
+    yprint(f'city = {city_name}, scene_id = {scene_id}, bounding_box = {bounding_box}')
+    root_path = pjoin('../data', city_name)
+    if p.exists(root_path):
+        raise FileExistsError(f'Directory {root_path} already exists.')
+    else:
+        os.mkdir(root_path)
+
+    export_city(root_path, city_name, scene_id, bounding_box, high_volume_api)
+
+
 if __name__ == '__main__':
     # ee.Initialize()
-    init()
+    # init(high_volume=True)
     # output_dir = "../data/export/"
     # export_cloud_mask(output_dir, scene_id='025039', date_='20180527', export_boundary=HOUSTON_BOUNDING_BOX)
     # run_exports()
@@ -593,7 +646,8 @@ if __name__ == '__main__':
     # color_map_nlcd(source="../data/export/nlcd_houston_20180103.tif", dest="../data/export/nlcd_houston_color.tif")
     # print(1)
     # run_exports_win()
-    export_all()
+    # export_city()
+    export_wrapper(city_name='Phoenix', high_volume_api=False)
 
 
 # single-program: Processing time = 0:20:36.844000
