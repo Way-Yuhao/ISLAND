@@ -1,21 +1,21 @@
-﻿2021 rank,City,State[c],Scene ID,Notes
-1,New York,New York,013032,
-2,Los Angeles,California,041036,cut off Long Beach
-3,Chicago,Illinois,023031,
-4,Houston,Texas,025039,
-5,Phoenix,Arizona,037037,
-6,Philadelphia,Pennsylvania,014032,
-7,San Antonio,Texas,027040,
-8,San Diego,California,040037,
-9,Dallas,Texas,027037,image includes Fort Worth
-10,San Jose,California,044034,same as San Francisco
-11,Austin,Texas,027039,
-12,Jacksonville,Florida,016039,
-13,Fort Worth,Texas,027037,
-14,Columbus,Ohio,019032,
-15,Indianapolis,Indiana,021032,
-16,Charlotte,North Carolina,017036,
-17,San Francisco,California,044034,
-18,Seattle,Washington,046027,
-19,Denver,Colorado,033032,"tri-image intersect, >50%"
-20,Oklahoma City,Oklahoma,028035,
+﻿2021_rank,city,state,scene_id,notes
+1,New York,New York,13032,
+2,Los Angeles,California,41036,cut off Long Beach
+3,Chicago,Illinois,23031,
+4,Houston,Texas,25039,
+5,Phoenix,Arizona,37037,
+6,Philadelphia,Pennsylvania,14032,
+7,San Antonio,Texas,27040,
+8,San Diego,California,40037,
+9,Dallas,Texas,27037,image includes Fort Worth
+10,San Jose,California,44034,same as San Francisco
+11,Austin,Texas,27039,
+12,Jacksonville,Florida,16039,
+13,Fort Worth,Texas,27037,
+14,Columbus,Ohio,19032,
+15,Indianapolis,Indiana,21032,
+16,Charlotte,North Carolina,17036,
+17,San Francisco,California,44034,
+18,Seattle,Washington,46027,
+19,Denver,Colorado,33032,"tri-image intersect, >50%"
+20,Oklahoma City,Oklahoma,28035,
