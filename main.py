@@ -130,8 +130,10 @@ def swarm_per_pixel_diff():
 
 
 def vis_per_pixel_diff():
-    interp_1 = Interpolator(root='./data/export/', target_date='20181205')
-    interp_2 = Interpolator(root='./data/export/', target_date='20181221')
+    # interp_1 = Interpolator(root='./data/export/', target_date='20181205')
+    # interp_2 = Interpolator(root='./data/export/', target_date='20181221')
+    interp_1 = Interpolator(root='./data/Phoenix/', target_date='20200113')
+    interp_2 = Interpolator(root='./data/Phoenix/', target_date='20190721')
     diff_img = interp_2.target - interp_1.target
     diff_img[diff_img > 100] = 0
     diff_img[diff_img < -100] = 0
@@ -260,7 +262,7 @@ def temp_eval_pairwise():
 
 
 def main():
-    interp = Interpolator(root='./data/export/', target_date='20181221')
+    interp = Interpolator(root='./data/Phoenix/', target_date='20190822')
     # interp.temporal_interp()
     img = interp.build_valid_mask()
     plt.imshow(img)
@@ -274,4 +276,4 @@ if __name__ == '__main__':
     # swarm_per_pixel_diff()
     # hist_per_pixel_diff()
     # vis_per_pixel_diff()
-    temp_eval_pairwise()
+    # temp_eval_pairwise()

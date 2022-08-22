@@ -108,12 +108,17 @@ class Interpolator(abc.ABC):
 
     def get_nlcd(self):
         """
-        Load a pre-aligned NLCD landcover map corresponding to a target LANDSAT temperature map
+        Load a pre-aligned NLCD land cover map corresponding to a target LANDSAT temperature map
         :return:
         """
-        nlcd = cv2.imread(p.join(self.root, 'nlcd_houston_20180103.tif'), -1)
-        nlcd_rgb = cv2.imread(p.join(self.root, 'nlcd_houston_color.tif'), -1)
+        files = os.listdir(self.root)
+        nlcds = [f for f in files if 'nlcd' in f]
+        nlcd_rgb_path = p.join(self.root, [f for f in nlcds if 'color' in f][0])
+        nlcd_path = p.join(self.root, [f for f in nlcds if 'color' not in f][0])
+        nlcd = cv2.imread(nlcd_path, -1)
+        nlcd_rgb = cv2.imread(nlcd_rgb_path, -1)
         nlcd_rgb = cv2.cvtColor(nlcd_rgb, cv2.COLOR_BGR2RGB)
+        assert nlcd is not None and nlcd_rgb is not None
         return nlcd, nlcd_rgb
 
     def _clean(self, img, mask=None):
@@ -448,7 +453,7 @@ class Interpolator(abc.ABC):
 
         past_interp = Interpolator(root=self.root, target_date=ref_frame_date)
         past_syn_occlusion_perc = past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
-                                               f'LC08_cloud_houston_{ref_syn_cloud_date}.tif'))
+                                               f'LC08_cloud_{ref_syn_cloud_date}.tif'))
         past_interp._nlm_global()
         past_frame = past_interp.reconstructed_target  # complete
 

@@ -174,5 +174,5 @@ if __name__ == '__main__':
     # evaluate()
     # evaluate_multiprocess(num_procs=10)
     # generate_dps()
-    # temp_pairwise_eval()
-    plot_temporal_pairwise()
+    temp_pairwise_eval()
+    # plot_temporal_pairwise()
