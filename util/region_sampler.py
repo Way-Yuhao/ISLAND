@@ -21,7 +21,7 @@ import cv2
 import pandas as pd
 import tifffile
 import natsort
-import matplotlib
+import seaborn as sns
 from matplotlib import pyplot as plt
 from retry import retry
 from helper import *
@@ -508,6 +508,44 @@ def parse_qa_single(source, dest, affix, bit):
     return
 
 
+def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
+    # need upgrade: currently only support LANDSAT 8
+    global GLOBAL_REFERENCE_DATE
+    assert p.exists(root_path)
+    assert GLOBAL_REFERENCE_DATE is not None
+    dates = []
+    cloud_coverages = []
+    cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
+    for date_ in tqdm(cycles, desc='Parsing images for cloud coverage series'):
+        img_id = f"LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{date_}"
+        try:
+            img = ee.Image(img_id)
+            img.getInfo()
+        except ee.EEException:
+            img = None
+        if img is not None:
+            dates.append(geemap.image_props(img).getInfo()['DATE_ACQUIRED'])
+            cloud_coverages.append(geemap.image_props(img).getInfo()['CLOUD_COVER'])
+        else:
+
+            date_obj = datetime.strptime(date_, '%Y%m%d')
+            date_str = date_obj.strftime('%Y-%m-%d')
+            dates.append(date_str)
+            cloud_coverages.append(np.nan)
+    cloud_avg = np.nanmean(cloud_coverages)
+    date_objects = [datetime.strptime(date_str, '%Y-%m-%d') for date_str in dates]
+    sns.set_style("darkgrid")
+    sns.lineplot(x=date_objects, y=cloud_coverages)
+    plt.title(f"{city_name} cloud coverages over time, avg = {cloud_avg:.2f}")
+    plt.xlabel("Data Acquired")
+    plt.ylabel("Cloud Cover (%)")
+    plt.xticks(rotation=45)
+    plt.savefig(p.join(root_path, 'cloud_coverage.png'))
+    print('Cloud coverage plot saved.')
+    return
+
+
+@deprecated
 def run_exports():
     ee.Initialize()
     # output_dir = "../data/export/bt_series"
@@ -521,6 +559,7 @@ def run_exports():
     # print(generate_cycles(start_date='20130401', num_cycles=20))
 
 
+@deprecated
 def run_exports_win():
     """
     Attempting to fix display isses for TIF images on Windows Machines
@@ -530,7 +569,7 @@ def run_exports_win():
     export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
                num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
 
-@time_func
+@deprecated
 def export_all():
     """
     A collection that includes
@@ -586,38 +625,23 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
-    if high_volume_api is False:  # standard Earth Engine API
-        ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-        export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-        color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-                       dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
-        export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-                   num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-        export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-        export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-        resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    else:  # High Volume Earth Engine API
-        ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-        export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-        color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-                       dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
-        export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-                   num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-        export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-        export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                              start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-        resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-        parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    # for future speed up, use a pool of threads for high-volume API
+    plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
+    ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     return
-
 
 
 def export_wrapper(city_name, high_volume_api=False):
@@ -645,7 +669,7 @@ def export_wrapper(city_name, high_volume_api=False):
 
 
 if __name__ == '__main__':
-    export_wrapper(city_name='Phoenix', high_volume_api=True)
+    export_wrapper(city_name='Houston', high_volume_api=True)
 
 
 # single-program: Processing time = 0:20:36.844000
