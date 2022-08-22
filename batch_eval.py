@@ -12,6 +12,7 @@ from natsort import natsorted
 from tqdm import tqdm
 import random
 from config import *
+from util.helper import get_season
 
 
 def evaluate():
@@ -102,9 +103,9 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
     return
 
 
-def generate_dps(n=200):
-    files = os.listdir("./data/export/cloud/")
-    fpath = "./data/houston_rand_dates.csv"
+def generate_dps(city_name, n=200):
+    files = os.listdir(f"./data/{city_name}/cloud/")
+    fpath = f"./data/{city_name}/rand_dates.csv"
     files = [f for f in files if 'tif' in f and 'nlcd' not in f]
     dates = natsorted([f[-12:-4] for f in files])
     d1, d2, d3 = [], [], []
@@ -118,12 +119,18 @@ def generate_dps(n=200):
     print('csv file saved to ', fpath)
 
 
-def temp_pairwise_eval():
-    entries = pd.read_csv("./data/houston_rand_dates.csv")
+def temp_pairwise_eval(city_name):
+    """
+    Pick two cloud-free frames as target and reference, then apply different synthetic clouds for both
+    :param city_name:
+    :return:
+    """
+
+    entries = pd.read_csv(f"./data/{city_name}/rand_dates.csv")
     target_date = '20181221'
     ref_date = '20181205'
-    root_ = './data/export/'
-    log_fpath = "./data/temporal_pairwise.csv"
+    root_ = f'./data/{city_name}/'
+    log_fpath = f"./data/{city_name}/temporal_pairwise.csv"
     assert entries is not None
     log = []
     pbar = tqdm(total=len(entries))
@@ -165,6 +172,76 @@ def plot_temporal_pairwise():
     plt.show()
 
 
+def temp_pairwise_cycle_eval(city_name):
+    """
+    fixed cloud-free target, fixed synthetic occlusion, using a set of real reference frames (potentially cloudy)
+    :param city_name:
+    :return:
+    """
+    entries = pd.read_csv(f"./data/{city_name}/rand_dates.csv")
+    target_date = '20200301'
+    # ref_date = '20181205'
+    # FIXME: no synthetic cloud?
+    root_ = f'./data/{city_name}/'
+    log_fpath = f"./data/{city_name}/temporal_references.csv"
+    # assert entries is not None
+    log = []
+    frames = os.listdir(p.join(root_, 'bt_series'))
+    frames = [f for f in frames if 'tif' in f]
+    pbar = tqdm(total=len(entries), desc='Analyzing multiple references')
+    for ref_frame in frames:
+        interp = Interpolator(root=root_, target_date=target_date)
+        interp.occluded_target = interp.target
+        ref_date = ref_frame[9:17]
+        ref_perc = interp.temporal_interp_cloud(ref_frame_date=ref_date, ref_syn_cloud_date=ref_date)
+        mae_loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
+        mse_loss = interp.calc_loss(print_=True, metric='mse', entire_canvas=True)
+        log += [(target_date, ref_date, np.nan, np.nan, ref_perc, mae_loss, mse_loss)]
+        interp.save_output()
+        del interp
+        pbar.update()
+
+        # target_syn_cloud_date, ref_syn_cloud_date = row['date_1'], row['date_2']
+        # interp = Interpolator(root=root_, target_date=target_date)
+        # ref_syn_cloud_path = p.join(root_, 'cloud', f'LC08_cloud_houston_{target_syn_cloud_date}.tif')
+        # target_perc = interp.add_occlusion(ref_syn_cloud_path)
+        # ref_perc = interp.temporal_interp_cloud(ref_frame_date=ref_date, ref_syn_cloud_date=ref_syn_cloud_date)
+        # mae_loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
+        # mse_loss = interp.calc_loss(print_=True, metric='mse', entire_canvas=True)
+        # log += [(target_date, ref_date, target_syn_cloud_date, target_perc, ref_syn_cloud_date, ref_perc,
+        #          mae_loss, mse_loss)]
+        # interp.save_output()
+        # del interp
+        # pbar.update()
+    pbar.close()
+    df = pd.DataFrame(log, columns=['target_date', 'ref_date', 'target_syn_cloud_date',
+                                    'target_synthetic_occlusion_percentage',
+                                    'reference_gt_occlusion_percentage', 'MAE', 'MSE'])
+    df.to_csv(log_fpath, index=False)
+    print('csv file saved to ', log_fpath)
+
+
+def plot_temporal_cycle(city_name):
+    # max_clip = 1.0  # where to clip for vis
+    log_fpath = f"./data/{city_name}/temporal_references.csv"
+    df = pd.read_csv(log_fpath)
+    # df['MAE'] = np.where(df['MAE'] > max_clip, max_clip, df['MAE'])
+    ref_dates = df['ref_date']
+    ref_dates = [datetime.datetime.strptime(str(date_str), '%Y%m%d') for date_str in ref_dates]
+    seasons = [get_season(x) for x in ref_dates]
+    # y = df['target_synthetic_occlusion_percentage']
+    y = df['MAE']
+    sns.set_style('darkgrid')
+    plt.figure(num=1, figsize=(8, 5))
+    # g = sns.jointplot(x=x, y=y, c=z, joint_kws={"color": None, 'cmap': 'cool'})
+    # g.fig.colorbar(g.ax_joint.collections[0], ax=[g.ax_joint, g.ax_marg_y, g.ax_marg_x], use_gridspec=True,
+    #                orientation='horizontal', label=f'MAE loss, clipped at {max_clip}')
+    # g.set_axis_labels('occlusion percentage of the reference frame', 'occlusion percentage of the target frame', )
+    sns.scatterplot(x=ref_dates, y=y, hue=seasons)
+    sns.lineplot(x=ref_dates, y=df['reference_gt_occlusion_percentage'], color='black')
+    plt.show()
+
+
 def main():
     pass
 
@@ -173,6 +250,8 @@ if __name__ == '__main__':
     # main()
     # evaluate()
     # evaluate_multiprocess(num_procs=10)
-    # generate_dps()
-    temp_pairwise_eval()
+    # generate_dps(city_name='Phoenix')
+    # temp_pairwise_eval(city_name='Phoenix')
     # plot_temporal_pairwise()
+    # temp_pairwise_cycle_eval(city_name='Phoenix')
+    plot_temporal_cycle(city_name='Phoenix')

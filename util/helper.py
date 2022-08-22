@@ -75,3 +75,18 @@ class Suppressor(object):
             raise
 
     def write(self, x): pass
+
+
+def get_season(now):
+    Y = 2000 # dummy leap year to allow input X-02-29 (leap day)
+    seasons = [('winter', (dt.date(Y,  1,  1),  dt.date(Y,  3, 20))),
+           ('spring', (dt.date(Y,  3, 21),  dt.date(Y,  6, 20))),
+           ('summer', (dt.date(Y,  6, 21),  dt.date(Y,  9, 22))),
+           ('autumn', (dt.date(Y,  9, 23),  dt.date(Y, 12, 20))),
+           ('winter', (dt.date(Y, 12, 21),  dt.date(Y, 12, 31)))]
+    # now = dt.datetime.strptime(str(now), '%Y%m%d').date()
+    if isinstance(now, dt.datetime):
+        now = now.date()
+    now = now.replace(year=Y)
+    return next(season for season, (start, end) in seasons
+                if start <= now <= end)

@@ -616,6 +616,9 @@ def export_all():
     return
 
 
+def save_log(root_path, city_name, scene_id, ):
+    raise NotImplementedError()
+
 @time_func
 def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     global GLOBAL_REFERENCE_DATE
@@ -669,7 +672,7 @@ def export_wrapper(city_name, high_volume_api=False):
 
 
 if __name__ == '__main__':
-    export_wrapper(city_name='Houston', high_volume_api=True)
+    export_wrapper(city_name='Phoenix', high_volume_api=True)
 
 
 # single-program: Processing time = 0:20:36.844000

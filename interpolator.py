@@ -36,6 +36,9 @@ class Interpolator(abc.ABC):
         self.occluded_target = None
         self.reconstructed_target = None
         self._num_classes = len(NLCD_2019_META['lut'].items())  # number of NLCD classes, including those absent
+
+        # temporal
+        self.ref_frame_date = None
         return
 
     def get_frame(self, target_date, mode='bt'):
@@ -257,7 +260,7 @@ class Interpolator(abc.ABC):
             try:
                 img = self.reconstructed_target
                 # save numpy array
-                output_filename = f'r_{self.target_date}_{self.occlusion_id}'
+                output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}'
                 np.save(p.join(self.output_path, output_filename), img)  # float32 recommended. float16 only saves 1 decimal
 
                 # save pyplot
@@ -267,7 +270,7 @@ class Interpolator(abc.ABC):
                 plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
                 plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
                 plt.colorbar(label='BT(Kelvin)')
-                output_filename = f'r_{self.target_date}_{self.occlusion_id}.png'
+                output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}.png'
                 plt.savefig(p.join(self.output_path, output_filename))
                 print('Pyplot vis saved to ', output_filename)
             except ValueError as e:
@@ -441,7 +444,8 @@ class Interpolator(abc.ABC):
 
     def temporal_interp_cloud(self, ref_frame_date, ref_syn_cloud_date):
         """
-        Requires target frame
+        Performs temporal interpolation after applying synthetic cloud to reference frame.
+        Requires cloud-free reference frame.
         :param ref_frame_date:
         :param ref_syn_cloud_date:
         :return: synthetic occlusion percentage of the past frame
@@ -450,8 +454,8 @@ class Interpolator(abc.ABC):
         target_frame = self.occluded_target.copy()
         # target_frame = self._clean(target_frame)
         # load one image from the past
-
-        past_interp = Interpolator(root=self.root, target_date=ref_frame_date)
+        self.ref_frame_date = ref_frame_date
+        past_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
         past_syn_occlusion_perc = past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
                                                f'LC08_cloud_{ref_syn_cloud_date}.tif'))
         past_interp._nlm_global()
