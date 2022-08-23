@@ -41,10 +41,10 @@ class Interpolator(abc.ABC):
         self.ref_frame_date = None
         return
 
-    def get_frame(self, target_date, mode='bt'):
+    def get_frame(self, frame_date, mode='bt'):
         """
         Loads an image corresponding to a specified date.
-        :param target_date:
+        :param frame_date:
         :return: ndarray for the target bt image
         """
         if mode in ['bt', 'bt_series']:
@@ -57,21 +57,21 @@ class Interpolator(abc.ABC):
             raise ValueError(f'Unexpected mode encountered. Got {mode}')
         parent_dir = p.join(self.root, mode)
         img_files = os.listdir(parent_dir)
-        target_file = [f for f in img_files if target_date in f and 'nlcd' not in f]
+        target_file = [f for f in img_files if frame_date in f and 'nlcd' not in f]
         if len(target_file) == 1:
-            target = cv2.imread(p.join(parent_dir, target_file[0]), -1)
+            frame = cv2.imread(p.join(parent_dir, target_file[0]), -1)
         elif len(target_file) == 0:
-            raise FileNotFoundError(f'Target date {target_date} does not exist in {parent_dir}')
+            raise FileNotFoundError(f'Target date {frame_date} does not exist in {parent_dir}')
         else:
             raise FileExistsError(
-                f'Multiple ({len(target_file)}) files found for target date {target_date} in {parent_dir}')
+                f'Multiple ({len(target_file)}) files found for target date {frame_date} in {parent_dir}')
         # clean up
-        target[np.isnan(target)] = -1
-        target[np.isinf(target)] = -1
-        if np.any(target == -1):
+        frame[np.isnan(frame)] = -1
+        frame[np.isinf(frame)] = -1
+        if np.any(frame == -1):
             print(f"{bcolors.WARNING}{target_file} contains np.nan or np.NIF, which has been converted to -1"
                   f"{bcolors.ENDC}")
-        return target
+        return frame
 
     def get_target(self, target_date):
         """
@@ -81,7 +81,7 @@ class Interpolator(abc.ABC):
         :param target_date:
         :return:
         """
-        self.target = self.get_frame(target_date=target_date)
+        self.target = self.get_frame(frame_date=target_date)
         # clean up target (invalid pixels due to registration)
         # self.target_valid_mask = np.ones_like(self.target, dtype=np.bool_)
         # self.target_valid_mask[self.target < 0] = False
@@ -98,12 +98,12 @@ class Interpolator(abc.ABC):
         """
         if alt_date is None:  # using default target date
             bt_img = self.target.copy()
-            cloud_img = self.get_frame(target_date=self.target_date, mode='cloud')
-            shadow_img = self.get_frame(target_date=self.target_date, mode='shadow')
+            cloud_img = self.get_frame(frame_date=self.target_date, mode='cloud')
+            shadow_img = self.get_frame(frame_date=self.target_date, mode='shadow')
         else:
-            bt_img = self.get_frame(target_date=alt_date, mode='bt_series')
-            cloud_img = self.get_frame(target_date=alt_date, mode='cloud')
-            shadow_img = self.get_frame(target_date=alt_date, mode='shadow')
+            bt_img = self.get_frame(frame_date=alt_date, mode='bt_series')
+            cloud_img = self.get_frame(frame_date=alt_date, mode='cloud')
+            shadow_img = self.get_frame(frame_date=alt_date, mode='shadow')
         valid_mask = cloud_img + shadow_img
         valid_mask = ~np.array(valid_mask, dtype=np.bool_)
         valid_mask[bt_img < 0] = False
@@ -127,7 +127,7 @@ class Interpolator(abc.ABC):
     def _clean(self, img, mask=None):
         """
         Replace pixel values with 0 for all locations where valid mask is False. By default, it uses
-        target_valid_mask attribute.
+        target_valid_mask attribute. Masks image in place AND returns masked image.
         :param img:
         :return:
         """
@@ -195,24 +195,33 @@ class Interpolator(abc.ABC):
         plt.show()
         return 0
 
-    def add_occlusion(self, fpath):
+    def add_occlusion(self, fpath=None, use_true_cloud=False):
         """
         Adds synthetic occlusion according to a bitmap. The occluded region will have pixel values of 0
         :param fpath: path to the occlusion bitmap file. A synthetic occlusion bitmask will be generated,
         where occluded regions will have pixel values of True (1).
         :return: fractions of pixels being occluded
         """
-        assert p.exists(fpath)
-        self.synthetic_occlusion = cv2.imread(fpath, -1)
-        self.synthetic_occlusion = np.array(self.synthetic_occlusion, dtype=np.bool_)  # wrap in binary form
-        assert (self.synthetic_occlusion is not None)
-
+        if fpath is not None and use_true_cloud is False:
+            assert p.exists(fpath)
+            self.synthetic_occlusion = cv2.imread(fpath, -1)
+            self.synthetic_occlusion = np.array(self.synthetic_occlusion, dtype=np.bool_)  # wrap in binary form
+            assert (self.synthetic_occlusion is not None)
+            occlusion = self.synthetic_occlusion
+            self.occlusion_id = fpath[-12:-4]
+        elif fpath is None and use_true_cloud is True:
+            if self.target_valid_mask is None:
+                self.target_valid_mask = self.build_valid_mask()
+            occlusion = ~self.target_valid_mask
+            self.synthetic_occlusion = occlusion  # FIXME
+            self.occlusion_id = self.target_date
+        else:
+            raise AttributeError()
         self.occluded_target = self.target.copy()
-        self.occluded_target[self.synthetic_occlusion] = 0
-        px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
-        occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
-        # print(f"{occlusion_percentage:.3%} of pixels added arbitrary occlusion")
-        self.occlusion_id = fpath[-12:-4]
+        self.occluded_target[occlusion] = 0
+        px_count = occlusion.shape[0] * occlusion.shape[1]
+        occlusion_percentage = np.count_nonzero(occlusion) / px_count
+        # print(f"{occlusion_percentage:.3%} of pixels added arbitrary occlusion"
         return occlusion_percentage
 
     def calc_loss(self, metric='mae', print_=False, entire_canvas=False):
@@ -310,7 +319,7 @@ class Interpolator(abc.ABC):
         :return:
         """
         print(f"SPATIAL FILTER: global filter")
-        self.reconstructed_target = self.occluded_target
+        self.reconstructed_target = self.occluded_target.copy()
 
         px_count = np.count_nonzero(self.occluded_target)
         default_avg_temp = np.sum(self.occluded_target) / px_count  # global, class-agnostic
@@ -411,16 +420,37 @@ class Interpolator(abc.ABC):
         return
 
     def temporal_interp(self, ref_frame_date):
+        """
+        performs temporal interpolation with respect to one specified reference frame. This method does not introduce
+        synthetic occlusion to reference frame.
+        :param ref_frame_date:
+        :return: real occlusion percentage for the reference frame
+        """
         # load one image from the past
-        past_frame = self.get_frame(ref_frame_date)
         target_frame = self.occluded_target.copy()
         reconst_img = np.zeros_like(target_frame, dtype=np.float32)
         target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class
+
+        self.ref_frame_date = ref_frame_date
+        ref_frame = self.get_frame(self.ref_frame_date)
+        # ref_frame_valid_mask = self.build_valid_mask(alt_date=self.ref_frame_date)
+        # self._clean(ref_frame, mask=ref_frame_valid_mask)
+        #
+        # px_count = ref_frame_valid_mask.shape[0] * ref_frame_valid_mask.shape[1]
+        # ref_occlusion_percentage = np.count_nonzero(ref_frame_valid_mask) / px_count
+
+        ref_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
+        ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
+        ref_interp._nlm_global()
+        complete_ref_frame = ref_interp.reconstructed_target.copy()  # pre-processed ref frame, spatially complete
+
         for c, _ in NLCD_2019_META['lut'].items():
             c = int(c)
-            past_c = past_frame.copy()
+            past_c = ref_frame.copy()
             target_c = target_frame.copy()
+            complete_past_c = complete_ref_frame.copy()
             past_c[self.nlcd != c] = 0
+            complete_past_c[self.nlcd != c] = 0
             target_c[self.nlcd != c] = 0
 
             target_avg_pixels = target_c[np.where(target_c != 0)]
@@ -434,13 +464,16 @@ class Interpolator(abc.ABC):
 
             # build reconstruction image class by class
             if c in target_avgs and c in past_avgs:
-                compensated_past_c = past_c.copy()
+                # compensated_past_c = past_c.copy()  # with no spatial pre-processing on reference frame
+                compensated_past_c = complete_past_c.copy()  # with spatial pre-processing on reference frame
                 compensated_past_c[compensated_past_c != 0] += target_avgs[c] - past_avgs[c]
                 reconst_img += compensated_past_c
             else:
                 # raise AttributeError(c)  # TODO
                 pass
         self.reconstructed_target = reconst_img
+        del ref_interp
+        return ref_occlusion_percentage
 
     def temporal_interp_cloud(self, ref_frame_date, ref_syn_cloud_date):
         """

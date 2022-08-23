@@ -178,22 +178,24 @@ def temp_pairwise_cycle_eval(city_name):
     :param city_name:
     :return:
     """
-    entries = pd.read_csv(f"./data/{city_name}/rand_dates.csv")
+    # entries = pd.read_csv(f"./data/{city_name}/rand_dates.csv")
     target_date = '20200301'
     # ref_date = '20181205'
     # FIXME: no synthetic cloud?
     root_ = f'./data/{city_name}/'
     log_fpath = f"./data/{city_name}/temporal_references.csv"
-    # assert entries is not None
+    assert not p.exists(log_fpath)
     log = []
     frames = os.listdir(p.join(root_, 'bt_series'))
     frames = [f for f in frames if 'tif' in f]
-    pbar = tqdm(total=len(entries), desc='Analyzing multiple references')
+    pbar = tqdm(total=len(frames), desc='Analyzing multiple references')
     for ref_frame in frames:
         interp = Interpolator(root=root_, target_date=target_date)
-        interp.occluded_target = interp.target
+        interp.occluded_target = interp.target  # assume no cloud
+
         ref_date = ref_frame[9:17]
-        ref_perc = interp.temporal_interp_cloud(ref_frame_date=ref_date, ref_syn_cloud_date=ref_date)
+        ref_perc = interp.temporal_interp(ref_frame_date=ref_date)
+
         mae_loss = interp.calc_loss(print_=True, metric='mae', entire_canvas=True)
         mse_loss = interp.calc_loss(print_=True, metric='mse', entire_canvas=True)
         log += [(target_date, ref_date, np.nan, np.nan, ref_perc, mae_loss, mse_loss)]
@@ -222,10 +224,10 @@ def temp_pairwise_cycle_eval(city_name):
 
 
 def plot_temporal_cycle(city_name):
-    # max_clip = 1.0  # where to clip for vis
+    max_clip = 10  # where to clip for vis
     log_fpath = f"./data/{city_name}/temporal_references.csv"
     df = pd.read_csv(log_fpath)
-    # df['MAE'] = np.where(df['MAE'] > max_clip, max_clip, df['MAE'])
+    df['MAE'] = np.where(df['MAE'] > max_clip, max_clip, df['MAE'])
     ref_dates = df['ref_date']
     ref_dates = [datetime.datetime.strptime(str(date_str), '%Y%m%d') for date_str in ref_dates]
     seasons = [get_season(x) for x in ref_dates]

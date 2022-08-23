@@ -212,7 +212,7 @@ def disp_per_pixel_diff():
 def main_old():
     interp = Interpolator(root='./data/export/', target_date='20181221')
 
-    img = interp.get_frame(target_date='20181222', mode='cloud')
+    img = interp.get_frame(frame_date='20181222', mode='cloud')
     # interp = Interpolator(root='./data/export/', target_date='20181205')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20181018.tif')
     # fpath = p.join(interp.root, 'cirrus', 'LC08_cirrus_houston_20190903.tif')
