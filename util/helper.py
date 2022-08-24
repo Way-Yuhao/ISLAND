@@ -40,6 +40,7 @@ def deprecated(func):
     """This is a decorator which can be used to mark functions
     as deprecated. It will result in a warning being emitted
     when the function is used."""
+
     @functools.wraps(func)
     def new_func(*args, **kwargs):
         warnings.simplefilter('always', DeprecationWarning)  # turn off filter
@@ -48,11 +49,11 @@ def deprecated(func):
                       stacklevel=2)
         warnings.simplefilter('default', DeprecationWarning)  # reset filter
         return func(*args, **kwargs)
+
     return new_func
 
 
 def time_func(func):
-
     def inner(*args, **kwargs):
         start_time = time.monotonic()
         func(*args, **kwargs)
@@ -78,12 +79,12 @@ class Suppressor(object):
 
 
 def get_season(now):
-    Y = 2000 # dummy leap year to allow input X-02-29 (leap day)
-    seasons = [('winter', (dt.date(Y,  1,  1),  dt.date(Y,  3, 20))),
-           ('spring', (dt.date(Y,  3, 21),  dt.date(Y,  6, 20))),
-           ('summer', (dt.date(Y,  6, 21),  dt.date(Y,  9, 22))),
-           ('autumn', (dt.date(Y,  9, 23),  dt.date(Y, 12, 20))),
-           ('winter', (dt.date(Y, 12, 21),  dt.date(Y, 12, 31)))]
+    Y = 2000  # dummy leap year to allow input X-02-29 (leap day)
+    seasons = [('winter', (dt.date(Y, 1, 1), dt.date(Y, 3, 20))),
+               ('spring', (dt.date(Y, 3, 21), dt.date(Y, 6, 20))),
+               ('summer', (dt.date(Y, 6, 21), dt.date(Y, 9, 22))),
+               ('autumn', (dt.date(Y, 9, 23), dt.date(Y, 12, 20))),
+               ('winter', (dt.date(Y, 12, 21), dt.date(Y, 12, 31)))]
     # now = dt.datetime.strptime(str(now), '%Y%m%d').date()
     if isinstance(now, dt.datetime):
         now = now.date()
