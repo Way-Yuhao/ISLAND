@@ -357,7 +357,7 @@ class Interpolator(abc.ABC):
         """
         assert f is not None, "filter size cannot be None"
         print(f"SPATIAL FILTER: local gaussian filter with f={f}")
-        self.reconstructed_target = self.occluded_target
+        self.reconstructed_target = self.occluded_target.copy()
         x_length, y_length = self.occluded_target.shape
 
         temp_class_c = {}  # temperature map for each class
@@ -419,10 +419,12 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = reconst_img
         return
 
-    def temporal_interp(self, ref_frame_date):
+    def temporal_interp(self, ref_frame_date, global_threshold=.5):
         """
         performs temporal interpolation with respect to one specified reference frame. This method does not introduce
         synthetic occlusion to reference frame.
+        :param global_threshold: if the cloud coverage percentage of reference frame is above this threshold,
+               then use global filter
         :param ref_frame_date:
         :return: real occlusion percentage for the reference frame
         """
@@ -441,7 +443,13 @@ class Interpolator(abc.ABC):
 
         ref_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
         ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
-        ref_interp._nlm_local(f=75)
+        if ref_occlusion_percentage <= global_threshold:  # use local gaussian
+            ref_interp._nlm_local(f=75)
+            if np.isnan(ref_interp.reconstructed_target).any():
+                ref_interp.reconstructed_target = None
+                ref_interp._nlm_global()
+        else:  # use global rectangular
+            ref_interp._nlm_global()
         complete_ref_frame = ref_interp.reconstructed_target.copy()  # pre-processed ref frame, spatially complete
 
         for c, _ in NLCD_2019_META['lut'].items():

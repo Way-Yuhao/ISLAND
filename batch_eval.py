@@ -257,5 +257,5 @@ if __name__ == '__main__':
     # generate_dps(city_name='Phoenix')
     # temp_pairwise_eval(city_name='Phoenix')
     # plot_temporal_pairwise()
-    # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
-    plot_temporal_cycle(city_name='Phoenix')
+    temp_pairwise_cycle_eval_mp(city_name='Phoenix')
+    # plot_temporal_cycle(city_name='Phoenix')
