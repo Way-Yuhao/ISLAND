@@ -232,13 +232,17 @@ def plot_temporal_cycle(city_name):
     # y = df['target_synthetic_occlusion_percentage']
     y = df['MAE']
     sns.set_style('darkgrid')
-    plt.figure(num=1, figsize=(8, 5))
-    sns.scatterplot(x=ref_dates, y=y, hue=seasons)
-    sns.lineplot(x=ref_dates, y=df['reference_gt_occlusion_percentage'], color='black')
+    fig, axes = plt.subplots(2, 1, figsize=(8, 6), gridspec_kw={'height_ratios': [3, 1]})
+    # plt.figure(num=1, figsize=(8, 5))
+    sns.scatterplot(ax=axes[0], x=ref_dates, y=y, hue=seasons)
+    axes[0].set_title('Choice of reference frame vs. MAE loss')
+    axes[0].set_xlabel('Date of reference frame')
+    axes[0].set_ylabel(f'MAE loss, clipped at {max_clip}')
 
-    plt.title('Choice of reference frame vs. MAE loss')
-    plt.xlabel('Date corresponding to reference frame')
-    plt.ylabel('MAE loss, temporal channel only')
+    sns.lineplot(ax=axes[1], x=ref_dates, y=df['reference_gt_occlusion_percentage'], color='black')
+    # axes[1].set_title('Cloud coverages vs. time')
+    axes[1].set_xlabel('Date')
+    axes[1].set_ylabel('Cloud coverage (%)')
     plt.show()
 
 
