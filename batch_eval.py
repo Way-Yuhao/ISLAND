@@ -179,7 +179,7 @@ def temp_pairwise_cycle_eval(city_name):
     :return:
     """
     # entries = pd.read_csv(f"./data/{city_name}/rand_dates.csv")
-    target_date = '20200301'
+    target_date = '20220611'
     # ref_date = '20181205'
     # FIXME: no synthetic cloud?
     root_ = f'./data/{city_name}/'

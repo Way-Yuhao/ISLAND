@@ -623,8 +623,8 @@ def save_log(root_path, city_name, scene_id, ):
 def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     global GLOBAL_REFERENCE_DATE
     ee_init(high_volume=high_volume_api)
-    start_date = '20180101'
-    cycles = 50
+    start_date = '20170101'
+    cycles = 125
     num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
