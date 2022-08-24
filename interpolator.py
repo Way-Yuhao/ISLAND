@@ -248,7 +248,6 @@ class Interpolator(abc.ABC):
         else:  # calculate loss on entire canvas
             loss = np.average(error_map)
 
-
         if print_:
             print(f'{metric} loss = {loss:.3f}')
         return loss

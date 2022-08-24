@@ -193,7 +193,7 @@ def temp_pairwise_cycle_eval_mp(city_name):
     :param city_name:
     :return:
     """
-    target_date = '20220424'
+    target_date = '20220102'
     # vars for multiprocess
     num_procs = 10
     pool = Pool(num_procs)
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     # generate_dps(city_name='Phoenix')
     # temp_pairwise_eval(city_name='Phoenix')
     # plot_temporal_pairwise()
-    temp_pairwise_cycle_eval_mp(city_name='Phoenix')
-    # plot_temporal_cycle(city_name='Phoenix')
+    # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
+    plot_temporal_cycle(city_name='Phoenix')
