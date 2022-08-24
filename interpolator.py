@@ -441,7 +441,7 @@ class Interpolator(abc.ABC):
 
         ref_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
         ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
-        ref_interp._nlm_global()
+        ref_interp._nlm_local(f=75)
         complete_ref_frame = ref_interp.reconstructed_target.copy()  # pre-processed ref frame, spatially complete
 
         for c, _ in NLCD_2019_META['lut'].items():
