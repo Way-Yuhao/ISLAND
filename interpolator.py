@@ -288,8 +288,19 @@ class Interpolator(abc.ABC):
             plt.close()
         return
 
+    def compute_spatio_temporal_weight(self):
+        raise NotImplementedError
+
     def run_interpolation(self):
-        self.spatial_interp()
+        self.reconstructed_target = None
+        self._nlm_local(f=75)
+        reconst_spatial = self.reconstructed_target.copy()
+        assert reconst_spatial is not None
+        self.reconstructed_target = None
+        self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=1)
+        reconst_temporal = self.reconstructed_target.copy()
+        assert reconst_temporal is not None
+        self.reconstructed_target = (reconst_spatial + reconst_temporal) / 2
 
     def spatial_interp(self, f=None):
         self._nlm_local(f)
@@ -469,7 +480,7 @@ class Interpolator(abc.ABC):
         for d in tqdm(selected_ref_dates, desc='running temporal channel on all selected frames'):
             self.temporal_interp(ref_frame_date=d)
             reconst_imgs.append(self.reconstructed_target)
-            self.save_output()
+            # self.save_output()
             self.reconstructed_target = None
 
         # blended image is the average of all reconstructed images, with equal weights
@@ -479,7 +490,6 @@ class Interpolator(abc.ABC):
         blended_img /= len(reconst_imgs)
         self.reconstructed_target = blended_img
         self.save_output()
-
 
     def temporal_interp(self, ref_frame_date, global_threshold=.5):
         """

@@ -671,6 +671,7 @@ def export_wrapper(city_name, high_volume_api=False):
     export_city(root_path, city_name, scene_id, bounding_box, high_volume_api)
 
 
+
 if __name__ == '__main__':
     export_wrapper(city_name='Phoenix', high_volume_api=True)
 
