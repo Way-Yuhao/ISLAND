@@ -3,6 +3,7 @@ Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
 """
 import os
 import os.path as p
+import datetime as dt
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -269,7 +270,8 @@ class Interpolator(abc.ABC):
                 img = self.reconstructed_target
                 # save numpy array
                 output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}'
-                np.save(p.join(self.output_path, output_filename), img)  # float32 recommended. float16 only saves 1 decimal
+                np.save(p.join(self.output_path, output_filename),
+                        img)  # float32 recommended. float16 only saves 1 decimal
 
                 # save pyplot
                 min_ = img[img > 250].min()
@@ -418,9 +420,65 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = reconst_img
         return
 
-    def temporal_interp_multi_frame(self, num_frames, max_delta_days, max_cloud_perc):
-        assert num_frames in (1, 10)
-        raise NotImplementedError(self)
+    def temporal_interp_multi_frame(self, num_frames, max_delta_cycle, max_cloud_perc):
+        assert num_frames in range(1, 11)  # between 1 and 11 frames
+        print(f'Looking for at most {num_frames} reference frame candidates subject to')
+        print('\tdelta cycle < ', max_delta_cycle)
+        print('\tcloud coverage percentage < ', max_cloud_perc)
+
+        flist = os.listdir(p.join(self.root, 'cloud'))
+        flist = [f for f in flist if 'tif' in f]
+        ref_dates_str = [f[11:-4] for f in flist]  # a list of all reference frame dates
+
+        ref_dates = [dt.datetime.strptime(str(d), '%Y%m%d').date() for d in ref_dates_str]
+        target_date = dt.datetime.strptime(str(self.target_date), '%Y%m%d').date()
+
+        days_delta, same_year_deltas, ref_percs = [], [], []
+        for ref_date in ref_dates:
+            days_delta.append(abs((target_date - ref_date).days))
+            ref_same_year = ref_date.replace(year=target_date.year)
+            same_year_delta = abs((target_date - ref_same_year).days)
+            same_year_deltas.append(min(same_year_delta, 365 - same_year_delta))
+
+        for d in tqdm(ref_dates_str, desc='scanning reference frames'):
+            ref_frame_valid_mask = self.build_valid_mask(alt_date=d)
+            px_count = ref_frame_valid_mask.shape[0] * ref_frame_valid_mask.shape[1]
+            ref_percentage = np.count_nonzero(~ref_frame_valid_mask) / px_count
+            ref_percs.append(ref_percentage)
+
+        df = pd.DataFrame(ref_dates_str, columns=['ref_dates'])  # a list of all candidates for reference frames
+        df['same_year_delta'] = same_year_deltas
+        df['days_delta'] = days_delta
+        df['ref_percs'] = ref_percs
+
+        df = df.loc[df['days_delta'] != 0]  # remove target frame itself
+        df = df.loc[df['same_year_delta'] < max_delta_cycle * 16 + 1]  # filter by max delta cycle
+        df = df.loc[df['ref_percs'] < max_cloud_perc]  # filter by max cloud coverage
+        df = df.sort_values(by=['days_delta'])
+        print(df)
+        print(f'Found {len(df.index)} candidate frames that satisfy conditions:')
+        if df.empty:
+            yprint('No candidate reference frames satisfy conditions above. Mission aborted.')
+        if num_frames < len(df.index):
+            df = df.iloc[:num_frames]
+        print(f'Selected {len(df.index)} frames closest to target frame in time.')
+        print(df)
+        selected_ref_dates = df['ref_dates'].values
+        reconst_imgs = []
+
+        for d in tqdm(selected_ref_dates, desc='running temporal channel on all selected frames'):
+            self.temporal_interp(ref_frame_date=d)
+            reconst_imgs.append(self.reconstructed_target)
+            self.save_output()
+            self.reconstructed_target = None
+
+        # blended image is the average of all reconstructed images, with equal weights
+        blended_img = np.zeros_like(reconst_imgs[0])
+        for i in reconst_imgs:
+            blended_img += i
+        blended_img /= len(reconst_imgs)
+        self.reconstructed_target = blended_img
+        self.save_output()
 
 
     def temporal_interp(self, ref_frame_date, global_threshold=.5):
@@ -502,12 +560,11 @@ class Interpolator(abc.ABC):
         self.ref_frame_date = ref_frame_date
         past_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
         past_syn_occlusion_perc = past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
-                                               f'LC08_cloud_{ref_syn_cloud_date}.tif'))
+                                                                         f'LC08_cloud_{ref_syn_cloud_date}.tif'))
         past_interp._nlm_global()
         past_frame = past_interp.reconstructed_target  # complete
 
         # past_interp.display_target(mode='gt')
-
 
         # past_frame = self.get_frame(ref_frame_date)
         # past_mask = self.get_frame(ref_syn_cloud_date, mode='cloud').astype(np.bool_)

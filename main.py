@@ -261,6 +261,12 @@ def temp_eval_pairwise():
     interp.display_target(mode='error', text=f'Ours temporal channel | MAE loss = {loss:.3f}')
 
 
+def temp_multi_frame():
+    interp = Interpolator(root='./data/Phoenix/', target_date='20220102')
+    interp.add_occlusion(use_true_cloud=True)
+    interp.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
+
+
 def main():
     interp = Interpolator(root='./data/Phoenix/', target_date='20190822')
     # interp.temporal_interp()
@@ -277,3 +283,4 @@ if __name__ == '__main__':
     # hist_per_pixel_diff()
     # vis_per_pixel_diff()
     # temp_eval_pairwise()
+    temp_multi_frame()
