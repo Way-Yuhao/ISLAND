@@ -418,6 +418,11 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = reconst_img
         return
 
+    def temporal_interp_multi_frame(self, num_frames, max_delta_days, max_cloud_perc):
+        assert num_frames in (1, 10)
+        raise NotImplementedError(self)
+
+
     def temporal_interp(self, ref_frame_date, global_threshold=.5):
         """
         performs temporal interpolation with respect to one specified reference frame. This method does not introduce
