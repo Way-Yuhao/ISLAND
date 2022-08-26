@@ -24,6 +24,7 @@ import natsort
 import seaborn as sns
 from matplotlib import pyplot as plt
 from retry import retry
+from interpolator import Interpolator
 from helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
@@ -422,7 +423,7 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
             output_fname = r_file.replace('B4', 'RGB')
             output_fname = output_fname.replace('tif', 'png')
             output = output / output.max()
-            output = output * 2**16
+            output = output * 2 ** 16
             output = output.astype(np.uint16)
             cv2.imwrite(pjoin(output_dir, 'RGB', output_fname), output)
         else:
@@ -569,6 +570,7 @@ def run_exports_win():
     export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
                num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
 
+
 @deprecated
 def export_all():
     """
@@ -595,7 +597,9 @@ def export_all():
     # LA
     # bounding_box = [[[-118.41654, 33.723626], [-118.41654, 34.333656], [-117.603448, 34.333656], [-117.603448, 33.723626], [-118.41654, 33.723626]]]
     # Phoenix
-    bounding_box = [[[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612], [-112.39009, 33.171612]]]
+    bounding_box = [
+        [[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612],
+         [-112.39009, 33.171612]]]
     if not p.exists(root_path):
         os.mkdir(root_path)
 
@@ -618,6 +622,7 @@ def export_all():
 
 def save_log(root_path, city_name, scene_id, ):
     raise NotImplementedError()
+
 
 @time_func
 def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
@@ -671,12 +676,37 @@ def export_wrapper(city_name, high_volume_api=False):
     export_city(root_path, city_name, scene_id, bounding_box, high_volume_api)
 
 
+def generate_log(root_path):
+    """
+    generates a cvs file with each row containing
+    * date: date at which the satellite image is taken
+    * cloud_percentage: percentage of pixels labeled as either cloud, cloud shadow, or cirrus
+    :param root_path:
+    :return:
+    """
+    print('Generating metadata')
+    flist = os.listdir(p.join(root_path, 'cloud'))
+    flist = [f for f in flist if 'tif' in f]
+    dates = [f[11:-4] for f in flist]  # a list of all reference frame dates
+    cloud_percentages = []
+    dummy_interp = Interpolator(root=root_path, target_date=dates[0], no_log=True)
+    for d in tqdm(dates, desc='scanning frames'):
+        frame_valid_mask = dummy_interp.build_valid_mask(alt_date=d)
+        px_count = frame_valid_mask.shape[0] * frame_valid_mask.shape[1]
+        ref_percentage = np.count_nonzero(~frame_valid_mask) / px_count
+        cloud_percentages.append(ref_percentage)
+
+    df = pd.DataFrame(dates, columns=['date'])  # a list of all candidates for reference frames
+    df['cloud_percentage'] = cloud_percentages
+    df.to_csv(p.join(root_path, 'metadata.csv'), index=False)
+    print('Meta info saved to ', p.join(root_path, 'meta_data.csv'))
+    return
+
 
 if __name__ == '__main__':
-    export_wrapper(city_name='Phoenix', high_volume_api=True)
-
+    # export_wrapper(city_name='Phoenix', high_volume_api=True)
+    generate_log(root_path='../data/Phoenix')
 
 # single-program: Processing time = 0:20:36.844000
 # Phoenix, standard API, 23 min
 # Phoenix, high-volume API, 19 min
-

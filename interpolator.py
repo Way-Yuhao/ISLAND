@@ -19,7 +19,7 @@ from util.helper import deprecated, rprint, yprint
 
 class Interpolator(abc.ABC):
 
-    def __init__(self, root, target_date=None):
+    def __init__(self, root, target_date=None, no_log=False):
         self.root = root  # root directory
         self.bt_path = p.join(root, 'bt_series')
         self.cloud_path = p.join(root, 'cloud')
@@ -37,7 +37,13 @@ class Interpolator(abc.ABC):
         self.occluded_target = None
         self.reconstructed_target = None
         self._num_classes = len(NLCD_2019_META['lut'].items())  # number of NLCD classes, including those absent
-
+        if not no_log:
+            df = pd.read_csv(p.join(self.root, 'metadata.csv'))
+            assert df is not None
+            dates = df['date'].values.tolist()
+            dates = [str(d) for d in dates]
+            df['date'] = dates
+            self.metadata = df
         # temporal
         self.ref_frame_date = None
         return
@@ -437,10 +443,13 @@ class Interpolator(abc.ABC):
         print('\tdelta cycle < ', max_delta_cycle)
         print('\tcloud coverage percentage < ', max_cloud_perc)
 
-        flist = os.listdir(p.join(self.root, 'cloud'))
-        flist = [f for f in flist if 'tif' in f]
-        ref_dates_str = [f[11:-4] for f in flist]  # a list of all reference frame dates
+        # flist = os.listdir(p.join(self.root, 'cloud'))
+        # flist = [f for f in flist if 'tif' in f]
+        # ref_dates_str = [f[11:-4] for f in flist]  # a list of all reference frame dates
 
+
+        ref_dates_str = self.metadata['date'].values.tolist()
+        ref_occlusion_perc = self.metadata['cloud_percentage'].values.tolist()
         ref_dates = [dt.datetime.strptime(str(d), '%Y%m%d').date() for d in ref_dates_str]
         target_date = dt.datetime.strptime(str(self.target_date), '%Y%m%d').date()
 
@@ -451,16 +460,10 @@ class Interpolator(abc.ABC):
             same_year_delta = abs((target_date - ref_same_year).days)
             same_year_deltas.append(min(same_year_delta, 365 - same_year_delta))
 
-        for d in tqdm(ref_dates_str, desc='scanning reference frames'):
-            ref_frame_valid_mask = self.build_valid_mask(alt_date=d)
-            px_count = ref_frame_valid_mask.shape[0] * ref_frame_valid_mask.shape[1]
-            ref_percentage = np.count_nonzero(~ref_frame_valid_mask) / px_count
-            ref_percs.append(ref_percentage)
-
         df = pd.DataFrame(ref_dates_str, columns=['ref_dates'])  # a list of all candidates for reference frames
         df['same_year_delta'] = same_year_deltas
         df['days_delta'] = days_delta
-        df['ref_percs'] = ref_percs
+        df['ref_percs'] = ref_occlusion_perc
 
         df = df.loc[df['days_delta'] != 0]  # remove target frame itself
         df = df.loc[df['same_year_delta'] < max_delta_cycle * 16 + 1]  # filter by max delta cycle
