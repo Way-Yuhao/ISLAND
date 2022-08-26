@@ -267,13 +267,14 @@ def temp_multi_frame():
     interp.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
 
 
+def spatio_temporal_interp():
+    interp = Interpolator(root='./data/Houston/', target_date='20180511')
+    interp.add_occlusion(use_true_cloud=True)
+    interp.run_interpolation()
+
+
 def main():
-    interp = Interpolator(root='./data/Phoenix/', target_date='20190822')
-    # interp.temporal_interp()
-    img = interp.build_valid_mask()
-    plt.imshow(img)
-    plt.show()
-    print(img)
+    pass
 
 
 if __name__ == '__main__':
@@ -283,4 +284,5 @@ if __name__ == '__main__':
     # hist_per_pixel_diff()
     # vis_per_pixel_diff()
     # temp_eval_pairwise()
-    temp_multi_frame()
+    # temp_multi_frame()
+    spatio_temporal_interp()

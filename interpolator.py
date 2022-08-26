@@ -263,19 +263,21 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = None
         return
 
-    def save_output(self):
+    def save_output(self, msg=''):
         """
         Saves a NumPy array (unscaled) and a PyPlot (scaled for visualization) file for reconstruction
         result. Requires reconstruction result to exist.
         :return: None
         """
+        if msg != '':
+            msg = f'_{msg}'
         if self.reconstructed_target is None:
             raise ValueError('Reconstruction result does not exist. Cannot save image output')
         else:
             try:
                 img = self.reconstructed_target
                 # save numpy array
-                output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}'
+                output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}{msg}'
                 np.save(p.join(self.output_path, output_filename),
                         img)  # float32 recommended. float16 only saves 1 decimal
 
@@ -286,7 +288,7 @@ class Interpolator(abc.ABC):
                 plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
                 plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
                 plt.colorbar(label='BT(Kelvin)')
-                output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}.png'
+                output_filename = f'reconst_t{self.target_date}_syn{self.occlusion_id}_ref{self.ref_frame_date}{msg}.png'
                 plt.savefig(p.join(self.output_path, output_filename))
                 print('Pyplot vis saved to ', output_filename)
             except ValueError as e:
@@ -295,18 +297,51 @@ class Interpolator(abc.ABC):
         return
 
     def compute_spatio_temporal_weight(self):
-        raise NotImplementedError
+        """
+        Return weight w to be used for spatial channel. (1 - w) will be used for temporal
+        :return:
+        """
+        if self.synthetic_occlusion is None:
+            raise AttributeError()
+        px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
+        occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
+        return 1 - occlusion_percentage
 
     def run_interpolation(self):
-        self.reconstructed_target = None
-        self._nlm_local(f=75)
-        reconst_spatial = self.reconstructed_target.copy()
-        assert reconst_spatial is not None
-        self.reconstructed_target = None
-        self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=1)
-        reconst_temporal = self.reconstructed_target.copy()
-        assert reconst_temporal is not None
-        self.reconstructed_target = (reconst_spatial + reconst_temporal) / 2
+        print('Running spatial & temporal channel...')
+
+        px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
+        occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
+        print(f'occlusion percentage (real + synth) = {occlusion_percentage:.3f}')
+
+        # TODO: local gaussian for all?
+        if occlusion_percentage > .99:
+            self.reconstructed_target = np.zeros_like(self.occluded_target)
+        else:
+
+            self.reconstructed_target = self.occluded_target.copy()
+            self.save_output('occluded')
+            self.reconstructed_target = None
+
+            self.reconstructed_target = None
+            self._nlm_local(f=75)  # spatial
+            self.save_output('spatial')
+            reconst_spatial = self.reconstructed_target.copy()
+            assert reconst_spatial is not None
+
+            self.reconstructed_target = None
+            self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
+            self.save_output('temporal')
+            reconst_temporal = self.reconstructed_target.copy()
+            assert reconst_temporal is not None
+
+            self.reconstructed_target = None
+            w_spatial = self.compute_spatio_temporal_weight()
+            w_temporal = 1 - w_spatial
+            # self.reconstructed_target = (reconst_spatial + reconst_temporal) / 2
+            self.reconstructed_target = w_spatial * reconst_spatial + w_temporal * reconst_temporal
+            self.save_output('st')
+        return
 
     def spatial_interp(self, f=None):
         self._nlm_local(f)
@@ -469,13 +504,13 @@ class Interpolator(abc.ABC):
         df = df.loc[df['same_year_delta'] < max_delta_cycle * 16 + 1]  # filter by max delta cycle
         df = df.loc[df['ref_percs'] < max_cloud_perc]  # filter by max cloud coverage
         df = df.sort_values(by=['days_delta'])
-        print(df)
+        # print(df)
         print(f'Found {len(df.index)} candidate frames that satisfy conditions:')
         if df.empty:
             yprint('No candidate reference frames satisfy conditions above. Mission aborted.')
         if num_frames < len(df.index):
             df = df.iloc[:num_frames]
-        print(f'Selected {len(df.index)} frames closest to target frame in time.')
+        print(f'Selected {len(df.index)} frames closest to target frame in time:')
         print(df)
         selected_ref_dates = df['ref_dates'].values
         reconst_imgs = []
@@ -492,7 +527,7 @@ class Interpolator(abc.ABC):
             blended_img += i
         blended_img /= len(reconst_imgs)
         self.reconstructed_target = blended_img
-        self.save_output()
+        # self.save_output()
 
     def temporal_interp(self, ref_frame_date, global_threshold=.5):
         """

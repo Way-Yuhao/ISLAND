@@ -649,6 +649,7 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    generate_log(root_path=f'../data/{city_name}')
     return
 
 
@@ -680,7 +681,7 @@ def generate_log(root_path):
     """
     generates a cvs file with each row containing
     * date: date at which the satellite image is taken
-    * cloud_percentage: percentage of pixels labeled as either cloud, cloud shadow, or cirrus
+    * cloud_percentage: percentage of pixels labeled as either cloud, cloud shadow
     :param root_path:
     :return:
     """
@@ -704,8 +705,8 @@ def generate_log(root_path):
 
 
 if __name__ == '__main__':
-    # export_wrapper(city_name='Phoenix', high_volume_api=True)
-    generate_log(root_path='../data/Phoenix')
+    export_wrapper(city_name='Houston', high_volume_api=True)
+    # generate_log(root_path='../data/Phoenix')
 
 # single-program: Processing time = 0:20:36.844000
 # Phoenix, standard API, 23 min

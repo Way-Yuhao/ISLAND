@@ -246,6 +246,17 @@ def plot_temporal_cycle(city_name):
     plt.show()
 
 
+def solve_all(city_name):
+    root_ = f'./data/{city_name}/'
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    for d in dates:
+        interp = Interpolator(root=root_, target_date=d)
+        interp.add_occlusion(use_true_cloud=True)
+        interp.run_interpolation()
+
+
 def main():
     pass
 
@@ -258,4 +269,5 @@ if __name__ == '__main__':
     # temp_pairwise_eval(city_name='Phoenix')
     # plot_temporal_pairwise()
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
-    plot_temporal_cycle(city_name='Phoenix')
+    # plot_temporal_cycle(city_name='Phoenix')
+    solve_all(city_name='Phoenix')
