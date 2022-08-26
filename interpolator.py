@@ -282,8 +282,12 @@ class Interpolator(abc.ABC):
                         img)  # float32 recommended. float16 only saves 1 decimal
 
                 # save pyplot
-                min_ = img[img > 250].min()
-                max_ = min(330, img.max())
+                # min_ = img[img > 250].min()
+                # max_ = min(330, img.max())
+
+                min_ = 270
+                max_ = 330
+
                 cmap_ = 'magma'
                 plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
                 plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
@@ -314,17 +318,24 @@ class Interpolator(abc.ABC):
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         print(f'occlusion percentage (real + synth) = {occlusion_percentage:.3f}')
 
+        # self.reconstructed_target = self.occluded_target.copy()
+        # self.save_output('occluded')
+        # self.reconstructed_target = None
+
         # TODO: local gaussian for all?
         if occlusion_percentage > .99:
-            print('Encountered 100% cloudy frame. Skipped.')
-            self.reconstructed_target = np.zeros_like(self.occluded_target)
-
-        else:
-
+            # remote these
             self.reconstructed_target = self.occluded_target.copy()
             self.save_output('occluded')
             self.reconstructed_target = None
 
+            print('Encountered 100% cloudy frame. Skipped.')
+            self.reconstructed_target = np.zeros_like(self.occluded_target)
+            self.save_output('spatial')
+            self.save_output('temporal')
+            self.save_output('st')
+        else:
+            return  # remove this
             self.reconstructed_target = None
             if occlusion_percentage < .5:
                 self._nlm_local(f=75)  # spatial, local gaussian

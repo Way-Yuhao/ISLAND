@@ -252,7 +252,7 @@ def solve_all(city_name):
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
     for d in dates:
-        yprint('Evaluating ', d)
+        yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
         interp.add_occlusion(use_true_cloud=True)
         interp.run_interpolation()
