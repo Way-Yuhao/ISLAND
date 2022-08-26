@@ -307,7 +307,7 @@ class Interpolator(abc.ABC):
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         return 1 - occlusion_percentage
 
-    def run_interpolation(self):
+    def run_interpolation(self, spatial_global_cutoff=.5):
         print('Running spatial & temporal channel...')
 
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
@@ -316,7 +316,9 @@ class Interpolator(abc.ABC):
 
         # TODO: local gaussian for all?
         if occlusion_percentage > .99:
+            print('Encountered 100% cloudy frame. Skipped.')
             self.reconstructed_target = np.zeros_like(self.occluded_target)
+
         else:
 
             self.reconstructed_target = self.occluded_target.copy()
@@ -324,7 +326,10 @@ class Interpolator(abc.ABC):
             self.reconstructed_target = None
 
             self.reconstructed_target = None
-            self._nlm_local(f=75)  # spatial
+            if occlusion_percentage < .5:
+                self._nlm_local(f=75)  # spatial, local gaussian
+            else:
+                self._nlm_global()  # spatial, global rectangular
             self.save_output('spatial')
             reconst_spatial = self.reconstructed_target.copy()
             assert reconst_spatial is not None
@@ -589,7 +594,13 @@ class Interpolator(abc.ABC):
             else:
                 # raise AttributeError(c)  # TODO
                 pass
-        self.reconstructed_target = reconst_img
+
+        # self.reconstructed_target = reconst_img
+
+        self.reconstructed_target = np.zeros_like(self.occluded_target)
+        self.reconstructed_target[self.synthetic_occlusion] = reconst_img[self.synthetic_occlusion]
+        self.reconstructed_target[~self.synthetic_occlusion] = self.occluded_target[~self.synthetic_occlusion]
+
         del ref_interp
         return ref_occlusion_percentage
 
