@@ -149,6 +149,37 @@ class Interpolator(abc.ABC):
     def _clear_outputs(self):
         self.reconstructed_target = None
 
+    def display(self, img, error_cbar=False, msg='', xlabel_text=None):
+        if type(img) is np.ndarray:
+            pass
+        elif img in ['gt', 'target', 't']:
+            img = self.target
+            msg = 'Ground Truth'
+        elif img in ['occluded', 'o']:
+            img = self.occluded_target
+            msg = 'Occluded'
+        elif img in ['reconst', 'r']:
+            img = self.reconstructed_target
+            msg = 'Reconstructed'
+        else:
+            raise AttributeError('Unknown image to display specified. Must be either a reserved string like gt, '
+                                 'occluded, reconst, error, or an np.ndarray object.')
+        assert img is not None
+        if error_cbar:
+            max_, min_ = 15, -15
+            cmap_ = 'seismic'
+        else:
+            min_ = img[img > 250].min()
+            max_ = min(330, img.max())
+            cmap_ = 'magma'
+        plt.imshow(img, cmap=cmap_, vmin=min_, vmax=max_)
+        plt.xlabel(xlabel_text)
+        plt.title(f'{msg} Brightness Temperature on {self.target_date}')
+        plt.colorbar(label='BT(Kelvin)')
+        plt.show()
+        return 0
+
+    @deprecated  # reason: clean
     def display_target(self, mode=None, img=None, text=None):
         """
         Displays a plot via matplotlib for the desired matrix

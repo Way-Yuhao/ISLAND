@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd
 from tqdm import tqdm
+import cv2
 from interpolator import Interpolator
 from config import *
 from util.helper import deprecated
@@ -273,6 +274,31 @@ def spatio_temporal_interp():
     interp.run_interpolation()
 
 
+def eval_error():
+    output_path = './data/Houston/output/'
+    eval_date = '20180511'
+    interp = Interpolator(root='./data/Houston', target_date=eval_date)
+
+    files = os.listdir(output_path)
+    files = [f for f in files if 'npy' in f]
+    files = [f for f in files if f't{eval_date}' in f]
+    occluded = [f for f in files if 'occluded' in f][0]
+    spatial = [f for f in files if 'spatial' in f][0]
+    temporal = [f for f in files if 'temporal' in f][0]
+    st = [f for f in files if 'st' in f][0]
+    occluded = np.load(p.join(output_path, occluded))
+    spatial = np.load(p.join(output_path, spatial))
+    temporal = np.load(p.join(output_path, temporal))
+    st = np.load(p.join(output_path, st))
+    mask = interp.build_valid_mask(alt_date=eval_date)
+    error = st - interp.target
+    error[~mask] = 0
+    # interp.display(img=error, error_cbar=True)
+    interp.display(img='t')
+    # shows that for areas labeled as cloud-free, prediction = gt, which is correct
+
+
+
 def main():
     pass
 
@@ -285,4 +311,5 @@ if __name__ == '__main__':
     # vis_per_pixel_diff()
     # temp_eval_pairwise()
     # temp_multi_frame()
-    spatio_temporal_interp()
+    # spatio_temporal_interp()
+    eval_error()
