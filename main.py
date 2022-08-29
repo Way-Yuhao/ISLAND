@@ -298,6 +298,13 @@ def eval_error():
     # shows that for areas labeled as cloud-free, prediction = gt, which is correct
 
 
+def rand_occlusion_eval():
+    eval_date = '20180511'
+    interp = Interpolator(root='./data/Houston', target_date=eval_date)
+    added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
+    plt.imshow(interp.synthetic_occlusion)
+    plt.show()
+
 
 def main():
     pass
@@ -312,4 +319,5 @@ if __name__ == '__main__':
     # temp_eval_pairwise()
     # temp_multi_frame()
     # spatio_temporal_interp()
-    eval_error()
+    # eval_error()
+    rand_occlusion_eval()

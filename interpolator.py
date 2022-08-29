@@ -146,9 +146,6 @@ class Interpolator(abc.ABC):
         img[~mask] = 0
         return img
 
-    def _clear_outputs(self):
-        self.reconstructed_target = None
-
     def display(self, img, error_cbar=False, msg='', xlabel_text=None):
         if type(img) is np.ndarray:
             pass
@@ -777,3 +774,46 @@ class Interpolator(abc.ABC):
         plt.title('Distribution of Brightness Temperature per Landcover Class')
         plt.tight_layout()
         plt.show()
+
+    def add_random_occlusion(self, size, num_occlusions):
+        assert size > 0
+        assert num_occlusions > 0
+
+        max_iterations = 1000
+        min_area_threshold = .9
+        single_occlusion_px_size = size ** 2
+
+        max_h = self.target.shape[0] - size
+        max_w = self.target.shape[1] - size
+
+        if self.target_valid_mask is None:
+            self.target_valid_mask = self.build_valid_mask()
+        real_occlusion = ~self.target_valid_mask.copy()
+        all_occlusion_mask = real_occlusion.copy()  # np.bool
+        i, occlusions_added = 0, 0
+        while True:
+            new_occlusion = np.zeros_like(all_occlusion_mask)  # np.bool
+            h = np.random.randint(0, max_h)
+            w = np.random.randint(0, max_w)
+            new_occlusion[h: h + size, w: w + size] = True
+            occlusion_be_to_added = np.logical_and(new_occlusion, ~all_occlusion_mask)  # union
+            # print(np.count_nonzero(occlusion_be_to_added))
+            if np.count_nonzero(occlusion_be_to_added) > single_occlusion_px_size * min_area_threshold:
+                all_occlusion_mask += new_occlusion  # only add occlusion if overlap smaller than threshold
+                occlusions_added += 1
+            i += 1
+            if occlusions_added >= num_occlusions:
+                break
+            if i >= max_iterations:
+                print(f'max number of iterations reached. Only {occlusions_added} out of {num_occlusions} have been'
+                      f'added.')
+                break
+        occlusion_synthetic_only = np.logical_and(all_occlusion_mask, ~real_occlusion)
+        pxs_occluded_synthetic = np.count_nonzero(occlusion_synthetic_only)
+        print(f'{pxs_occluded_synthetic} ({pxs_occluded_synthetic / (real_occlusion.shape[0] * real_occlusion.shape[1] / 100):.3f}%)'
+              f' pixels are artificially occluded')
+        self.synthetic_occlusion = all_occlusion_mask.copy()
+        return occlusion_synthetic_only
+
+
+
