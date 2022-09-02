@@ -258,6 +258,35 @@ def solve_all(city_name):
         interp.run_interpolation()
 
 
+@time_func
+def timelapse_with_synthetic_occlusion(city_name):
+    root_ = f'./data/{city_name}/'
+    log_fpath = f"./data/{city_name}/output/timelapse_log.csv"
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    log = []
+    for d in dates:
+        yprint(f'Evaluating {d}')
+        interp = Interpolator(root=root_, target_date=d)
+        added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
+        # save added occlusion
+        output_filename = f'syn_occlusion_{d}'
+        np.save(p.join(interp.output_path, output_filename), added_occlusion)
+        plt.imshow(added_occlusion)
+        plt.title(f'Added synthetic occlusion on {d}')
+        output_filename = f'syn_occlusion_{d}.png'
+        plt.savefig(p.join(interp.output_path, output_filename))
+        interp.run_interpolation()
+        loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        interp.save_error_frame(mask=added_occlusion, suffix='st')
+        print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
+        log += [(d, loss, np.count_nonzero(added_occlusion))]
+    df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
+    df.to_csv(log_fpath, index=False)
+    print('csv file saved to ', log_fpath)
+
+
 def main():
     pass
 
@@ -271,4 +300,5 @@ if __name__ == '__main__':
     # plot_temporal_pairwise()
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
     # plot_temporal_cycle(city_name='Phoenix')
-    solve_all(city_name='Houston')
+    #solve_all(city_name='Houston')
+    timelapse_with_synthetic_occlusion(city_name='Houston')

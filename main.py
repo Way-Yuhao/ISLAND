@@ -299,11 +299,20 @@ def eval_error():
 
 
 def rand_occlusion_eval():
-    eval_date = '20180511'
+    eval_date = '20180409'
     interp = Interpolator(root='./data/Houston', target_date=eval_date)
     added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
-    plt.imshow(interp.synthetic_occlusion)
-    plt.show()
+    # save added occlusion
+    output_filename = f'syn_occlusion_{eval_date}'
+    np.save(p.join(interp.output_path, output_filename), added_occlusion)
+    plt.imshow(added_occlusion)
+    plt.title(f'Added synthetic occlusion on {eval_date}')
+    output_filename = f'syn_occlusion_{eval_date}.png'
+    plt.savefig(p.join(interp.output_path, output_filename))
+    interp.run_interpolation()
+    loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+    interp.save_error_frame(mask=added_occlusion, suffix='st')
+    print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
 
 
 def main():

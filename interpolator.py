@@ -354,28 +354,27 @@ class Interpolator(abc.ABC):
         if occlusion_percentage > .99:
             # remote these
             self.reconstructed_target = self.occluded_target.copy()
-            self.save_output('occluded')
+            self.save_timelapse_frame(suffix='occluded')
             self.reconstructed_target = None
 
             print('Encountered 100% cloudy frame. Skipped.')
             self.reconstructed_target = np.zeros_like(self.occluded_target)
-            self.save_output('spatial')
-            self.save_output('temporal')
-            self.save_output('st')
+            self.save_timelapse_frame(suffix='spatial')
+            self.save_timelapse_frame(suffix='temporal')
+            self.save_timelapse_frame(suffix='st')
         else:
-            return  # remove this
             self.reconstructed_target = None
             if occlusion_percentage < .5:
                 self._nlm_local(f=75)  # spatial, local gaussian
             else:
                 self._nlm_global()  # spatial, global rectangular
-            self.save_output('spatial')
+            self.save_timelapse_frame(suffix='spatial')
             reconst_spatial = self.reconstructed_target.copy()
             assert reconst_spatial is not None
 
             self.reconstructed_target = None
             self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
-            self.save_output('temporal')
+            self.save_timelapse_frame(suffix='temporal')
             reconst_temporal = self.reconstructed_target.copy()
             assert reconst_temporal is not None
 
@@ -384,7 +383,7 @@ class Interpolator(abc.ABC):
             w_temporal = 1 - w_spatial
             # self.reconstructed_target = (reconst_spatial + reconst_temporal) / 2
             self.reconstructed_target = w_spatial * reconst_spatial + w_temporal * reconst_temporal
-            self.save_output('st')
+            self.save_timelapse_frame(suffix='st')
         return
 
     def spatial_interp(self, f=None):
@@ -806,14 +805,70 @@ class Interpolator(abc.ABC):
                 break
             if i >= max_iterations:
                 print(f'max number of iterations reached. Only {occlusions_added} out of {num_occlusions} have been'
-                      f'added.')
+                      f' added.')
                 break
         occlusion_synthetic_only = np.logical_and(all_occlusion_mask, ~real_occlusion)
         pxs_occluded_synthetic = np.count_nonzero(occlusion_synthetic_only)
         print(f'{pxs_occluded_synthetic} ({pxs_occluded_synthetic / (real_occlusion.shape[0] * real_occlusion.shape[1] / 100):.3f}%)'
               f' pixels are artificially occluded')
         self.synthetic_occlusion = all_occlusion_mask.copy()
+        self.occluded_target = self.target.copy()
+        self.occluded_target[all_occlusion_mask] = 0
         return occlusion_synthetic_only
 
+    def calc_loss_hybrid(self, metric, synthetic_only_mask):
+        if self.reconstructed_target is None:
+            raise AttributeError('Reconstruction image does not exist')
+        a, b = self.target, self.reconstructed_target
+        if metric == "mae":
+            error_map = np.abs(a - b)
+        elif metric == 'mse':
+            error_map = np.square(a - b)
+        else:
+            raise AttributeError(f'Unknown loss function encountered: {metric}.')
+
+        error_map[~synthetic_only_mask] = 0
+        loss = np.sum(error_map) / np.count_nonzero(synthetic_only_mask)
+        return loss, error_map
+
+    def save_timelapse_frame(self, suffix=''):
+        suffix = f'_{suffix}' if suffix != '' else ''
+        if self.reconstructed_target is None:
+            raise ValueError('Reconstruction result does not exist. Cannot save image output')
+        try:
+            # save image output
+            img = self.reconstructed_target.copy()
+            output_filename = f'reconst_{self.target_date}{suffix}'
+            np.save(p.join(self.output_path, output_filename), img)
+            output_vmin = 270
+            output_vmax = 330
+            plt.imshow(img, cmap='magma', vmax=output_vmax, vmin=output_vmin)
+            plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
+            plt.colorbar(label='BT(Kelvin)')
+            output_filename = f'reconst_{self.target_date}{suffix}.png'
+            plt.savefig(p.join(self.output_path, output_filename))
+        except ValueError as e:
+            rprint(f'ERROR: {e}.\n Current image not saved.')
+        plt.close()
+        return
+
+    def save_error_frame(self, mask, suffix=''):
+        suffix = f'_{suffix}' if suffix != '' else ''
+        try:
+            # save error map
+            img = self.target - self.reconstructed_target
+            img[~mask] = 0
+            output_filename = f'error_{self.target_date}{suffix}'
+            np.save(p.join(self.output_path, output_filename), img)
+            error_vmin = -5
+            error_vmax = 5
+            plt.imshow(img, cmap='seismic', vmax=error_vmax, vmin=error_vmin)
+            plt.title(f'Error in Brightness Temperature on {self.target_date} under synthetic occlusions only')
+            plt.colorbar(label='BT(Kelvin)')
+            output_filename = f'error_{self.target_date}{suffix}.png'
+            plt.savefig(p.join(self.output_path, output_filename))
+        except ValueError as e:
+            rprint(f'ERROR: {e}.\n Current error map not saved.')
+        plt.close()
 
 
