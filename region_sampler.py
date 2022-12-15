@@ -23,6 +23,7 @@ import natsort
 import seaborn as sns
 from matplotlib import pyplot as plt
 from retry import retry
+import wandb
 from interpolator import Interpolator
 from earth_engine_loader import SeqEarthEngineLoader
 from util.helper import *
@@ -541,7 +542,7 @@ def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
     plt.xlabel("Data Acquired")
     plt.ylabel("Cloud Cover (%)")
     plt.xticks(rotation=45)
-    plt.savefig(p.join(root_path, 'util/cloud_coverage.png'))
+    plt.savefig(p.join(root_path, 'cloud_coverage.png'))
     print('Cloud coverage plot saved.')
     return
 
@@ -566,7 +567,7 @@ def run_exports_win():
     Attempting to fix display isses for TIF images on Windows Machines
     :return:
     """
-    output_dir = "../data/export2/TOA_RGB"
+    output_dir = "./data/export2/TOA_RGB"
     export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
                num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
 
@@ -649,7 +650,7 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    generate_log(root_path=f'../data/{city_name}')
+    generate_log(root_path=f'./data/{city_name}')
     return
 
 
@@ -705,8 +706,14 @@ def generate_log(root_path):
 
 
 if __name__ == '__main__':
-    export_wrapper(city_name='New York', high_volume_api=True)
+    CITY_NAME = 'Philadelphia'
+    wandb.init()
+    export_wrapper(city_name=CITY_NAME, high_volume_api=True)
     # generate_log(root_path='../data/Phoenix')
+    wandb.alert(
+        title='Download finished',
+        text=f'Data for region {CITY_NAME} finished downloading.'
+    )
 
 # single-program: Processing time = 0:20:36.844000
 # Phoenix, standard API, 23 min

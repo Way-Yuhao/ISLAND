@@ -5,13 +5,16 @@ import pandas as pd
 from util.helper import deprecated, time_func
 import ee
 import geemap
+import wandb
 
 
 @time_func
 def main():
-    ee.Initialize()
-    img = ee.Image('LANDSAT/LC08/C02/T1_TOA/LC08_025039_20200210').select('B0io')
-    print(img)
+    wandb.init()
+    wandb.alert(
+        title='Download finished',
+        text='yo'
+    )
 
 
 if __name__ == '__main__':
