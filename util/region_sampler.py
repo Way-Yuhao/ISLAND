@@ -705,7 +705,7 @@ def generate_log(root_path):
 
 
 if __name__ == '__main__':
-    export_wrapper(city_name='Houston', high_volume_api=True)
+    export_wrapper(city_name='Chicago', high_volume_api=True)
     # generate_log(root_path='../data/Phoenix')
 
 # single-program: Processing time = 0:20:36.844000
