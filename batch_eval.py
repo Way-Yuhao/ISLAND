@@ -298,7 +298,8 @@ if __name__ == '__main__':
     # generate_dps(city_name='Phoenix')
     # temp_pairwise_eval(city_name='Phoenix')
     # plot_temporal_pairwise()
-    # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
+    # temp_pairwise_cycle_eval_mp(city_name='Phoenix')amex
+
     # plot_temporal_cycle(city_name='Phoenix')
-    #solve_all(city_name='Houston')
-    timelapse_with_synthetic_occlusion(city_name='Houston')
+    solve_all(city_name='Phoenix')
+    # timelapse_with_synthetic_occlusion(city_name='Houston')
