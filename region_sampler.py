@@ -11,7 +11,6 @@ import geemap
 import numpy as np
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-from earth_engine_loader import SeqEarthEngineLoader
 from datetime import date, timedelta, datetime
 from multiprocessing import Manager, Pool
 import shutil
@@ -25,7 +24,8 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from retry import retry
 from interpolator import Interpolator
-from helper import *
+from earth_engine_loader import SeqEarthEngineLoader
+from util.helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
 
@@ -541,7 +541,7 @@ def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
     plt.xlabel("Data Acquired")
     plt.ylabel("Cloud Cover (%)")
     plt.xticks(rotation=45)
-    plt.savefig(p.join(root_path, 'cloud_coverage.png'))
+    plt.savefig(p.join(root_path, 'util/cloud_coverage.png'))
     print('Cloud coverage plot saved.')
     return
 
@@ -553,7 +553,7 @@ def run_exports():
     # export_landsat_series(output_dir, satellite='LC08', band='B10', scene_id='025039', start_date='20180101',
     #                       num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX)
 
-    output_dir = "../data/export/qa_series"
+    output_dir = "data/export/qa_series"
     export_landsat_series(output_dir, satellite='LC08', band='QA_PIXEL', scene_id='025039', start_date='20180101',
                           num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX)
 
@@ -654,7 +654,7 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
 
 
 def export_wrapper(city_name, high_volume_api=False):
-    cities_list_path = "../data/us_cities.csv"
+    cities_list_path = "data/us_cities.csv"
     print(f'Parsing metadata from {cities_list_path}')
     cols = list(pd.read_csv(cities_list_path, nrows=1))
     cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
@@ -668,7 +668,7 @@ def export_wrapper(city_name, high_volume_api=False):
     assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
     assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
     yprint(f'city = {city_name}, scene_id = {scene_id}, bounding_box = {bounding_box}')
-    root_path = pjoin('../data', city_name)
+    root_path = pjoin('./data', city_name)
     if p.exists(root_path):
         raise FileExistsError(f'Directory {root_path} already exists.')
     else:
@@ -705,7 +705,7 @@ def generate_log(root_path):
 
 
 if __name__ == '__main__':
-    export_wrapper(city_name='Chicago', high_volume_api=True)
+    export_wrapper(city_name='New York', high_volume_api=True)
     # generate_log(root_path='../data/Phoenix')
 
 # single-program: Processing time = 0:20:36.844000
