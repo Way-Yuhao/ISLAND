@@ -1,8 +1,8 @@
 __author__ = 'Yuhao Liu'
 """
 Sequentially sample a defined region from earth engine. 
-
 """
+import argparse
 import os
 import os.path as p
 # import torch
@@ -706,7 +706,15 @@ def generate_log(root_path):
 
 
 if __name__ == '__main__':
-    CITY_NAME = 'Philadelphia'
+    parser = argparse.ArgumentParser(description='Process specify city name.')
+    parser.add_argument('-c', nargs='+', required=True,
+                        help='Process specify city name.')
+    args = parser.parse_args()
+    CITY_NAME = ""
+    for entry in args.c:
+        CITY_NAME += entry + " "
+    CITY_NAME = CITY_NAME[:-1]
+    # CITY_NAME = 'San Diego'
     wandb.init()
     export_wrapper(city_name=CITY_NAME, high_volume_api=True)
     # generate_log(root_path='../data/Phoenix')
