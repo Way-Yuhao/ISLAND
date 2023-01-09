@@ -6,6 +6,7 @@ import functools
 from config import bcolors
 import time
 import datetime as dt
+import uuid
 
 
 def yprint(msg):
@@ -91,3 +92,15 @@ def get_season(now):
     now = now.replace(year=Y)
     return next(season for season, (start, end) in seasons
                 if start <= now <= end)
+
+
+def hash_(str_=None, bits=4):
+    """
+    modifies output filename by appending a hashcode. If input (str_) is provided,
+    it must contain substring '{}' as a placeholder for hascode.
+    """
+    hashcode = uuid.uuid4().hex[:bits]
+    if str_ is not None:
+        return str_.format(hashcode)
+    else:
+        return hashcode
