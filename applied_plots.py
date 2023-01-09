@@ -69,7 +69,7 @@ def vis_heat(path):
         plt.close()
 
 
-def plot_avg_temp_per_class_over_time(city=" "):
+def calc_avg_temp_per_class_over_time(city=""):
     """
     Generates a line graph of average temperature of a given land cover class over time,
     for a particular city.
@@ -119,10 +119,43 @@ def plot_avg_temp_per_class_over_time(city=" "):
     print(f'Data frame saved to average_temp_trend_{hash_()}.csv')
 
 
+def plot_avg_temp_per_class_over_time(city="", hash_code=None):
+    """
+    Generates a plot from .csv file produced by calc_avg_temp_per_class_over_time().
+    :param city:
+    :return:
+    """
+    output_dir = f'./data/{city}/analysis/'
+    if not p.exists(output_dir):
+        raise FileNotFoundError()
+    files = os.listdir(output_dir)
+    files = [f for f in files if 'average_temp_trend' in f]
+    files = [f for f in files if 'csv' in f]
+    if len(files) == 0:
+        raise FileNotFoundError('No corresponding csv files found in ', output_dir)
+    elif len(files) > 1:
+        if hash_code is None:
+            raise FileExistsError('Multiple csv files found. Please specify a hashcode')
+        else:  # hash code is specified
+            files = [f for f in files if hash_code in f]
+            if len(files) == 0:
+                raise FileNotFoundError('No csv file matches with the specified hash code: ', hash_code)
+            elif len(files) > 1:
+                raise FileExistsError('Hash collision')
+
+    # only 1 matching csv file exists
+    assert(len(files) == 1)
+    yprint(f'Parsing dataframe from {files[0]}')
+    df = pd.read_csv(p.join(output_dir, files[0]))
+    print(df)
+
+
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
+    # calc_avg_temp_per_class_over_time(city='Houston')
     plot_avg_temp_per_class_over_time(city='Houston')
+
 
 if __name__ == '__main__':
     main()
