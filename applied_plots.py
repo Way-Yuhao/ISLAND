@@ -120,10 +120,9 @@ def plot_avg_temp_per_class_over_time(city=" "):
 
 
 def main():
-    plot_avg_temp_per_class_over_time(city='Houston')
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
-
+    plot_avg_temp_per_class_over_time(city='Houston')
 
 if __name__ == '__main__':
     main()
