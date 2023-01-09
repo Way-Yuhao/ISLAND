@@ -717,7 +717,7 @@ if __name__ == '__main__':
     # CITY_NAME = 'San Diego'
     wandb.init()
     export_wrapper(city_name=CITY_NAME, high_volume_api=True)
-    # generate_log(root_path='../data/Phoenix')
+    # generate_log(root_path=f'../data/{CITY_NAME}')
     wandb.alert(
         title='Download finished',
         text=f'Data for region {CITY_NAME} finished downloading.'

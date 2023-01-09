@@ -1,3 +1,4 @@
+import argparse
 import time
 import datetime
 import os
@@ -11,6 +12,8 @@ from interpolator import Interpolator
 from natsort import natsorted
 from tqdm import tqdm
 import random
+import wandb
+from tqdm import tqdm
 from config import *
 from util.helper import get_season, rprint, yprint, time_func
 
@@ -246,16 +249,27 @@ def plot_temporal_cycle(city_name):
     plt.show()
 
 
+@time_func
 def solve_all(city_name):
+    """
+    Generates timelapse for all available input frames without adding synthetic occlusion
+    :param city_name:
+    :return:
+    """
+    wandb.init()
     root_ = f'./data/{city_name}/'
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
-    for d in dates:
+    for d in tqdm(dates):
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
         interp.add_occlusion(use_true_cloud=True)
         interp.run_interpolation()
+    wandb.alert(
+        title='Interpolation finished',
+        text=f'Data for region {city_name} finished processing.'
+    )
 
 
 @time_func
@@ -288,8 +302,15 @@ def timelapse_with_synthetic_occlusion(city_name):
 
 
 def main():
-    pass
-
+    parser = argparse.ArgumentParser(description='Process specify city name.')
+    parser.add_argument('-c', nargs='+', required=True,
+                        help='Process specify city name.')
+    args = parser.parse_args()
+    CITY_NAME = ""
+    for entry in args.c:
+        CITY_NAME += entry + " "
+    CITY_NAME = CITY_NAME[:-1]
+    solve_all(city_name=CITY_NAME)
 
 if __name__ == '__main__':
     # main()
@@ -301,5 +322,6 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')amex
 
     # plot_temporal_cycle(city_name='Phoenix')
-    solve_all(city_name='Phoenix')
+    # solve_all(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
+    main()
