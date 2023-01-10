@@ -310,7 +310,8 @@ def color_map_nlcd(source, dest):
 
 
 @retry(tries=10, delay=1, backoff=2)
-def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, export_boundary, affix=None):
+def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, export_boundary, affix=None,
+                        scale_factor=None, offset=None):
     if affix is None:
         affix = band_name
     tier = 'TOA' if band_name[0] == 'B' else 'L2'
@@ -318,8 +319,13 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
     filename = os.path.join(output_dir, f'{satellite}_{affix}_{date_}.tif')
     try:
         projection = img.projection().getInfo()
-        geemap.ee_export_image(img, filename=filename, scale=30, region=export_boundary,
-                               crs=projection['crs'], file_per_band=False)
+        if scale_factor is not None or offset is not None:
+            geemap.ee_export_image(img.multiply(scale_factor).add(offset), filename=filename, scale=30, region=export_boundary,
+                                   crs=projection['crs'], file_per_band=False)
+        else:
+            geemap.ee_export_image(img, filename=filename, scale=30,
+                                   region=export_boundary,
+                                   crs=projection['crs'], file_per_band=False)
     except ee.EEException as e:
         print('ERROR: ', e)
         return 1
@@ -327,7 +333,7 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
 
 
 def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary, start_date, num_cycles, affix=None,
-                          getNLCD=False):
+                          getNLCD=False, scale_factor=None, offset=None):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
         print('Created directory ', output_dir)
@@ -337,7 +343,8 @@ def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary
     # export nlcd map using reference to the first cycle
     for date_ in tqdm(cycles):
         status = export_landsat_band(satellite=satellite, band_name=band, output_dir=output_dir, scene_id=scene_id,
-                                     date_=date_, export_boundary=export_boundary, affix=affix)
+                                     date_=date_, export_boundary=export_boundary, affix=affix,
+                                     scale_factor=scale_factor, offset=offset)
         if status:
             error_counter += 1
         if not status and not acquiredNLCD:
@@ -374,6 +381,24 @@ def resaves_bt_png(source, dest):
         img[img <= 0] = 0
         img *= 2 ** 16
         cv2.imwrite(os.path.join(dest, f[:-3] + 'png'), img.astype('uint16'))
+    # print(f'{len([f in files and ])}')
+    return
+
+
+def resave_emis(source, dest):
+    assert os.path.exists(source), "ERROR: source directory does not exist"
+    if not os.path.exists(dest):
+        os.mkdir(dest)
+    files = os.listdir(source)
+    for f in tqdm(files):
+        if f[-3:] != 'tif' and f[:4] != 'nlcd':
+            continue
+        img = cv2.imread(os.path.join(source, f), -1).astype('float32')
+        img *= 0.0001
+        img[img > 0.9999] = 0.9999
+        img[img < 0] = 0.001
+        img = img * 255
+        cv2.imwrite(os.path.join(dest, f[:-3] + 'png'), img.astype('uint8'))
     # print(f'{len([f in files and ])}')
     return
 
@@ -635,26 +660,33 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
     # for future speed up, use a pool of threads for high-volume API
-    plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
+
+    # TODO: enable those lines
+    # plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
     ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
-    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-    export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    generate_log(root_path=f'./data/{city_name}')
+    # export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+    # color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+    #                dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+    # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+    #            num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
+    # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    # generate_log(root_path=f'./data/{city_name}')
     return
 
 
-def export_wrapper(city_name, high_volume_api=False):
+def export_wrapper(city_name, high_volume_api=False, startFromScratch=True):
+    if startFromScratch is False:
+        rprint('WARNING: startFromScratch is disabled. Files may be over written.')
     cities_list_path = "data/us_cities.csv"
     print(f'Parsing metadata from {cities_list_path}')
     cols = list(pd.read_csv(cities_list_path, nrows=1))
@@ -671,7 +703,10 @@ def export_wrapper(city_name, high_volume_api=False):
     yprint(f'city = {city_name}, scene_id = {scene_id}, bounding_box = {bounding_box}')
     root_path = pjoin('./data', city_name)
     if p.exists(root_path):
-        raise FileExistsError(f'Directory {root_path} already exists.')
+        if startFromScratch:
+            raise FileExistsError(f'Directory {root_path} already exists.')
+        else:
+            rprint(f'WARNING: Directory {root_path} already exists. Overriding existing files')
     else:
         os.mkdir(root_path)
 
@@ -716,7 +751,7 @@ if __name__ == '__main__':
     CITY_NAME = CITY_NAME[:-1]
     # CITY_NAME = 'San Diego'
     wandb.init()
-    export_wrapper(city_name=CITY_NAME, high_volume_api=True)
+    export_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=False)
     # generate_log(root_path=f'../data/{CITY_NAME}')
     wandb.alert(
         title='Download finished',

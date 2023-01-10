@@ -3,25 +3,19 @@
 # from matplotlib import pyplot as plt
 # import pandas as pd
 # from util.helper import deprecated, time_func
+from matplotlib import pyplot as plt
 # import ee
 # import geemap
 # import wandb
+import cv2
 import argparse
 
-# @time_func
+
 def main():
-    parser = argparse.ArgumentParser(description='Process specify city name.')
-    parser.add_argument('-c', nargs='+', required=True,
-                        help='Process specify city name.')
-    args = parser.parse_args()
-    print(args.c)
-    print(args.c[0])
-    CITY_NAME = ""
-    for entry in args.c:
-        CITY_NAME += entry + " "
-    CITY_NAME = CITY_NAME[:-1]
-    # CITY_NAME = str(CITY_NAME)[:-1]
-    print(CITY_NAME)
+    emis = cv2.imread('../data/Houston/emis/LC08_ST_EMIS_20220623.tif', -1) * 0.0001
+    plt.imshow(emis)
+    plt.show()
+
 
 if __name__ == '__main__':
     main()

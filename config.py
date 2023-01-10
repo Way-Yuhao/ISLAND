@@ -20,10 +20,10 @@ VIS_PARAM = {
 LANDSAT8_META = {
     'name': 'USGS Landsat 8 Level 2, Collection 2, Tier 1',
     'id': "LANDSAT/LC08/C02/T1_L2/LC08_025039_{}",
-    'selected_bands': ['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B6', 'SR_B7', 'ST_TRAD', 'ST_CDIST'],
+    'selected_bands': ['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B6', 'SR_B7', 'ST_TRAD', 'ST_CDIST', 'ST_EMIS'],
     'rgb_bands': ['SR_B4', 'SR_B3', 'SR_B2'],
-    'scales': [2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 0.00341802, 0.01],
-    'offsets': [-0.2, -0.2, -0.2, -0.2, -0.2, -0.2, -0.2, 149, 0.],
+    'scales': [2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 2.75e-05, 0.00341802, 0.01, 0.0001],
+    'offsets': [-0.2, -0.2, -0.2, -0.2, -0.2, -0.2, -0.2, 149, 0., 0],
     'cloud_dist_bound': 1e-7,  # upper bound (saturation limit) for cloud distance, in kilometer
     'avg_cloud_cover': .379  # from Jan 2018 to Feb 2020
 }

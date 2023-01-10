@@ -4,6 +4,7 @@ Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
 import os
 import os.path as p
 import datetime as dt
+from datetime import timedelta
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -534,7 +535,11 @@ class Interpolator(abc.ABC):
         days_delta, same_year_deltas, ref_percs = [], [], []
         for ref_date in ref_dates:
             days_delta.append(abs((target_date - ref_date).days))
-            ref_same_year = ref_date.replace(year=target_date.year)
+            try:
+                ref_same_year = ref_date.replace(year=target_date.year)
+            except ValueError:  # leap year
+                yprint('Encountered lead year. Using the previous day as reference.')
+                ref_same_year = (ref_date - timedelta(days=1)).replace(year=target_date.year)
             same_year_delta = abs((target_date - ref_same_year).days)
             same_year_deltas.append(min(same_year_delta, 365 - same_year_delta))
 
