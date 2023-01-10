@@ -312,6 +312,7 @@ def main():
     CITY_NAME = CITY_NAME[:-1]
     solve_all(city_name=CITY_NAME)
 
+
 if __name__ == '__main__':
     # main()
     # evaluate()

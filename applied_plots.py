@@ -10,6 +10,7 @@ import seaborn as sns
 import wandb
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+from datetime import date, timedelta, datetime
 from config import *
 from interpolator import Interpolator
 from util.helper import rprint, yprint, hash_, pjoin
@@ -147,7 +148,25 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     assert(len(files) == 1)
     yprint(f'Parsing dataframe from {files[0]}')
     df = pd.read_csv(p.join(output_dir, files[0]))
-    print(df)
+    plt.figure(figsize=(15, 5))
+    sns.set(style='whitegrid')
+    x_dates = [datetime.strptime(str(date_str), '%Y%m%d') for date_str in df['date']]
+    # palette = []
+    for c, _ in NLCD_2019_META['lut'].items():
+        # c = int(c)
+        if len([t for t in df[c] if t == -1]) > 3:
+            print(f'land cover class {c} skipped.')
+            continue  # skip absent land cover classes
+        # palette += ['#' + NLCD_2019_META['lut'][str(c)]]
+        ax = sns.lineplot(data=df, x=x_dates, y=c, color='#' + NLCD_2019_META['lut'][str(c)],
+                          label=NLCD_2019_META['class_names'][str(c)], markers=True)
+    plt.title(f'Mean brightness temperature of each land cover class for {city}')
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
+    plt.ylabel('Brightness Temperature (K)')
+    plt.xlabel('Date')
+    plt.tight_layout()
+    # ax.set_xticklabels(labels=x_dates, rotation=45, ha='right')
+    plt.show()
 
 
 def main():
