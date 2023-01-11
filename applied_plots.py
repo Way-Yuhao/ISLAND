@@ -82,7 +82,7 @@ def calc_avg_temp_per_class_over_time(city=""):
     """
     # scanning files
     yprint(f'Building temperature trend per class for {city}...')
-    timelapse_dir = f'./data/{city}/output_timelapse/'
+    timelapse_dir = f'./data/{city}/output/'
     assert p.exists(timelapse_dir)
     output_dir = f'./data/{city}/analysis/'
     if not p.exists(output_dir):
@@ -91,14 +91,14 @@ def calc_avg_temp_per_class_over_time(city=""):
     files = [f for f in os.listdir(timelapse_dir) if '.npy' in f]
     files = [f for f in files if '_st' in f]
     files = natsorted(files)
-    print(f'Got {len(files)} files, with dates ranging from {files[0][9:17]} to {files[-1][9:17]}')
+    print(f'Got {len(files)} files, with dates ranging from {files[0][8:16]} to {files[-1][8:16]}')
     f0 = files[0]
     # print(f0)
-    interp0 = Interpolator(root=f'./data/{city}/', target_date=f0[9:17])
+    interp0 = Interpolator(root=f'./data/{city}/', target_date=f0[8:16])
     nlcd = interp0.nlcd
     df = pd.DataFrame()
     for f in tqdm(files, desc='Scanning predicted frames'):
-        new_row = {'date': f[9:17]}
+        new_row = {'date': f[8:16]}
         prediction = np.load(p.join(timelapse_dir, f))
         for c, _ in NLCD_2019_META['lut'].items():
             temp_for_c = prediction.copy()
@@ -132,6 +132,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     files = os.listdir(output_dir)
     files = [f for f in files if 'average_temp_trend' in f]
     files = [f for f in files if 'csv' in f]
+    files = [f for f in files if '._' not in f]  # neglect temporary files
     if len(files) == 0:
         raise FileNotFoundError('No corresponding csv files found in ', output_dir)
     elif len(files) > 1:
@@ -148,15 +149,16 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     assert(len(files) == 1)
     yprint(f'Parsing dataframe from {files[0]}')
     df = pd.read_csv(p.join(output_dir, files[0]))
+    df.replace(-1, np.inf)
     plt.figure(figsize=(15, 5))
     sns.set(style='whitegrid')
     x_dates = [datetime.strptime(str(date_str), '%Y%m%d') for date_str in df['date']]
     # palette = []
     for c, _ in NLCD_2019_META['lut'].items():
         # c = int(c)
-        if len([t for t in df[c] if t == -1]) > 3:
-            print(f'land cover class {c} skipped.')
-            continue  # skip absent land cover classes
+        # if len([t for t in df[c] if t == -1]) > 3:
+        #     print(f'land cover class {c} skipped.')
+            # continue  # skip absent land cover classes
         # palette += ['#' + NLCD_2019_META['lut'][str(c)]]
         ax = sns.lineplot(data=df, x=x_dates, y=c, color='#' + NLCD_2019_META['lut'][str(c)],
                           label=NLCD_2019_META['class_names'][str(c)], markers=True)
@@ -172,8 +174,8 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
-    # calc_avg_temp_per_class_over_time(city='Houston')
-    plot_avg_temp_per_class_over_time(city='Houston')
+    # calc_avg_temp_per_class_over_time(city='Chicago')
+    plot_avg_temp_per_class_over_time(city='Chicago')
 
 
 if __name__ == '__main__':

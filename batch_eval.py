@@ -8,11 +8,13 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+import cv2
 from interpolator import Interpolator
 from natsort import natsorted
 from tqdm import tqdm
 import random
 import wandb
+import shutil
 from tqdm import tqdm
 from config import *
 from util.helper import get_season, rprint, yprint, time_func
@@ -250,7 +252,7 @@ def plot_temporal_cycle(city_name):
 
 
 @time_func
-def solve_all(city_name):
+def solve_all_bt(city_name):
     """
     Generates timelapse for all available input frames without adding synthetic occlusion
     :param city_name:
@@ -270,6 +272,55 @@ def solve_all(city_name):
         title='Interpolation finished',
         text=f'Data for region {city_name} finished processing.'
     )
+
+
+# def move_bt(city_name):
+#     root_ = f'./data/{city_name}/'
+#     assert not p.exists(p.join(root_, 'output_bt')), 'Output directory already exists'
+#     os.mkdir((p.join(root_, 'output_bt')))
+#     os.mkdir((p.join(root_, 'output_bt', 'png')))
+#     os.mkdir((p.join(root_, 'output_bt', 'npy')))
+#     df = pd.read_csv(p.join(root_, 'metadata.csv'))
+#     dates = df['date'].values.tolist()
+#     dates = [str(d) for d in dates]
+#     for d in tqdm(dates):
+#         src_ =
+#         shutil.copy()
+
+def compute_st_for_all(city_name):
+    """
+    Generates emissivity-corrected surface temperature frames from existing
+    interpolated brightness temperature frames
+    :param city_name:
+    :return:
+    """
+    EMIS_SCALING_FACTOR = 0.0001  # scaling factor for unit conversion.
+    wandb.init()
+    root_ = f'./data/{city_name}/'
+    assert not p.exists(p.join(root_, 'output_st')), 'Output directory already exists'
+    os.mkdir((p.join(root_, 'output_st')))
+    os.mkdir((p.join(root_, 'output_st', 'png')))
+    os.mkdir((p.join(root_, 'output_st', 'npy')))
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    for d in tqdm(dates):
+        # brightness temperature as bt, and emissivity as emis
+        bt = np.load(p.join(root_, 'output', f'reconst_{d}_st.npy')).astype('float32')
+        emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1).astype('float32') * EMIS_SCALING_FACTOR
+        st = bt * emis  # brightness temperature
+        # save unscaled outputs
+        output_filename = f'st_{d}'
+        np.save(p.join(root_, 'output_st', 'npy', output_filename), st)
+        # save scaled visualization
+        output_vmin = 270
+        output_vmax = 330
+        plt.imshow(st, cmap='magma', vmax=output_vmax, vmin=output_vmin)
+        plt.title(f'Reconstructed Surface Temperature on {d}')
+        plt.colorbar(label='BT(Kelvin)')
+        output_filename = f'st_{d}.png'
+        plt.savefig(p.join(root_, 'output_st', 'png', output_filename))
+        plt.close()
 
 
 @time_func
@@ -310,7 +361,7 @@ def main():
     for entry in args.c:
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
-    solve_all(city_name=CITY_NAME)
+    solve_all_bt(city_name=CITY_NAME)
 
 
 if __name__ == '__main__':
@@ -323,6 +374,9 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')amex
 
     # plot_temporal_cycle(city_name='Phoenix')
-    # solve_all(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
-    main()
+
+    # solve_all(city_name='Phoenix')
+    # compute_st_for_all(city_name='Houston')
+    compute_st_for_all(city_name='Houston')
+    # main()
