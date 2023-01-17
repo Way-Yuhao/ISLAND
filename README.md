@@ -7,28 +7,28 @@
 
 
 ## Data
-| Syntax | Description |
-| --- | ----------- |
-| New York | :heavy_check_mark: |
-| Los Angeles | :heavy_check_mark: |
-| Chicago | :heavy_check_mark: |
-| Houston | :heavy_check_mark: |
-| Phoenix | :heavy_check_mark: |
-| Philadelphia |  |
-| San Antonio | |
-| San Diego |  |
-| Dalllas | |
-| San Jose | |
-| Austin | |
-| Jacksonville | |
-| Fort Worth | |
-| Columbus | |
-| Indianapolis | |
-| Charlotte | |
-| San Francisco | |
-| Seattle | |
-| Denver | :heavy_check_mark:|
-| Olkahoma City | |
+| City | Brightness Temperature Ready | Surface Temperature Ready |
+| --- | :---: | :---:|
+| New York | :heavy_check_mark: | |
+| Los Angeles | :heavy_check_mark: | |
+| Chicago | :heavy_check_mark: | |
+| Houston | :heavy_check_mark: | |
+| Phoenix | :heavy_check_mark: | |
+| Philadelphia |  | |
+| San Antonio | | |
+| San Diego |  | |
+| Dalllas | | |
+| San Jose | | |
+| Austin | | |
+| Jacksonville | | |
+| Fort Worth | | |
+| Columbus | | |
+| Indianapolis | | |
+| Charlotte | | |
+| San Francisco | | |
+| Seattle | | |
+| Denver | :heavy_check_mark:| |
+| Olkahoma City | | |
 
 ## TODO
 - [x] Fix the TIF issue on Windows machines
