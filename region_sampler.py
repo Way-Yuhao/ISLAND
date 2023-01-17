@@ -397,8 +397,15 @@ def resave_emis(source, dest):
         img *= 0.0001
         img[img > 0.9999] = 0.9999
         img[img < 0] = 0.001
-        img = img * 255
-        cv2.imwrite(os.path.join(dest, f[:-3] + 'png'), img.astype('uint8'))
+        # img = img * 255
+        # cv2.imwrite(os.path.join(dest, f[:-3] + 'png'), img.astype('uint8'))
+        plt.imshow(img, cmap='magma', vmax=1.0, vmin=0.9)
+        plt.colorbar(label='Emissivity (unitless)')
+        plt.title(f'Emissivity of Houston on {f[13:21]}')
+        plt.xticks([])
+        plt.yticks([])
+        plt.savefig(os.path.join(dest, f[:-3] + 'png'))
+        plt.close()
     # print(f'{len([f in files and ])}')
     return
 
@@ -660,25 +667,25 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
     # for future speed up, use a pool of threads for high-volume API
-    plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
-    ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
-    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-    export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
+    # ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+    # export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+    # color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+    #                dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+    # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+    #            num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
-    resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    generate_log(root_path=f'./data/{city_name}')
+    # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    # generate_log(root_path=f'./data/{city_name}')
     return
 
 
@@ -749,7 +756,7 @@ if __name__ == '__main__':
     CITY_NAME = CITY_NAME[:-1]
     # CITY_NAME = 'San Diego'
     wandb.init()
-    export_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=True)
+    export_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=False)
     # generate_log(root_path=f'../data/{CITY_NAME}')
     wandb.alert(
         title='Download finished',
