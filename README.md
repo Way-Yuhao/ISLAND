@@ -31,10 +31,7 @@
 | Olkahoma City | | |
 
 ## TODO
-- [x] Fix the TIF issue on Windows machines
-- [ ] What is the temporal locality of labels?
-- [ ] What algorithm did USGS use to compute surface reflectance?
-- [ ] Plot NDVI change over time
-- [ ] Plot NVID/PV value for concrete and bare soil
-- [x] Plot ASTER GED over time
+- [ ] Show comparison with baselines
+- [ ] Plot correlation between urban hotspots and SVI
+- [ ] Finilize journal to publish 
 - [ ] Incorporate LANDSAT 9 to improve temporal continuity
