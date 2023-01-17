@@ -678,8 +678,8 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     # export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
-    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
     # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)

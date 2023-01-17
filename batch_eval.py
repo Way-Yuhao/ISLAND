@@ -376,8 +376,8 @@ def main():
     for entry in args.c:
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
-    solve_all_bt(city_name=CITY_NAME)
-    compute_st_for_all(city_name='Houston')
+    # solve_all_bt(city_name=CITY_NAME)
+    compute_st_for_all(city_name=CITY_NAME)
 
 
 if __name__ == '__main__':
@@ -395,5 +395,5 @@ if __name__ == '__main__':
     # solve_all(city_name='Phoenix')
     # compute_st_for_all(city_name='Houston')
     # compute_st_for_all(city_name='Houston')
-    # main()
-    move_bt(city_name='Houston')
+    main()
+    # move_bt(city_name='Houston')
