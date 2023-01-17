@@ -2,9 +2,9 @@
 
 ## Resources 
 * Overleaf document: https://www.overleaf.com/project/63c6f44f8443b76167d1829e
+* Outline of the manuscript: https://docs.google.com/document/d/1SHeuhIw01oC5Mv04Tol6JW15W0kIbSSt-10vKv3W4N8/edit?usp=sharing
 * Google Drive Folder: https://drive.google.com/drive/folders/11hxVhBQRy96oryDJ2QIbtyFIEgMj020L (permission requried)
 * Zotero library: https://www.zotero.org/groups/4916357
-
 
 ## Data
 | City | Brightness Temperature Ready | Surface Temperature Ready |
