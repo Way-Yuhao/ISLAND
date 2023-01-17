@@ -5,6 +5,31 @@
 * Google Drive Folder: https://drive.google.com/drive/folders/11hxVhBQRy96oryDJ2QIbtyFIEgMj020L (permission requried)
 * Zotero library: https://www.zotero.org/groups/4916357
 
+
+## Data
+| Syntax | Description |
+| --- | ----------- |
+| New York | :heavy_check_mark: |
+| Los Angeles | :heavy_check_mark: |
+| Chicago | :heavy_check_mark: |
+| Houston | :heavy_check_mark: |
+| Phoenix | :heavy_check_mark: |
+| Philadelphia |  |
+| San Antonio | |
+| San Diego |  |
+| Dalllas | |
+| San Jose | |
+| Austin | |
+| Jacksonville | |
+| Fort Worth | |
+| Columbus | |
+| Indianapolis | |
+| Charlotte | |
+| San Francisco | |
+| Seattle | |
+| Denver | :heavy_check_mark:|
+| Olkahoma City | |
+
 ## TODO
 - [x] Fix the TIF issue on Windows machines
 - [ ] What is the temporal locality of labels?
