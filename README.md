@@ -24,13 +24,14 @@
 | Fort Worth |download incomplete| |
 | Columbus |download incomplete| |
 | Indianapolis | | |
-| Charlotte | | |
+| Charlotte |download incomplete| |
 | San Francisco | | |
 | Seattle | | |
 | Denver | :heavy_check_mark:| |
 | Olkahoma City | | |
 
 ## TODO
+- [ ] Resolve key error for NLCD ocean labels
 - [ ] Show comparison with baselines
 - [ ] Plot correlation between urban hotspots and SVI
 - [ ] Finilize journal to publish 
