@@ -12,7 +12,7 @@
 | New York | :heavy_check_mark: | |
 | Los Angeles | :heavy_check_mark: | |
 | Chicago | :heavy_check_mark: | |
-| Houston | :heavy_check_mark: | |
+| Houston | :heavy_check_mark: |:heavy_check_mark:|
 | Phoenix | :heavy_check_mark: | |
 | Philadelphia |:heavy_check_mark:| |
 | San Antonio | | |
