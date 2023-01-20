@@ -20,9 +20,9 @@
 | Dallas |download incomplete| |
 | San Jose |download incomplete| |
 | Austin |:heavy_check_mark: need to move files| |
-| Jacksonville | | |
-| Fort Worth | | |
-| Columbus | | |
+| Jacksonville |key error| |
+| Fort Worth |download incomplete| |
+| Columbus |download incomplete| |
 | Indianapolis | | |
 | Charlotte | | |
 | San Francisco | | |
