@@ -15,11 +15,11 @@
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
 | Phoenix | :heavy_check_mark: | |
 | Philadelphia |:heavy_check_mark:| |
-| San Antonio | | |
-| San Diego |  | |
-| Dalllas | | |
-| San Jose | | |
-| Austin | | |
+| San Antonio |:heavy_check_mark:| |
+| San Diego |key error| |
+| Dallas |download incomplete| |
+| San Jose |download incomplete| |
+| Austin |:heavy_check_mark: need to move files| |
 | Jacksonville | | |
 | Fort Worth | | |
 | Columbus | | |
