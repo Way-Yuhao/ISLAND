@@ -2,14 +2,14 @@ import numpy as np
 import pandas as pd
 import multiprocessing as mp
 import time
-
+import cv2
 
 def foo(i, arr, lock):
     with lock:
         arr.append(i)
 
 
-def main():
+def mp_main():
     pool = mp.Pool(3)
     manager = mp.Manager()
     lock = manager.Lock()
@@ -22,6 +22,9 @@ def main():
     pool.join()
     print(arr)
 
+
+def mian():
+    nlcd = cv2.imread('./data/Jacksonville/')
 
 if __name__ == '__main__':
     main()

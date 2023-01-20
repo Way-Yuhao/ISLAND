@@ -376,7 +376,8 @@ def main():
     for entry in args.c:
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
-    # solve_all_bt(city_name=CITY_NAME)
+    solve_all_bt(city_name=CITY_NAME)
+    move_bt(city_name=CITY_NAME)
     compute_st_for_all(city_name=CITY_NAME)
 
 

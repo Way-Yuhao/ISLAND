@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 import wandb
 from tqdm import tqdm
+import cv2
 from matplotlib import pyplot as plt
 from datetime import date, timedelta, datetime
 from config import *
@@ -199,6 +200,11 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
         plt.xticks([])
         plt.yticks([])
         plt.show()
+
+        if not p.exists(f'./data/{city}/analysis/'):
+            os.mkdir(f'./data/{city}/analysis/')
+        np.save(f'./data/{city}/analysis/hotspots_aggregate.npy', aggregate)
+
     elif temp_type == 'bt':
         raise NotImplementedError()
     else:
