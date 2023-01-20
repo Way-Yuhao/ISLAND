@@ -14,7 +14,7 @@
 | Chicago | :heavy_check_mark: | |
 | Houston | :heavy_check_mark: | |
 | Phoenix | :heavy_check_mark: | |
-| Philadelphia |  | |
+| Philadelphia |:heavy_check_mark:| |
 | San Antonio | | |
 | San Diego |  | |
 | Dalllas | | |
