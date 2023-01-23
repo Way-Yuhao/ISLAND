@@ -31,6 +31,7 @@
 | Olkahoma City | | |
 
 ## TODO
+- [ ] Geo-reference our public results
 - [ ] Resolve key error for NLCD ocean labels
 - [ ] Show comparison with baselines
 - [ ] Plot correlation between urban hotspots and SVI
