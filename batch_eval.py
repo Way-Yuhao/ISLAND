@@ -252,6 +252,37 @@ def plot_temporal_cycle(city_name):
 
 
 @time_func
+def timelapse_with_synthetic_occlusion(city_name):
+    root_ = f'./data/{city_name}/'
+    log_fpath = f"./data/{city_name}/output/timelapse_log.csv"
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    log = []
+    for d in dates:
+        yprint(f'Evaluating {d}')
+        interp = Interpolator(root=root_, target_date=d)
+        added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
+        # save added occlusion
+        output_filename = f'syn_occlusion_{d}'
+        np.save(p.join(interp.output_path, output_filename), added_occlusion)
+        plt.imshow(added_occlusion)
+        plt.title(f'Added synthetic occlusion on {d}')
+        output_filename = f'syn_occlusion_{d}.png'
+        plt.savefig(p.join(interp.output_path, output_filename))
+        interp.run_interpolation()
+        loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        interp.save_error_frame(mask=added_occlusion, suffix='st')
+        print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
+        log += [(d, loss, np.count_nonzero(added_occlusion))]
+    df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
+    df.to_csv(log_fpath, index=False)
+    print('csv file saved to ', log_fpath)
+
+
+######### experiments with real occlusion ################
+
+@time_func
 def solve_all_bt(city_name):
     """
     Generates timelapse for all available input frames without adding synthetic occlusion
@@ -274,18 +305,26 @@ def solve_all_bt(city_name):
     )
 
 
-# def move_bt(city_name):
-#     root_ = f'./data/{city_name}/'
-#     assert not p.exists(p.join(root_, 'output_bt')), 'Output directory already exists'
-#     os.mkdir((p.join(root_, 'output_bt')))
-#     os.mkdir((p.join(root_, 'output_bt', 'png')))
-#     os.mkdir((p.join(root_, 'output_bt', 'npy')))
-#     df = pd.read_csv(p.join(root_, 'metadata.csv'))
-#     dates = df['date'].values.tolist()
-#     dates = [str(d) for d in dates]
-#     for d in tqdm(dates):
-#         src_ =
-#         shutil.copy()
+def move_bt(city_name):
+    root_ = f'./data/{city_name}/'
+    assert not p.exists(p.join(root_, 'output_bt')), 'Output directory already exists'
+    os.mkdir((p.join(root_, 'output_bt')))
+    os.mkdir((p.join(root_, 'output_bt', 'png')))
+    os.mkdir((p.join(root_, 'output_bt', 'npy')))
+    # TODO: create a folder for geo-referenced data
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    for d in tqdm(dates, desc='Copying files'):
+        # copy npy
+        bt_src = p.join(root_, 'output', f'reconst_{d}_st.npy')
+        bt_dst = p.join(root_, 'output_bt', 'npy', f'bt_{d}.npy')
+        shutil.copyfile(bt_src, bt_dst)
+        # copy png
+        bt_src = p.join(root_, 'output', f'reconst_{d}_st.png')
+        bt_dst = p.join(root_, 'output_bt', 'png', f'bt_{d}.png')
+        shutil.copyfile(bt_src, bt_dst)
+
 
 def compute_st_for_all(city_name):
     """
@@ -323,36 +362,12 @@ def compute_st_for_all(city_name):
         plt.close()
 
 
-@time_func
-def timelapse_with_synthetic_occlusion(city_name):
-    root_ = f'./data/{city_name}/'
-    log_fpath = f"./data/{city_name}/output/timelapse_log.csv"
-    df = pd.read_csv(p.join(root_, 'metadata.csv'))
-    dates = df['date'].values.tolist()
-    dates = [str(d) for d in dates]
-    log = []
-    for d in dates:
-        yprint(f'Evaluating {d}')
-        interp = Interpolator(root=root_, target_date=d)
-        added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
-        # save added occlusion
-        output_filename = f'syn_occlusion_{d}'
-        np.save(p.join(interp.output_path, output_filename), added_occlusion)
-        plt.imshow(added_occlusion)
-        plt.title(f'Added synthetic occlusion on {d}')
-        output_filename = f'syn_occlusion_{d}.png'
-        plt.savefig(p.join(interp.output_path, output_filename))
-        interp.run_interpolation()
-        loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
-        interp.save_error_frame(mask=added_occlusion, suffix='st')
-        print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
-        log += [(d, loss, np.count_nonzero(added_occlusion))]
-    df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
-    df.to_csv(log_fpath, index=False)
-    print('csv file saved to ', log_fpath)
-
-
 def main():
+    """
+    Computes brightness temperature and surface temperature for a given city. Requires inputs to be downloaded
+    in advance.
+    :return:
+    """
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
@@ -362,6 +377,8 @@ def main():
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
     solve_all_bt(city_name=CITY_NAME)
+    move_bt(city_name=CITY_NAME)
+    compute_st_for_all(city_name=CITY_NAME)
 
 
 if __name__ == '__main__':
@@ -378,5 +395,6 @@ if __name__ == '__main__':
 
     # solve_all(city_name='Phoenix')
     # compute_st_for_all(city_name='Houston')
-    compute_st_for_all(city_name='Houston')
-    # main()
+    # compute_st_for_all(city_name='Houston')
+    main()
+    # move_bt(city_name='Houston')
