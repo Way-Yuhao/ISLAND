@@ -31,6 +31,8 @@ Here is a list of cities where we've deployed our model during an observation ti
 | Denver | :heavy_check_mark:| |
 | Olkahoma City | | |
 
+Note that some LANDSAT 8 frames are missing.
+
 ## TODO
 - [ ] Geo-reference our public results
 - [x] Resolve key error for NLCD ocean labels
