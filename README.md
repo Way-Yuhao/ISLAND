@@ -16,7 +16,7 @@
 | Phoenix | :heavy_check_mark: | |
 | Philadelphia |:heavy_check_mark:| |
 | San Antonio |:heavy_check_mark:|:heavy_check_mark: |
-| San Diego |emis 20171227 missing| |
+| San Diego |:heavy_check_mark:|emis 20171227 missing|
 | Dallas |:heavy_check_mark:|:heavy_check_mark:|
 | San Jose |download incomplete| |
 | Austin |:heavy_check_mark: need to move files| |
