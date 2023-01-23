@@ -33,6 +33,7 @@ class Interpolator(abc.ABC):
         self.target_date = target_date
         self.get_target(target_date)
         self.nlcd, self.nlcd_rgb = self.get_nlcd()
+        self.correct_nlcd_key_error()
         self.synthetic_occlusion = None  # artificially introduced occlusion
         self.occlusion_id = None  # id for synthetic occlusion
         self.occluded_target = None
@@ -131,6 +132,23 @@ class Interpolator(abc.ABC):
         nlcd_rgb = cv2.cvtColor(nlcd_rgb, cv2.COLOR_BGR2RGB)
         assert nlcd is not None and nlcd_rgb is not None
         return nlcd, nlcd_rgb
+
+    def correct_nlcd_key_error(self, to_key=11):
+        """
+        Arbitrarily assign pixels with values 0 with a specified key.
+        These pixels are usually in marine regions and are presumed to be open water
+        :param to_key: default is 11, open water
+        :return:
+        """
+        nlcd_ = self.nlcd.copy()
+        unlabeled_pixels = nlcd_ == 0
+        error_pixel_count = np.count_nonzero(unlabeled_pixels)
+        # error_pixel_count = nlcd_.size - np.count_nonzero(nlcd_)
+        if error_pixel_count > 0:
+            yprint(f'{error_pixel_count} pixels NLCD pixels are not labeled. Replacing with {to_key}')
+            nlcd_[nlcd_ == 0] = to_key
+            self.nlcd = nlcd_
+        return
 
     def _clean(self, img, mask=None):
         """
@@ -526,7 +544,6 @@ class Interpolator(abc.ABC):
         # flist = [f for f in flist if 'tif' in f]
         # ref_dates_str = [f[11:-4] for f in flist]  # a list of all reference frame dates
 
-
         ref_dates_str = self.metadata['date'].values.tolist()
         ref_occlusion_perc = self.metadata['cloud_percentage'].values.tolist()
         ref_dates = [dt.datetime.strptime(str(d), '%Y%m%d').date() for d in ref_dates_str]
@@ -814,8 +831,9 @@ class Interpolator(abc.ABC):
                 break
         occlusion_synthetic_only = np.logical_and(all_occlusion_mask, ~real_occlusion)
         pxs_occluded_synthetic = np.count_nonzero(occlusion_synthetic_only)
-        print(f'{pxs_occluded_synthetic} ({pxs_occluded_synthetic / (real_occlusion.shape[0] * real_occlusion.shape[1] / 100):.3f}%)'
-              f' pixels are artificially occluded')
+        print(
+            f'{pxs_occluded_synthetic} ({pxs_occluded_synthetic / (real_occlusion.shape[0] * real_occlusion.shape[1] / 100):.3f}%)'
+            f' pixels are artificially occluded')
         self.synthetic_occlusion = all_occlusion_mask.copy()
         self.occluded_target = self.target.copy()
         self.occluded_target[all_occlusion_mask] = 0
@@ -875,5 +893,3 @@ class Interpolator(abc.ABC):
         except ValueError as e:
             rprint(f'ERROR: {e}.\n Current error map not saved.')
         plt.close()
-
-

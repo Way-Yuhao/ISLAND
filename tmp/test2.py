@@ -23,8 +23,11 @@ def mp_main():
     print(arr)
 
 
-def mian():
-    nlcd = cv2.imread('./data/Jacksonville/')
+def main():
+    # nlcd = cv2.imread('./data/Jacksonville/')
+    arr = np.array([0, 0, 1, 0, 2])
+    print(np.count_nonzero(arr == 0))
+
 
 if __name__ == '__main__':
     main()
