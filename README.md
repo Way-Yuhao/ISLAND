@@ -7,6 +7,7 @@
 * Zotero library: https://www.zotero.org/groups/4916357
 
 ## Data
+
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
 | New York | :heavy_check_mark: | |
@@ -20,7 +21,7 @@
 | Dallas |:heavy_check_mark:|:heavy_check_mark:|
 | San Jose |download incomplete| |
 | Austin |:heavy_check_mark: need to move files| |
-| Jacksonville |key error| |
+| Jacksonville |no temporal reference for 20180816| |
 | Fort Worth |download incomplete| |
 | Columbus |download incomplete| |
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
