@@ -23,7 +23,7 @@
 | Jacksonville |key error| |
 | Fort Worth |download incomplete| |
 | Columbus |download incomplete| |
-| Indianapolis | | |
+| Indianapolis |heavy_check_mark:|heavy_check_mark:|
 | Charlotte |download incomplete| |
 | San Francisco | | |
 | Seattle | | |
