@@ -25,7 +25,7 @@
 | Columbus |download incomplete| |
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
 | Charlotte |download incomplete| |
-| San Francisco | | |
+| San Francisco |:heavy_check_mark: |:heavy_check_mark: |
 | Seattle | | |
 | Denver | :heavy_check_mark:| |
 | Olkahoma City | | |
