@@ -19,7 +19,7 @@
 | San Antonio |:heavy_check_mark:|:heavy_check_mark: |
 | San Diego |:heavy_check_mark:|emis 20171227 missing|
 | Dallas |:heavy_check_mark:|:heavy_check_mark:|
-| San Jose |download incomplete| |
+| San Jose |:heavy_check_mark:|:heavy_check_mark:|
 | Austin |:heavy_check_mark: need to move files| |
 | Jacksonville |no temporal reference for 20180816| |
 | Fort Worth |download incomplete| |
