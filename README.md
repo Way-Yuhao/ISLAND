@@ -15,7 +15,7 @@
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
 | Phoenix | :heavy_check_mark: | |
 | Philadelphia |:heavy_check_mark:| |
-| San Antonio |:heavy_check_mark:| |
+| San Antonio |:heavy_check_mark:|:heavy_check_mark: |
 | San Diego |key error| |
 | Dallas |download incomplete| |
 | San Jose |download incomplete| |
