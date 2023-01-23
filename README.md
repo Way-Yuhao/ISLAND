@@ -7,7 +7,7 @@
 * Zotero library: https://www.zotero.org/groups/4916357
 
 ## Data
-
+Here is a list of cities where we've deployed our model during an observation time window of Jan 2017 to Jun 2022. These data are to be released to the public once completed. Notice that the data in this dataset is only derived from LANDSAT 8 and does not include LANDSAT 9, meaning that the time gap between consecutive frames is 16 days for each region. 
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
 | New York | :heavy_check_mark: | |
