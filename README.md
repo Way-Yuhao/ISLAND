@@ -6,7 +6,7 @@
 * Google Drive Folder (permission requried): https://drive.google.com/drive/folders/11hxVhBQRy96oryDJ2QIbtyFIEgMj020L 
 * Zotero library: https://www.zotero.org/groups/4916357
 
-## Data
+## Public Available Dataset
 
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
@@ -30,6 +30,18 @@
 | Seattle | | |
 | Denver | :heavy_check_mark:| |
 | Olkahoma City | | |
+
+
+## Generate Your Own Timelapse of Surface Temperature
+
+### Download data from EarthEngine
+1. Identify a region, call it `city`
+2. Navigate to `./jupyter/8 - ROI Extractor.ipynb ` to obtain `scene_id` associated with a LADNSAT image. The notebook will also ask you to you 4 coordinates defining a polygon within that LANDSAT image. 
+3. Navigate to `./data/us_cities.csv`, append a new row in the format of `city | state | scene_id | coordinates` that you obtained from previous steps. 
+4. Navigate to the root directory for this project, run `python region_sampler -c CITY`, replace `city` with value from above. This will strip all relevant data from Google EarthEngine.
+
+### Process data
+Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and surface temperature (ST).  
 
 ## TODO
 - [ ] Geo-reference our public results
