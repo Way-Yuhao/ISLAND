@@ -23,9 +23,9 @@
 | Austin |:heavy_check_mark: need to move files| |
 | Jacksonville |no temporal reference for 20180816| |
 | Fort Worth |:heavy_check_mark:|:heavy_check_mark:|
-| Columbus |download incomplete| |
+| Columbus |download revised| |
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
-| Charlotte |download incomplete| |
+| Charlotte |download revised| |
 | San Francisco |:heavy_check_mark: |:heavy_check_mark: |
 | Seattle | | |
 | Denver | :heavy_check_mark:| |
