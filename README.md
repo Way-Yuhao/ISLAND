@@ -22,7 +22,7 @@ Here is a list of cities where we've deployed our model during an observation ti
 | San Jose |:heavy_check_mark:|:heavy_check_mark:|
 | Austin |:heavy_check_mark: need to move files| |
 | Jacksonville |no temporal reference for 20180816| |
-| Fort Worth |download incomplete| |
+| Fort Worth |:heavy_check_mark:|:heavy_check_mark:|
 | Columbus |download incomplete| |
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
 | Charlotte |download incomplete| |
