@@ -253,6 +253,12 @@ def plot_temporal_cycle(city_name):
 
 @time_func
 def timelapse_with_synthetic_occlusion(city_name):
+    """
+    Generates timelapses of BT for a given city while adding random synthetic occlusion.
+    Evaluates loss only on synthetically occluded areas.
+    :param city_name:
+    :return:
+    """
     root_ = f'./data/{city_name}/'
     log_fpath = f"./data/{city_name}/output/timelapse_log.csv"
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
@@ -391,10 +397,10 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')amex
 
     # plot_temporal_cycle(city_name='Phoenix')
-    # timelapse_with_synthetic_occlusion(city_name='Houston')
+    timelapse_with_synthetic_occlusion(city_name='Houston')
 
     # solve_all(city_name='Phoenix')
     # compute_st_for_all(city_name='Houston')
     # compute_st_for_all(city_name='Houston')
-    main()
+    # main()
     # move_bt(city_name='Houston')
