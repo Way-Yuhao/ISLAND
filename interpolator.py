@@ -347,6 +347,8 @@ class Interpolator(abc.ABC):
             plt.close()
         return
 
+######################### interpolation schemes  #########################
+
     def compute_spatio_temporal_weight(self):
         """
         Return weight w to be used for spatial channel. (1 - w) will be used for temporal
@@ -730,6 +732,21 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = reconst_img
         return past_syn_occlusion_perc
 
+    def ablation_interp_no_nlcd(self):
+        """
+        Ablation method, takes away nlcd labels
+        :return:
+        """
+        self.nlcd = np.ones_like(self.nlcd) * 11  # make all labels 11
+        self.run_interpolation()
+
+    def ablation_interp_nn(self):
+        """
+        ablation method, nearest neighbor.
+        :return:
+        """
+
+#########################################################################################
     def heat_cluster_interp(self):
         raise NotImplementedError
 

@@ -429,4 +429,4 @@ if __name__ == '__main__':
     # plot_temporal_cycle(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
 
-   calc_error_from_outputs(city_name='Houston', mode='temporal')
+    calc_error_from_outputs(city_name='Houston', mode='temporal')
