@@ -392,7 +392,16 @@ class Interpolator(abc.ABC):
             assert reconst_spatial is not None
 
             self.reconstructed_target = None
-            self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
+            try:
+                self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
+            except ArithmeticError:
+                yprint('Retrying temporal reference with max_delta_cycle = 4')
+                try:
+                    self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.1)
+                except ArithmeticError:
+                    yprint('Retrying temporal reference with max_delta_cycle = 4 and max_cloud_prec = .2')
+                    self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.2)
+            # assume temporal computation is successful
             self.save_timelapse_frame(suffix='temporal')
             reconst_temporal = self.reconstructed_target.copy()
             assert reconst_temporal is not None
@@ -573,6 +582,7 @@ class Interpolator(abc.ABC):
         print(f'Found {len(df.index)} candidate frames that satisfy conditions:')
         if df.empty:
             yprint('No candidate reference frames satisfy conditions above. Mission aborted.')
+            raise ArithmeticError()
         if num_frames < len(df.index):
             df = df.iloc[:num_frames]
         print(f'Selected {len(df.index)} frames closest to target frame in time:')

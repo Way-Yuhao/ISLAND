@@ -252,13 +252,18 @@ def plot_temporal_cycle(city_name):
 
 
 @time_func
-def timelapse_with_synthetic_occlusion(city_name):
+def timelapse_with_synthetic_occlusion(city_name, resume=False):
     """
     Generates timelapses of BT for a given city while adding random synthetic occlusion.
     Evaluates loss only on synthetically occluded areas.
+    :param resume: skip existing outputs and resume at the next frame
     :param city_name:
     :return:
     """
+    if not resume and p.exists(f'./data/{city_name}/output/'):
+        raise FileExistsError(f'Output directory ./data/{city_name}/output/ already exists'
+                              f'please ether turn \'resume\' on or remove the existing '
+                              f'directory.')
     root_ = f'./data/{city_name}/'
     log_fpath = f"./data/{city_name}/output/timelapse_log.csv"
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
@@ -266,6 +271,12 @@ def timelapse_with_synthetic_occlusion(city_name):
     dates = [str(d) for d in dates]
     log = []
     for d in dates:
+        if resume:
+            existing_output_files = os.listdir(p.join(root_, 'output'))
+            current_date_files = [f for f in existing_output_files if d in f]
+            if len(current_date_files) > 0:
+                yprint(f'Found outputs for date {d}. Skipped.')
+                continue
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
         added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
@@ -287,28 +298,28 @@ def timelapse_with_synthetic_occlusion(city_name):
 
 
 ######### experiments with real occlusion ################
-
-@time_func
-def solve_all_bt(city_name):
+def solve_all_bt(city_name, resume=False):
     """
     Generates timelapse for all available input frames without adding synthetic occlusion
+    :param resume: skip existing outputs and resume at the next frame
     :param city_name:
     :return:
     """
-    wandb.init()
     root_ = f'./data/{city_name}/'
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
     for d in tqdm(dates):
+        if resume:
+            existing_output_files = os.listdir(p.join(root_, 'output'))
+            current_date_files = [f for f in existing_output_files if d in f]
+            if len(current_date_files) > 0:
+                yprint(f'Found outputs for date {d}. Skipped.')
+                continue
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
         interp.add_occlusion(use_true_cloud=True)
         interp.run_interpolation()
-    wandb.alert(
-        title='Interpolation finished',
-        text=f'Data for region {city_name} finished processing.'
-    )
 
 
 def move_bt(city_name):
@@ -366,26 +377,6 @@ def compute_st_for_all(city_name):
         output_filename = f'st_{d}.png'
         plt.savefig(p.join(root_, 'output_st', 'png', output_filename))
         plt.close()
-
-
-def main():
-    """
-    Computes brightness temperature and surface temperature for a given city. Requires inputs to be downloaded
-    in advance.
-    :return:
-    """
-    parser = argparse.ArgumentParser(description='Process specify city name.')
-    parser.add_argument('-c', nargs='+', required=True,
-                        help='Process specify city name.')
-    args = parser.parse_args()
-    CITY_NAME = ""
-    for entry in args.c:
-        CITY_NAME += entry + " "
-    CITY_NAME = CITY_NAME[:-1]
-    solve_all_bt(city_name=CITY_NAME)
-    move_bt(city_name=CITY_NAME)
-    compute_st_for_all(city_name=CITY_NAME)
-
 
 if __name__ == '__main__':
     # main()
