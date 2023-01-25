@@ -21,7 +21,7 @@
 | Dallas |:heavy_check_mark:|:heavy_check_mark:|
 | San Jose |:heavy_check_mark:|:heavy_check_mark:|
 | Austin |:heavy_check_mark: need to move files| |
-| Jacksonville |:heavy_check_mark:| emis 20211128 missing|
+| Jacksonville |:heavy_check_mark:|:heavy_check_mark:|
 | Fort Worth |:heavy_check_mark:|:heavy_check_mark:|
 | Columbus |:heavy_check_mark:|:heavy_check_mark:|
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
