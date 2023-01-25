@@ -360,7 +360,7 @@ def compute_st_for_all(city_name):
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
-    for d in tqdm(dates):
+    for d in tqdm(dates, desc='Computing surface temp'):
         # brightness temperature as bt, and emissivity as emis
         bt = np.load(p.join(root_, 'output', f'reconst_{d}_st.npy')).astype('float32')
         emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1).astype('float32') * EMIS_SCALING_FACTOR
