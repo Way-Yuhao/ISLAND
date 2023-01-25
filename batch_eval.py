@@ -378,6 +378,7 @@ def compute_st_for_all(city_name):
         plt.savefig(p.join(root_, 'output_st', 'png', output_filename))
         plt.close()
 
+
 if __name__ == '__main__':
     # main()
     # evaluate()
