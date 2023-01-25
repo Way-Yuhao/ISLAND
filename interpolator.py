@@ -850,6 +850,13 @@ class Interpolator(abc.ABC):
         return occlusion_synthetic_only
 
     def calc_loss_hybrid(self, metric, synthetic_only_mask):
+        """
+        Calculate loss while expecting the reconstruction contains hybrid occlusions,
+        both real and synthetic
+        :param metric:
+        :param synthetic_only_mask:
+        :return:
+        """
         if self.reconstructed_target is None:
             raise AttributeError('Reconstruction image does not exist')
         a, b = self.target, self.reconstructed_target

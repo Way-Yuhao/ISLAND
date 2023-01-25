@@ -17,7 +17,7 @@ import wandb
 import shutil
 from tqdm import tqdm
 from config import *
-from util.helper import get_season, rprint, yprint, time_func
+from util.helper import get_season, rprint, yprint, time_func, hash_
 
 
 def evaluate():
@@ -250,6 +250,7 @@ def plot_temporal_cycle(city_name):
     axes[1].set_ylabel('Cloud coverage (%)')
     plt.show()
 
+###################### experiments with synthetic occlusions ######################
 
 @time_func
 def timelapse_with_synthetic_occlusion(city_name, resume=False):
@@ -297,7 +298,44 @@ def timelapse_with_synthetic_occlusion(city_name, resume=False):
     print('csv file saved to ', log_fpath)
 
 
+def calc_error_from_outputs(city_name, mode=None):
+    """
+    Find error maps from output directory and computes error
+    :return:
+    """
+    root_ = f'./data/{city_name}'
+    output_dir = f'./data/{city_name}/output (full, synthetic)'
+    assert p.exists(output_dir)
+    yprint(f'Calculating error using files found in {output_dir}')
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    log = []
+    if mode == 'full':
+        yprint('Using full model output')
+    elif mode == 'spatial':
+        yprint('Using full output from spatial channel only')
+    elif mode == 'temporal':
+        yprint('Using full output from temporal channel only')
+    else:
+        raise NotImplementedError()
+    for d in tqdm(dates, desc='Calculating error'):
+        output = np.load(p.join(output_dir, f'reconst_{d}_{mode}.npy'))
+        syn_occlusion = np.load(p.join(output_dir, f'syn_occlusion_{d}.npy'))
+        interp = Interpolator(root=root_, target_date=d)
+        interp.reconstructed_target = output
+        # interp.synthetic_occlusion = syn_occlusion
+        loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=syn_occlusion)
+        print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
+        log += [(d, loss, np.count_nonzero(syn_occlusion))]
+    log_fpath = f'./data/{city_name}/analysis/error_{mode}_{hash_()}.csv'
+    df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
+    df.to_csv(log_fpath, index=False)
+
+
+
 ######### experiments with real occlusion ################
+
 def solve_all_bt(city_name, resume=False):
     """
     Generates timelapse for all available input frames without adding synthetic occlusion
@@ -386,13 +424,9 @@ if __name__ == '__main__':
     # generate_dps(city_name='Phoenix')
     # temp_pairwise_eval(city_name='Phoenix')
     # plot_temporal_pairwise()
-    # temp_pairwise_cycle_eval_mp(city_name='Phoenix')amex
+    # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
 
     # plot_temporal_cycle(city_name='Phoenix')
-    timelapse_with_synthetic_occlusion(city_name='Houston')
+    # timelapse_with_synthetic_occlusion(city_name='Houston')
 
-    # solve_all(city_name='Phoenix')
-    # compute_st_for_all(city_name='Houston')
-    # compute_st_for_all(city_name='Houston')
-    # main()
-    # move_bt(city_name='Houston')
+   calc_error_from_outputs(city_name='Houston', mode='temporal')
