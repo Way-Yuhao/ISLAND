@@ -745,7 +745,40 @@ def generate_log(root_path):
     return
 
 
-if __name__ == '__main__':
+def add_missing_image():
+    """
+    After downloading data for a city via export_wrapper(), run this function should any image be
+    missing. Need to manually modify variables below
+    :return:
+    """
+    print('adding missing image...')
+    ee.Initialize()
+    city_name = 'Denver'
+    date_ = '20210714'
+    band = 'ST_EMIS'
+    output_dir = f'./data/{city_name}/emis/'
+
+    # scene_id = '040037'
+    # export_boundary = [[[-117.400031, 32.533427], [-116.817708, 32.533427], [-116.817708, 33.301193], [-117.400031, 33.301193], [-117.400031, 32.533427]]]
+    cities_list_path = "data/us_cities.csv"
+    print(f'Parsing metadata from {cities_list_path}')
+    cols = list(pd.read_csv(cities_list_path, nrows=1))
+    cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
+    row = cities_meta.loc[cities_meta['city'] == city_name]
+    if row.empty:
+        raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
+    scene_id = str(row.iloc[0]['scene_id'])
+    if len(scene_id) == 5:
+        scene_id = '0' + scene_id
+    bounding_box = row.iloc[0]['bounding_box']
+    assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
+    assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
+
+    export_landsat_band(satellite='LC08', band_name=band, output_dir=output_dir, scene_id=scene_id,
+                        date_=date_, export_boundary=bounding_box)
+
+
+def main():
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
@@ -762,6 +795,11 @@ if __name__ == '__main__':
         title='Download finished',
         text=f'Data for region {CITY_NAME} finished downloading.'
     )
+
+
+if __name__ == '__main__':
+    # main()
+    add_missing_image()
 
 # single-program: Processing time = 0:20:36.844000
 # Phoenix, standard API, 23 min

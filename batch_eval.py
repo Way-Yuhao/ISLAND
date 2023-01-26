@@ -276,7 +276,7 @@ def timelapse_with_synthetic_occlusion(city_name, resume=False):
             existing_output_files = os.listdir(p.join(root_, 'output'))
             current_date_files = [f for f in existing_output_files if d in f]
             if len(current_date_files) > 0:
-                yprint(f'Found outputs for date {d}. Skipped.')
+                print(f'Found outputs for date {d}. Skipped.')
                 continue
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
@@ -352,7 +352,7 @@ def solve_all_bt(city_name, resume=False):
             existing_output_files = os.listdir(p.join(root_, 'output'))
             current_date_files = [f for f in existing_output_files if d in f]
             if len(current_date_files) > 0:
-                yprint(f'Found outputs for date {d}. Skipped.')
+                print(f'Found outputs for date {d}. Skipped.')
                 continue
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
@@ -398,10 +398,16 @@ def compute_st_for_all(city_name):
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
+    failed_dates = []
     for d in tqdm(dates, desc='Computing surface temp'):
         # brightness temperature as bt, and emissivity as emis
         bt = np.load(p.join(root_, 'output', f'reconst_{d}_st.npy')).astype('float32')
-        emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1).astype('float32') * EMIS_SCALING_FACTOR
+        emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1)
+        if emis is None:
+            rprint(f'emissivity file for date {d} is not found. Skipped')
+            failed_dates += [d]
+            continue
+        emis = emis.astype('float32') * EMIS_SCALING_FACTOR
         st = bt * emis  # brightness temperature
         # save unscaled outputs
         output_filename = f'st_{d}'
@@ -415,6 +421,10 @@ def compute_st_for_all(city_name):
         output_filename = f'st_{d}.png'
         plt.savefig(p.join(root_, 'output_st', 'png', output_filename))
         plt.close()
+    if len(failed_dates) == 0:
+        yprint('No issues found in surface temperature calculation.')
+    else:
+        rprint(f'The following dates does not have surface temperature outputs: \n{failed_dates}\nCheck error messages in red above.')
 
 
 if __name__ == '__main__':
