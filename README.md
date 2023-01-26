@@ -11,7 +11,7 @@
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
 | New York | :heavy_check_mark: |nlcd file missing|
-| Los Angeles | :heavy_check_mark: | |
+| Los Angeles | | |
 | Chicago | :heavy_check_mark: |:heavy_check_mark:|
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
 | Phoenix | :heavy_check_mark: |:heavy_check_mark: |
@@ -28,7 +28,7 @@
 | Charlotte |download revised| |
 | San Francisco |:heavy_check_mark: |:heavy_check_mark: |
 | Seattle | | |
-| Denver | :heavy_check_mark:| |
+| Denver | :heavy_check_mark:|:heavy_check_mark:|
 | Olkahoma City | | |
 
 
