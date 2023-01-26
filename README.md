@@ -14,7 +14,7 @@
 | Los Angeles | :heavy_check_mark: | |
 | Chicago | :heavy_check_mark: | |
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
-| Phoenix | :heavy_check_mark: | |
+| Phoenix | :heavy_check_mark: |:heavy_check_mark: |
 | Philadelphia |:heavy_check_mark:| |
 | San Antonio |:heavy_check_mark:|:heavy_check_mark: |
 | San Diego |:heavy_check_mark:|emis 20171227 missing|
