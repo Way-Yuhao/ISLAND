@@ -10,17 +10,17 @@
 
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
-| New York | :heavy_check_mark: | |
+| New York | :heavy_check_mark: |nlcd file missing|
 | Los Angeles | :heavy_check_mark: | |
-| Chicago | :heavy_check_mark: | |
+| Chicago | :heavy_check_mark: |:heavy_check_mark:|
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
 | Phoenix | :heavy_check_mark: |:heavy_check_mark: |
-| Philadelphia |:heavy_check_mark:| |
+| Philadelphia |:heavy_check_mark:|:heavy_check_mark:|
 | San Antonio |:heavy_check_mark:|:heavy_check_mark: |
-| San Diego |:heavy_check_mark:|emis 20171227 missing|
+| San Diego |:heavy_check_mark:|:heavy_check_mark:|
 | Dallas |:heavy_check_mark:|:heavy_check_mark:|
 | San Jose |:heavy_check_mark:|:heavy_check_mark:|
-| Austin |:heavy_check_mark: need to move files| |
+| Austin |:heavy_check_mark:|:heavy_check_mark:|
 | Jacksonville |:heavy_check_mark:|:heavy_check_mark:|
 | Fort Worth |:heavy_check_mark:|:heavy_check_mark:|
 | Columbus |:heavy_check_mark:|:heavy_check_mark:|
@@ -44,6 +44,7 @@
 Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and surface temperature (ST).  
 
 ## TODO
+- [ ] Implement file check before computing surface temperature
 - [ ] Geo-reference our public results
 - [x] Resolve key error for NLCD ocean labels
 - [ ] Show comparison with baselines
