@@ -866,6 +866,30 @@ class Interpolator(abc.ABC):
         self.occluded_target[all_occlusion_mask] = 0
         return occlusion_synthetic_only
 
+    def add_existing_occlusion(self, occlusion_path):
+        """
+        To be used in evaluation mode only. Adds an existing randomly generated occlusion bitmap. Such occlusion mask
+        must be generated via self.add_occlusion_mask().
+        :param occlusion_path:
+        :return:
+        """
+        if self.target_valid_mask is None:
+            self.target_valid_mask = self.build_valid_mask()
+        real_occlusion = ~self.target_valid_mask.copy()
+        all_occlusion_mask = real_occlusion.copy()  # np.bool
+
+        occlusion_synthetic_only = np.load(occlusion_path)
+        assert occlusion_synthetic_only is not None
+        pxs_occluded_synthetic = np.count_nonzero(occlusion_synthetic_only)
+        print(
+            f'{pxs_occluded_synthetic} ({pxs_occluded_synthetic / (real_occlusion.shape[0] * real_occlusion.shape[1] / 100):.3f}%)'
+            f' pixels are artificially occluded')
+        all_occlusion_mask += occlusion_synthetic_only
+        self.synthetic_occlusion = all_occlusion_mask.copy()
+        self.occluded_target = self.target.copy()
+        self.occluded_target[all_occlusion_mask] = 0
+        return occlusion_synthetic_only
+
     def calc_loss_hybrid(self, metric, synthetic_only_mask):
         """
         Calculate loss while expecting the reconstruction contains hybrid occlusions,

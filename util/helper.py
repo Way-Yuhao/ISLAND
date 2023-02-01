@@ -1,5 +1,6 @@
 import sys
 import os
+from os import path as p
 import traceback
 import warnings
 import functools
@@ -7,7 +8,7 @@ from config import bcolors
 import time
 import datetime as dt
 import uuid
-
+import pandas as pd
 
 def yprint(msg):
     """
@@ -104,3 +105,13 @@ def hash_(str_=None, bits=4):
         return str_.format(hashcode)
     else:
         return hashcode
+
+
+def parse_csv_dates(city_name):
+    root_ = f'./data/{city_name}/'
+    assert p.exists(root_)
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    assert df is not None, 'csv file not found.'
+    dates = df['date'].values.tolist()
+    dates = [str(d) for d in dates]
+    return dates
