@@ -47,7 +47,8 @@ Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as a
 - [ ] Implement file check before computing surface temperature
 - [ ] Geo-reference our public results
 - [x] Resolve key error for NLCD ocean labels
-- [ ] Show comparison with baselines
+- [x] Show comparison with baselines
+- [ ] Implement RMSE in addition to MAE
 - [ ] Plot correlation between urban hotspots and SVI
 - [ ] finalize journal to publish 
 - [ ] Incorporate LANDSAT 9 to improve temporal continuity
