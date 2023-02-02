@@ -25,7 +25,7 @@
 | Fort Worth |:heavy_check_mark:|:heavy_check_mark:|
 | Columbus |:heavy_check_mark:|:heavy_check_mark:|
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
-| Charlotte |download revised| |
+| Charlotte |:heavy_check_mark:|:heavy_check_mark:|
 | San Francisco |:heavy_check_mark: |:heavy_check_mark: |
 | Seattle |:heavy_check_mark: |:heavy_check_mark: |
 | Denver | :heavy_check_mark:|:heavy_check_mark:|
