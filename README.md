@@ -29,7 +29,7 @@
 | San Francisco |:heavy_check_mark: |:heavy_check_mark: |
 | Seattle |:heavy_check_mark: |:heavy_check_mark: |
 | Denver | :heavy_check_mark:|:heavy_check_mark:|
-| Oklahoma City | | |
+| Oklahoma City | :heavy_check_mark:| :heavy_check_mark:|
 
 
 ## Generate Your Own Timelapse of Surface Temperature
