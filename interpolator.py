@@ -20,7 +20,8 @@ from util.helper import deprecated, rprint, yprint
 
 class Interpolator(abc.ABC):
 
-    def __init__(self, root, target_date=None, no_log=False):
+    def __init__(self, root, target_date=None, no_log=False,
+                 ablation_no_nlcd=False):
         self.root = root  # root directory
         self.bt_path = p.join(root, 'bt_series')
         self.cloud_path = p.join(root, 'cloud')
@@ -28,6 +29,9 @@ class Interpolator(abc.ABC):
         self.output_path = p.join(root, 'output')
         if not p.exists(self.output_path):
             os.mkdir(self.output_path)
+        ######## ablation flags ############
+        self.ablation_no_nlcd = ablation_no_nlcd
+        ####################################
         self.target = None  # ground truth image, without synthetic occlusion
         self.target_valid_mask = None  # true valid mask, constrained by data loss
         self.target_date = target_date
@@ -123,13 +127,22 @@ class Interpolator(abc.ABC):
         Load a pre-aligned NLCD land cover map corresponding to a target LANDSAT temperature map
         :return:
         """
-        files = os.listdir(self.root)
-        nlcds = [f for f in files if 'nlcd' in f]
-        nlcd_rgb_path = p.join(self.root, [f for f in nlcds if 'color' in f][0])
-        nlcd_path = p.join(self.root, [f for f in nlcds if 'color' not in f][0])
-        nlcd = cv2.imread(nlcd_path, -1)
-        nlcd_rgb = cv2.imread(nlcd_rgb_path, -1)
-        nlcd_rgb = cv2.cvtColor(nlcd_rgb, cv2.COLOR_BGR2RGB)
+        if self.ablation_no_nlcd:  # ablation mode
+            files = os.listdir(self.root)
+            nlcds = [f for f in files if 'nlcd' in f]
+            nlcd_rgb_path = p.join(self.root, [f for f in nlcds if 'color' in f][0])
+            nlcd_path = p.join(self.root, [f for f in nlcds if 'color' not in f][0])
+            nlcd = cv2.imread(nlcd_path, -1)
+            nlcd = np.ones_like(nlcd) * 11
+            nlcd_rgb = nlcd
+        else:  # regular mode
+            files = os.listdir(self.root)
+            nlcds = [f for f in files if 'nlcd' in f]
+            nlcd_rgb_path = p.join(self.root, [f for f in nlcds if 'color' in f][0])
+            nlcd_path = p.join(self.root, [f for f in nlcds if 'color' not in f][0])
+            nlcd = cv2.imread(nlcd_path, -1)
+            nlcd_rgb = cv2.imread(nlcd_rgb_path, -1)
+            nlcd_rgb = cv2.cvtColor(nlcd_rgb, cv2.COLOR_BGR2RGB)
         assert nlcd is not None and nlcd_rgb is not None
         return nlcd, nlcd_rgb
 
@@ -628,7 +641,7 @@ class Interpolator(abc.ABC):
         # px_count = ref_frame_valid_mask.shape[0] * ref_frame_valid_mask.shape[1]
         # ref_occlusion_percentage = np.count_nonzero(ref_frame_valid_mask) / px_count
 
-        ref_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
+        ref_interp = Interpolator(root=self.root, target_date=self.ref_frame_date, ablation_no_nlcd=self.ablation_no_nlcd)
         ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
         if ref_occlusion_percentage <= global_threshold:  # use local gaussian
             ref_interp._nlm_local(f=75)
@@ -676,6 +689,7 @@ class Interpolator(abc.ABC):
         del ref_interp
         return ref_occlusion_percentage
 
+    @deprecated
     def temporal_interp_cloud(self, ref_frame_date, ref_syn_cloud_date):
         """
         Performs temporal interpolation after applying synthetic cloud to reference frame.
@@ -732,13 +746,13 @@ class Interpolator(abc.ABC):
         self.reconstructed_target = reconst_img
         return past_syn_occlusion_perc
 
-    def ablation_interp_no_nlcd(self):
-        """
-        Ablation method, takes away nlcd labels
-        :return:
-        """
-        self.nlcd = np.ones_like(self.nlcd) * 11  # make all labels 11
-        self.run_interpolation()
+    # def ablation_interp_no_nlcd(self):
+    #     """
+    #     Ablation method, takes away nlcd labels
+    #     :return:
+    #     """
+    #     self.nlcd = np.ones_like(self.nlcd) * 11  # make all labels 11
+    #     self.run_interpolation()
 
     def ablation_interp_nn(self):
         """

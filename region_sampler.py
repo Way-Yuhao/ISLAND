@@ -753,8 +753,8 @@ def add_missing_image():
     """
     print('adding missing image...')
     ee.Initialize()
-    city_name = 'Denver'
-    date_ = '20210714'
+    city_name = 'Los Angeles'
+    date_ = '20170812'
     band = 'ST_EMIS'
     output_dir = f'./data/{city_name}/emis/'
 

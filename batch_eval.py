@@ -253,7 +253,7 @@ def plot_temporal_cycle(city_name):
 ###################### experiments with synthetic occlusions ######################
 
 @time_func
-def timelapse_with_synthetic_occlusion(city_name, resume=False):
+def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, resume=False):
     """
     Generates timelapses of BT for a given city while adding random synthetic occlusion.
     Evaluates loss only on synthetically occluded areas.
@@ -280,7 +280,7 @@ def timelapse_with_synthetic_occlusion(city_name, resume=False):
                 continue
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
-        added_occlusion = interp.add_random_occlusion(size=250, num_occlusions=10)
+        added_occlusion = interp.add_random_occlusion(size=occlusion_size, num_occlusions=num_occlusions)
         # save added occlusion
         output_filename = f'syn_occlusion_{d}'
         np.save(p.join(interp.output_path, output_filename), added_occlusion)
