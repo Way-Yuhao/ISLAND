@@ -30,7 +30,7 @@
 | Seattle |:heavy_check_mark: |:heavy_check_mark: |
 | Denver | :heavy_check_mark:|:heavy_check_mark:|
 | Oklahoma City | :heavy_check_mark:| :heavy_check_mark:|
-
+All regions above are geo-referenced. We are dealing with a slight projection misalignment with the geo-referenced outputs. 
 
 ## Generate Your Own Timelapse of Surface Temperature
 
