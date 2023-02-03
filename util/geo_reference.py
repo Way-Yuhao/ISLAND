@@ -10,17 +10,7 @@ import rasterio
 from osgeo import gdal
 from osgeo import gdal_array
 from osgeo import osr
-
-
-def geo_ref_region(city_name: str, img_path: str, out_path: str, crs: int = 4326) -> None:
-    """
-
-    :param city_name:
-    :param img_path:
-    :param out_path:
-    :param crs:
-    :return:
-    """
+import cv2
 
 
 def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: str,
@@ -29,7 +19,7 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
     This code will generate geo-referenced tiff file from numpy dataset
     :param ordered_coors: a list of coords arranged in the form of [bottom-left, top-left, top-right, bottom-right].
                            Eg: [[-95.690165, 29.5937], ..., ..., [-94.900379, 29.5937]]
-    :param path_image_data: path to image numpy data
+    :param path_image_data: path to image data. Supports npy or files readable via cv2
     :param results_tiff_file_path: file path to save the results
     :param crs: epsg code
     :return: None
@@ -52,7 +42,13 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
         raise IndexError()
     xmin, ymin, xmax, ymax = [ordered_coors[0][0], ordered_coors[0][1], ordered_coors[-2][0], ordered_coors[-2][1]]
     # Read numpy data
-    data = np.load(path_image_data)
+    file_type = path_image_data[-4:]
+    if 'npy' in file_type:
+        data = np.load(path_image_data)
+    elif 'tif' in file_type or 'jpg' in file_type or 'png' in file_type:
+        data = cv2.imread(path_image_data, -1)
+    else:
+        raise FileNotFoundError()
     # Get image shape
     nrows, ncols = np.shape(data)
     # Estimate resolution
@@ -81,6 +77,6 @@ if __name__ == "__main__":
     # ordered_coors = [[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]
     ordered_coors = [[[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005],
                       [-94.900379, 29.5937], [-95.690165, 29.5937]]]
-    path_image_data = '../data/Houston/analysis/hotspots_aggregate.npy'
-    results_tiff_file_path = '../tmp/houston_new_coord2.tif'
+    path_image_data = '../data/Houston/bt_series_png/LC08_B10_20180103.png'
+    results_tiff_file_path = '../tmp/houston_thermal.tif'
     geo_ref(ordered_coors, path_image_data, results_tiff_file_path)
