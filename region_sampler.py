@@ -745,23 +745,23 @@ def generate_log(root_path):
     return
 
 
-def add_missing_image():
+def add_missing_image(city_name, date_):
     """
     After downloading data for a city via export_wrapper(), run this function should any image be
     missing. Need to manually modify variables below
     :return:
     """
-    print('adding missing image...')
+    print(f'adding missing image of {city_name} on {date_}...')
     ee.Initialize()
-    city_name = 'Los Angeles'
-    date_ = '20170812'
+    # city_name = 'Los Angeles'
+    # date_ = '20170812'
     band = 'ST_EMIS'
     output_dir = f'./data/{city_name}/emis/'
 
     # scene_id = '040037'
     # export_boundary = [[[-117.400031, 32.533427], [-116.817708, 32.533427], [-116.817708, 33.301193], [-117.400031, 33.301193], [-117.400031, 32.533427]]]
     cities_list_path = "data/us_cities.csv"
-    print(f'Parsing metadata from {cities_list_path}')
+    # print(f'Parsing metadata from {cities_list_path}')
     cols = list(pd.read_csv(cities_list_path, nrows=1))
     cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
     row = cities_meta.loc[cities_meta['city'] == city_name]
@@ -799,7 +799,7 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    add_missing_image()
+    add_missing_image(city_name='Los Angeles', date_='20170812')
 
 # single-program: Processing time = 0:20:36.844000
 # Phoenix, standard API, 23 min

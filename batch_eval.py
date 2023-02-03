@@ -18,7 +18,7 @@ import shutil
 from tqdm import tqdm
 from config import *
 from util.helper import get_season, rprint, yprint, time_func, hash_
-
+from region_sampler import add_missing_image
 
 def evaluate():
     start_time = time.monotonic()
@@ -404,9 +404,10 @@ def compute_st_for_all(city_name):
         bt = np.load(p.join(root_, 'output', f'reconst_{d}_st.npy')).astype('float32')
         emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1)
         if emis is None:
-            rprint(f'emissivity file for date {d} is not found. Skipped')
-            failed_dates += [d]
-            continue
+            # rprint(f'emissivity file for date {d} is not found. Skipped')
+            # failed_dates += [d]
+            # continue
+            add_missing_image(city_name=city_name, date_=d)
         emis = emis.astype('float32') * EMIS_SCALING_FACTOR
         st = bt * emis  # brightness temperature
         # save unscaled outputs
@@ -438,5 +439,4 @@ if __name__ == '__main__':
 
     # plot_temporal_cycle(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
-
     calc_error_from_outputs(city_name='Houston', mode='temporal')

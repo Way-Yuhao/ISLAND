@@ -138,7 +138,7 @@ class Interpolator(abc.ABC):
         else:  # regular mode
             files = os.listdir(self.root)
             nlcds = [f for f in files if 'nlcd' in f]
-            nlcds = [f for f in files if '._' not in f]
+            nlcds = [f for f in nlcds if '._' not in f]
             nlcd_rgb_path = p.join(self.root, [f for f in nlcds if 'color' in f][0])
             nlcd_path = p.join(self.root, [f for f in nlcds if 'color' not in f][0])
             nlcd = cv2.imread(nlcd_path, -1)

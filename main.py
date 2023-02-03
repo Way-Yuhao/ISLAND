@@ -47,7 +47,7 @@ def geo_reference_outputs(city_name):
     st_files = [f for f in st_files if '.npy' if f]
     for f in st_files:
         geo_ref(bounding_box, p.join(st_dir, f), p.join(output_dir, 'st', f[:-4] + '.tif'))
-    print('Geo-reference finished for Houston.')
+    print(f'Geo-reference finished for {city_name}.')
 
 
 def process_city():
@@ -56,6 +56,7 @@ def process_city():
     in advance.
     :return:
     """
+
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
@@ -73,29 +74,34 @@ def process_city():
     for entry in args.c:
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
-    if RESUME:
-        yprint('WARNING: resume mode is on')
-        if p.exists(f'./data/{CITY_NAME}/output_bt'):
-            shutil.rmtree(f'./data/{CITY_NAME}/output_bt')
-            yprint(f'Removing ./data/{CITY_NAME}/output_bt')
-        if p.exists(f'./data/{CITY_NAME}/output_st'):
-            shutil.rmtree(f'./data/{CITY_NAME}/output_st')
-            yprint(f'Removing ./data/{CITY_NAME}/output_st')
-        time.sleep(2)  # allow previous messages to print
-    elif p.exists(f'./data/{CITY_NAME}/output'):
-        raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists'
-                              f'please ether turn \'resume\' on or remove the existing '
-                              f'directory.')
+
+    yprint(f'-------- Processing {CITY_NAME} --------')
+
     if not args.skip_compute:
+        if RESUME:
+            yprint('WARNING: resume mode is on')
+            if p.exists(f'./data/{CITY_NAME}/output_bt'):
+                shutil.rmtree(f'./data/{CITY_NAME}/output_bt')
+                yprint(f'Removing ./data/{CITY_NAME}/output_bt')
+            if p.exists(f'./data/{CITY_NAME}/output_st'):
+                shutil.rmtree(f'./data/{CITY_NAME}/output_st')
+                yprint(f'Removing ./data/{CITY_NAME}/output_st')
+            time.sleep(2)  # allow previous messages to print
+        elif p.exists(f'./data/{CITY_NAME}/output'):
+            raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists. '
+                                  f'Please ether turn \'resume\' on or remove the existing '
+                                  f'directory.')
         solve_all_bt(city_name=CITY_NAME, resume=RESUME)  # solve for brightness temperature
         move_bt(city_name=CITY_NAME)
         compute_st_for_all(city_name=CITY_NAME)  # solve for surface temperature
     geo_reference_outputs(CITY_NAME)
-    if not args.no_wand:
+    if not args.no_wandb:
         wandb.alert(
             title='Interpolation finished',
             text=f'Data for region {CITY_NAME} finished processing.'
         )
+
+    print('--------------------------------------')
 
 
 def main():
