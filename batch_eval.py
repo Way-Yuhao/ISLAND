@@ -263,7 +263,7 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
     """
     if not resume and p.exists(f'./data/{city_name}/output/'):
         raise FileExistsError(f'Output directory ./data/{city_name}/output/ already exists'
-                              f'please ether turn \'resume\' on or remove the existing '
+                              f'please either turn \'resume\' on or remove the existing '
                               f'directory.')
     root_ = f'./data/{city_name}/'
     log_fpath = f"./data/{city_name}/output/timelapse_log.csv"
@@ -389,7 +389,6 @@ def compute_st_for_all(city_name):
     :return:
     """
     EMIS_SCALING_FACTOR = 0.0001  # scaling factor for unit conversion.
-    wandb.init()
     root_ = f'./data/{city_name}/'
     assert not p.exists(p.join(root_, 'output_st')), 'Output directory already exists'
     os.mkdir((p.join(root_, 'output_st')))
@@ -404,10 +403,12 @@ def compute_st_for_all(city_name):
         bt = np.load(p.join(root_, 'output', f'reconst_{d}_st.npy')).astype('float32')
         emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1)
         if emis is None:
-            # rprint(f'emissivity file for date {d} is not found. Skipped')
-            # failed_dates += [d]
-            # continue
+            rprint(f'emissivity file for date {d} is not found. Attempting re-download...')
             add_missing_image(city_name=city_name, date_=d)
+            emis = cv2.imread(p.join(root_, 'emis', f'LC08_ST_EMIS_{d}.tif'), -1)
+            if emis is None:  # retry once
+                failed_dates += [d]
+                continue
         emis = emis.astype('float32') * EMIS_SCALING_FACTOR
         st = bt * emis  # brightness temperature
         # save unscaled outputs

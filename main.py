@@ -16,7 +16,6 @@ from util.geo_reference import geo_ref
 def geo_reference_outputs(city_name):
     # acquire bounding box
     cities_list_path = "./data/us_cities.csv"
-    print(f'Parsing metadata from {cities_list_path}')
     cols = list(pd.read_csv(cities_list_path, nrows=1))
     cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
     row = cities_meta.loc[cities_meta['city'] == city_name]
@@ -86,6 +85,9 @@ def process_city():
             if p.exists(f'./data/{CITY_NAME}/output_st'):
                 shutil.rmtree(f'./data/{CITY_NAME}/output_st')
                 yprint(f'Removing ./data/{CITY_NAME}/output_st')
+            if p.exists(f'./data/{CITY_NAME}/output_referenced/'):
+                shutil.rmtree(f'./data/{CITY_NAME}/output_referenced/')
+                yprint(f'Removing ./data/{CITY_NAME}/output_referenced/')
             time.sleep(2)  # allow previous messages to print
         elif p.exists(f'./data/{CITY_NAME}/output'):
             raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists. '
@@ -100,7 +102,6 @@ def process_city():
             title='Interpolation finished',
             text=f'Data for region {CITY_NAME} finished processing.'
         )
-
     print('--------------------------------------')
 
 
