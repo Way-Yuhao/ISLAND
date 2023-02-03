@@ -11,6 +11,7 @@ import os.path as p
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import wandb
 from interpolator import Interpolator
 from util.helper import rprint, yprint, parse_csv_dates
 from batch_eval import timelapse_with_synthetic_occlusion
@@ -79,7 +80,7 @@ def run_fill_average(city_name, dates, resume=False):
             if len(current_date_files) > 0:
                 print(f'Found outputs for date {d}. Skipped.')
                 continue
-        yprint(f'Evaluating {d} without NLCD')
+        yprint(f'Evaluating {d} with naive average')
         interp = Interpolator(root=root_, target_date=d)
         # read existing synthetic occlusion for this date
         # TODO: after testing, saving syn occlusion again is no longer required.
@@ -102,21 +103,27 @@ def run_fill_average(city_name, dates, resume=False):
 
 
 def ablation(city_name, occlusion_size=250, num_occlusions=10):
+    yprint(f'Performing ablation study on {city_name} with up to {num_occlusions} random occlusions of size {occlusion_size}')
+    wandb.init()
     dates = parse_csv_dates(city_name)
     if p.exists(f'./data/{city_name}/output/'):
         raise FileExistsError('Output directory already exists. Please move the files elsewhere by '
                               'renaming the folder.')
     timelapse_with_synthetic_occlusion('Houston', occlusion_size=occlusion_size, num_occlusions=num_occlusions,
                                        resume=False)
-    # move_output_to(city_name, to_dir='output_eval_full')
+    move_output_to(city_name, to_dir='output_eval_full')
     run_no_nlcd(city_name, dates, resume=False)
     move_output_to(city_name, to_dir='output_eval_no_nlcd')
     run_fill_average(city_name, dates, resume=False)
     move_output_to(city_name, to_dir='output_naive_average')
+    wandb.alert(
+        title='Ablation study finished',
+        text=f'Ablation study for region {city_name} finished processing.'
+    )
 
 
 def main():
-    ablation('Houston')
+    ablation('Houston', occlusion_size=750, num_occlusions=3)
 
 
 if __name__ == '__main__':

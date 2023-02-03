@@ -14,8 +14,8 @@ from osgeo import osr
 
 
 # %% Function
-def get_georeferenced_tiff_from_npy(ordered_coors: list, path_image_data: str, results_tiff_file_path: str,
-                                    crs: int = 4236) -> None:
+def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: str,
+            crs: int = 4326) -> None:
     """
     This code will generate geo-referenced tiff file from numpy dataset
     :param ordered_coors: a list of coords arranged in the form of [bottom-left, top-left, top-right, bottom-right].
@@ -51,10 +51,12 @@ def get_georeferenced_tiff_from_npy(ordered_coors: list, path_image_data: str, r
     output_raster.GetRasterBand(1).WriteArray(data)
     # Flush cache
     output_raster.FlushCache()
+    return
 
 
 if __name__ == "__main__":
     ordered_coors = [[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]
-    path_image_data = '/Users/pranavesh/Documents/research/13_landsat/01_Data/hotspots_aggregate.npy'
-    results_tiff_file_path = 'geo_referenced_image.tiff'
-    get_georeferenced_tiff_from_npy(ordered_coors, path_image_data, results_tiff_file_path)
+    path_image_data = '../data/Houston/analysis/hotspots_aggregate.npy'
+    results_tiff_file_path = './geo_referenced_image2.tif'
+    geo_ref(ordered_coors, path_image_data, results_tiff_file_path)
+    print(0)

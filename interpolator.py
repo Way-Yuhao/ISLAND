@@ -450,6 +450,8 @@ class Interpolator(abc.ABC):
             print(f"Using baseline average interpolator, with avg = {avg:.2f}")
         else:
             print('ERROR: 100% of input is occluded. No average temperature can be determined.')
+            self.reconstructed_target = self.occluded_target.copy()
+        self.save_timelapse_frame()  # suffix='temporal')
 
     def _nlm_global(self):
         """
