@@ -1,11 +1,53 @@
 import os
 import os.path as p
+import numpy as np
 import time
 import wandb
 import argparse
 import shutil
+import pandas as pd
+import json
+from rich.progress import track
 from batch_eval import solve_all_bt, move_bt, compute_st_for_all
 from util.helper import get_season, rprint, yprint, time_func
+from util.geo_reference import geo_ref
+
+
+def geo_reference_outputs(city_name):
+    # acquire bounding box
+    cities_list_path = "./data/us_cities.csv"
+    print(f'Parsing metadata from {cities_list_path}')
+    cols = list(pd.read_csv(cities_list_path, nrows=1))
+    cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
+    row = cities_meta.loc[cities_meta['city'] == city_name]
+    if row.empty:
+        raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
+    scene_id = str(row.iloc[0]['scene_id'])
+    if len(scene_id) == 5:
+        scene_id = '0' + scene_id
+    bounding_box = row.iloc[0]['bounding_box']
+    assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
+    assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
+    bounding_box = json.loads(bounding_box)
+    # geo-reference
+    output_dir = f'./data/{city_name}/output_referenced'
+    assert not p.exists(output_dir)
+    os.mkdir(output_dir)
+    os.mkdir(p.join(output_dir, 'st'))
+    os.mkdir(p.join(output_dir, 'bt'))
+    # brightness temperature
+    bt_dir = f'./data/{city_name}/output_bt/npy/'
+    bt_files = os.listdir(bt_dir)
+    bt_files = [f for f in bt_files if '.npy' if f]
+    for f in bt_files:
+        geo_ref(bounding_box, p.join(bt_dir, f), p.join(output_dir, 'bt', f[:-4] + '.tif'))
+    # surface temperature
+    st_dir = f'./data/{city_name}/output_st/npy/'
+    st_files = os.listdir(st_dir)
+    st_files = [f for f in st_files if '.npy' if f]
+    for f in st_files:
+        geo_ref(bounding_box, p.join(st_dir, f), p.join(output_dir, 'st', f[:-4] + '.tif'))
+    print('Geo-reference finished for Houston.')
 
 
 def process_city():
@@ -14,13 +56,18 @@ def process_city():
     in advance.
     :return:
     """
-    wandb.init()
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
     parser.add_argument('-r', required=False, action='store_true',
                         help='Toggle to resume from previous run. Will not overwrite files.')
+    parser.add_argument('--skip_compute', required=False, action='store_true',
+                        help='Toggle to skip to geo-reference step.')
+    parser.add_argument('--no_wandb', required=False, action='store_true',
+                        help='Toggle to suppress wandb alerts.')
     args = parser.parse_args()
+    if not args.no_wandb:
+        wandb.init()
     RESUME = args.r
     CITY_NAME = ""
     for entry in args.c:
@@ -39,13 +86,16 @@ def process_city():
         raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists'
                               f'please ether turn \'resume\' on or remove the existing '
                               f'directory.')
-    solve_all_bt(city_name=CITY_NAME, resume=RESUME)  # solve for brightness temperature
-    move_bt(city_name=CITY_NAME)
-    compute_st_for_all(city_name=CITY_NAME)  # solve for surface temperature
-    wandb.alert(
-        title='Interpolation finished',
-        text=f'Data for region {CITY_NAME} finished processing.'
-    )
+    if not args.skip_compute:
+        solve_all_bt(city_name=CITY_NAME, resume=RESUME)  # solve for brightness temperature
+        move_bt(city_name=CITY_NAME)
+        compute_st_for_all(city_name=CITY_NAME)  # solve for surface temperature
+    geo_reference_outputs(CITY_NAME)
+    if not args.no_wand:
+        wandb.alert(
+            title='Interpolation finished',
+            text=f'Data for region {CITY_NAME} finished processing.'
+        )
 
 
 def main():

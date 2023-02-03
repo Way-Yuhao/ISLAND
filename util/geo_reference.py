@@ -75,8 +75,11 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
 
 if __name__ == "__main__":
     # ordered_coors = [[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]
-    ordered_coors = [[[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005],
-                      [-94.900379, 29.5937], [-95.690165, 29.5937]]]
-    path_image_data = '../data/Houston/bt_series_png/LC08_B10_20180103.png'
-    results_tiff_file_path = '../tmp/houston_thermal.tif'
-    geo_ref(ordered_coors, path_image_data, results_tiff_file_path)
+    # ordered_coors = [[[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005],
+    #                   [-94.900379, 29.5937], [-95.690165, 29.5937]]]
+    phoenix = [[[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612], [-112.39009, 33.171612]]]
+    # path_image_data = '../data/Houston/bt_series_png/LC08_B10_20180103.png'
+    phoenix_nlcd = '../data/Phoenix/nlcd_20170104.tif'
+    results_tiff_file_path = '../tmp/phoenix_nlcd.tif'
+    geo_ref(phoenix, phoenix_nlcd, results_tiff_file_path)
+    print('file saved.')
