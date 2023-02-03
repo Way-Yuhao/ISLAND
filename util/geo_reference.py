@@ -5,7 +5,6 @@ __author__ = 'Pranavesh Panakkal'
 # Created on: 1/24/23
 # Version   : 0.1
 
-# %% Import
 import numpy as np
 import rasterio
 from osgeo import gdal
@@ -13,7 +12,17 @@ from osgeo import gdal_array
 from osgeo import osr
 
 
-# %% Function
+def geo_ref_region(city_name: str, img_path: str, out_path: str, crs: int = 4326) -> None:
+    """
+
+    :param city_name:
+    :param img_path:
+    :param out_path:
+    :param crs:
+    :return:
+    """
+
+
 def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: str,
             crs: int = 4326) -> None:
     """
@@ -27,6 +36,20 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
     :notes: Adapted from https://gis.stackexchange.com/a/37431
     """
     # Get control points
+    ordered_coors = np.array(ordered_coors)
+    shape_ = ordered_coors.shape
+    if len(shape_) == 3 and shape_[0] == 1:
+        ordered_coors = ordered_coors[0]
+        shape_ = ordered_coors.shape
+    if len(shape_) == 2:
+        if shape_[0] == 4:
+            pass
+        elif shape_[0] == 5:
+            ordered_coors = ordered_coors[:-1]
+        else:
+            raise IndexError()
+    else:
+        raise IndexError()
     xmin, ymin, xmax, ymax = [ordered_coors[0][0], ordered_coors[0][1], ordered_coors[-2][0], ordered_coors[-2][1]]
     # Read numpy data
     data = np.load(path_image_data)
@@ -55,8 +78,9 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
 
 
 if __name__ == "__main__":
-    ordered_coors = [[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]
+    # ordered_coors = [[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]
+    ordered_coors = [[[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005],
+                      [-94.900379, 29.5937], [-95.690165, 29.5937]]]
     path_image_data = '../data/Houston/analysis/hotspots_aggregate.npy'
-    results_tiff_file_path = './geo_referenced_image2.tif'
+    results_tiff_file_path = '../tmp/houston_new_coord2.tif'
     geo_ref(ordered_coors, path_image_data, results_tiff_file_path)
-    print(0)
