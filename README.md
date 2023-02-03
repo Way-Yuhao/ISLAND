@@ -30,6 +30,7 @@
 | Seattle |:heavy_check_mark: |:heavy_check_mark: |
 | Denver | :heavy_check_mark:|:heavy_check_mark:|
 | Oklahoma City | :heavy_check_mark:| :heavy_check_mark:|
+
 All regions above are geo-referenced. We are dealing with a slight projection misalignment with the geo-referenced outputs. 
 
 ## Generate Your Own Timelapse of Surface Temperature
@@ -44,8 +45,9 @@ All regions above are geo-referenced. We are dealing with a slight projection mi
 Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and surface temperature (ST).  
 
 ## TODO
-- [ ] Implement file check before computing surface temperature
-- [ ] Geo-reference our public results
+- [x] Implement file check before computing surface temperature
+- [x] Geo-reference our public results
+- [ ] Resolve alignment error
 - [x] Resolve key error for NLCD ocean labels
 - [x] Show comparison with baselines
 - [ ] Implement RMSE in addition to MAE
