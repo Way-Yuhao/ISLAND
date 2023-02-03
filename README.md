@@ -10,7 +10,7 @@
 
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
-| New York | :heavy_check_mark: |nlcd file missing|
+| New York | :heavy_check_mark: |:heavy_check_mark:|
 | Los Angeles |:heavy_check_mark: | :heavy_check_mark:|
 | Chicago | :heavy_check_mark: |:heavy_check_mark:|
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
