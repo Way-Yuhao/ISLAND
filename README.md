@@ -10,27 +10,28 @@
 
 | City | Brightness Temperature Ready | Surface Temperature Ready |
 | --- | :---: | :---:|
-| New York | :heavy_check_mark: | |
-| Los Angeles | :heavy_check_mark: | |
-| Chicago | :heavy_check_mark: | |
+| New York | :heavy_check_mark: |:heavy_check_mark:|
+| Los Angeles |:heavy_check_mark: | :heavy_check_mark:|
+| Chicago | :heavy_check_mark: |:heavy_check_mark:|
 | Houston | :heavy_check_mark: |:heavy_check_mark:|
-| Phoenix | :heavy_check_mark: | |
-| Philadelphia |:heavy_check_mark:| |
+| Phoenix | :heavy_check_mark: |:heavy_check_mark: |
+| Philadelphia |:heavy_check_mark:|:heavy_check_mark:|
 | San Antonio |:heavy_check_mark:|:heavy_check_mark: |
-| San Diego |:heavy_check_mark:|emis 20171227 missing|
+| San Diego |:heavy_check_mark:|:heavy_check_mark:|
 | Dallas |:heavy_check_mark:|:heavy_check_mark:|
 | San Jose |:heavy_check_mark:|:heavy_check_mark:|
-| Austin |:heavy_check_mark: need to move files| |
-| Jacksonville |no temporal reference for 20180816| |
+| Austin |:heavy_check_mark:|:heavy_check_mark:|
+| Jacksonville |:heavy_check_mark:|:heavy_check_mark:|
 | Fort Worth |:heavy_check_mark:|:heavy_check_mark:|
 | Columbus |:heavy_check_mark:|:heavy_check_mark:|
 | Indianapolis |:heavy_check_mark:|:heavy_check_mark:|
-| Charlotte |download revised| |
+| Charlotte |:heavy_check_mark:|:heavy_check_mark:|
 | San Francisco |:heavy_check_mark: |:heavy_check_mark: |
-| Seattle | | |
-| Denver | :heavy_check_mark:| |
-| Olkahoma City | | |
+| Seattle |:heavy_check_mark: |:heavy_check_mark: |
+| Denver | :heavy_check_mark:|:heavy_check_mark:|
+| Oklahoma City | :heavy_check_mark:| :heavy_check_mark:|
 
+All regions above are geo-referenced. We are dealing with a slight projection misalignment with the geo-referenced outputs. 
 
 ## Generate Your Own Timelapse of Surface Temperature
 
@@ -44,9 +45,12 @@
 Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and surface temperature (ST).  
 
 ## TODO
-- [ ] Geo-reference our public results
+- [x] Implement file check before computing surface temperature
+- [x] Geo-reference our public results
+- [ ] Resolve alignment error
 - [x] Resolve key error for NLCD ocean labels
-- [ ] Show comparison with baselines
+- [x] Show comparison with baselines
+- [ ] Implement RMSE in addition to MAE
 - [ ] Plot correlation between urban hotspots and SVI
 - [ ] finalize journal to publish 
 - [ ] Incorporate LANDSAT 9 to improve temporal continuity
