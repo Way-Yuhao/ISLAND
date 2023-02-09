@@ -5,6 +5,8 @@ __author__ = 'Pranavesh Panakkal'
 # Created on: 1/24/23
 # Version   : 0.1
 
+import os
+import os.path as p
 import numpy as np
 import rasterio
 from osgeo import gdal
@@ -73,13 +75,34 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
     return
 
 
+def geo_ref_copy(city, npy_filename, out_path):
+    """
+    Copies geo-reference data from corresponding GeoTIFF input files and past to output
+    :param city:
+    :param npy_filename:
+    :param out_path:
+    :return:
+    """
+    root_ = f'./data/{city}'
+    mode = npy_filename[:2]
+    date_ = npy_filename[3:11]
+    npy_path = p.join(root_, f'output_{mode}/npy', npy_filename)
+    assert p.exists(npy_path)
+    npy_content = np.load(npy_path)
+    assert npy_content is not None
+    reference_geotiff_path = p.join(root_, f'bt_series/LC08_B10_{date_}.tif')
+    assert p.exists(reference_geotiff_path), \
+        f'Reference file {reference_geotiff_path} does not exist'
+    ref_img = rasterio.open(reference_geotiff_path)
+    out_tif = rasterio.open(p.join(root_, f'output_referenced/{mode}/{mode}_{date_}.tif'), 'w',
+                            driver='Gtiff', height=ref_img.height, width=ref_img.width,
+                            count=1, crs=ref_img.crs, transform=ref_img.transform,
+                            dtype=npy_content.dtype)
+    out_tif.write(npy_content, 1)
+    ref_img.close()
+    out_tif.close()
+
+
 if __name__ == "__main__":
-    # ordered_coors = [[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005], [-94.900379, 29.5937]]
-    # ordered_coors = [[[-95.690165, 29.5937], [-95.690165, 30.266005], [-94.900379, 30.266005],
-    #                   [-94.900379, 29.5937], [-95.690165, 29.5937]]]
-    phoenix = [[[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612], [-112.39009, 33.171612]]]
-    # path_image_data = '../data/Houston/bt_series_png/LC08_B10_20180103.png'
-    phoenix_nlcd = '../data/Phoenix/nlcd_20170104.tif'
-    results_tiff_file_path = '../tmp/phoenix_nlcd.tif'
-    geo_ref(phoenix, phoenix_nlcd, results_tiff_file_path)
-    print('file saved.')
+
+    geo_ref_copy('Houston', 'bt_20170116.npy', None)

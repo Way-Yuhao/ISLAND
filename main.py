@@ -10,7 +10,7 @@ import json
 from rich.progress import track
 from batch_eval import solve_all_bt, move_bt, compute_st_for_all
 from util.helper import get_season, rprint, yprint, time_func
-from util.geo_reference import geo_ref
+from util.geo_reference import geo_ref_copy
 
 
 def geo_reference_outputs(city_name):
@@ -39,13 +39,15 @@ def geo_reference_outputs(city_name):
     bt_files = os.listdir(bt_dir)
     bt_files = [f for f in bt_files if '.npy' if f]
     for f in bt_files:
-        geo_ref(bounding_box, p.join(bt_dir, f), p.join(output_dir, 'bt', f[:-4] + '.tif'))
+        geo_ref_copy(city_name, f, p.join(output_dir, 'bt'))
+        # geo_ref(bounding_box, p.join(bt_dir, f), p.join(output_dir, 'bt', f[:-4] + '.tif'))
     # surface temperature
     st_dir = f'./data/{city_name}/output_st/npy/'
     st_files = os.listdir(st_dir)
     st_files = [f for f in st_files if '.npy' if f]
     for f in st_files:
-        geo_ref(bounding_box, p.join(st_dir, f), p.join(output_dir, 'st', f[:-4] + '.tif'))
+        geo_ref_copy(city_name, f, p.join(output_dir, 'st'))
+        # geo_ref(bounding_box, p.join(st_dir, f), p.join(output_dir, 'st', f[:-4] + '.tif'))
     print(f'Geo-reference finished for {city_name}.')
 
 
@@ -61,7 +63,7 @@ def process_city():
                         help='Process specify city name.')
     parser.add_argument('-r', required=False, action='store_true',
                         help='Toggle to resume from previous run. Will not overwrite files.')
-    parser.add_argument('--skip_compute', required=False, action='store_true',
+    parser.add_argument('--skip_to_ref', required=False, action='store_true',
                         help='Toggle to skip to geo-reference step.')
     parser.add_argument('--no_wandb', required=False, action='store_true',
                         help='Toggle to suppress wandb alerts.')
@@ -75,8 +77,10 @@ def process_city():
     CITY_NAME = CITY_NAME[:-1]
 
     yprint(f'-------- Processing {CITY_NAME} --------')
-
-    if not args.skip_compute:
+    if p.exists(f'./data/{CITY_NAME}/output_referenced/'):
+        shutil.rmtree(f'./data/{CITY_NAME}/output_referenced/')
+        yprint(f'Removing ./data/{CITY_NAME}/output_referenced/')
+    if not args.skip_to_ref:
         if RESUME:
             yprint('WARNING: resume mode is on')
             if p.exists(f'./data/{CITY_NAME}/output_bt'):
@@ -85,9 +89,6 @@ def process_city():
             if p.exists(f'./data/{CITY_NAME}/output_st'):
                 shutil.rmtree(f'./data/{CITY_NAME}/output_st')
                 yprint(f'Removing ./data/{CITY_NAME}/output_st')
-            if p.exists(f'./data/{CITY_NAME}/output_referenced/'):
-                shutil.rmtree(f'./data/{CITY_NAME}/output_referenced/')
-                yprint(f'Removing ./data/{CITY_NAME}/output_referenced/')
             time.sleep(2)  # allow previous messages to print
         elif p.exists(f'./data/{CITY_NAME}/output'):
             raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists. '
