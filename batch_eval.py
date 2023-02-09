@@ -410,7 +410,7 @@ def compute_st_for_all(city_name):
                 failed_dates += [d]
                 continue
         emis = emis.astype('float32') * EMIS_SCALING_FACTOR
-        st = bt * emis  # brightness temperature
+        st = bt / emis  # brightness temperature
         # save unscaled outputs
         output_filename = f'st_{d}'
         np.save(p.join(root_, 'output_st', 'npy', output_filename), st)
