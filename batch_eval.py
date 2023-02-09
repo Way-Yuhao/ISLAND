@@ -298,13 +298,13 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
     print('csv file saved to ', log_fpath)
 
 
-def calc_error_from_outputs(city_name, mode=None):
+def calc_error_from_outputs(city_name, output_dir, mode=None):
     """
     Find error maps from output directory and computes error
     :return:
     """
     root_ = f'./data/{city_name}'
-    output_dir = f'./data/{city_name}/output (full, synthetic)'
+    # output_dir = f'./data/{city_name}/ablation_s750_n3/output_eval_full'
     assert p.exists(output_dir)
     yprint(f'Calculating error using files found in {output_dir}')
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
@@ -313,6 +313,7 @@ def calc_error_from_outputs(city_name, mode=None):
     log = []
     if mode == 'full':
         yprint('Using full model output')
+        mode = 'st'
     elif mode == 'spatial':
         yprint('Using full output from spatial channel only')
     elif mode == 'temporal':
@@ -327,10 +328,12 @@ def calc_error_from_outputs(city_name, mode=None):
         # interp.synthetic_occlusion = syn_occlusion
         loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=syn_occlusion)
         print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
-        log += [(d, loss, np.count_nonzero(syn_occlusion))]
+        syn_occlusion_perc = np.count_nonzero(syn_occlusion) / (output.shape[0] * output.shape[1])
+        log += [(d, loss, syn_occlusion_perc)]
     log_fpath = f'./data/{city_name}/analysis/error_{mode}_{hash_()}.csv'
     df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
     df.to_csv(log_fpath, index=False)
+    yprint(f'log file saved to {log_fpath}')
 
 
 
@@ -440,4 +443,7 @@ if __name__ == '__main__':
 
     # plot_temporal_cycle(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
-    calc_error_from_outputs(city_name='Houston', mode='temporal')
+    city_name = 'Houston'
+    calc_error_from_outputs(city_name=city_name,
+                            output_dir=f'./data/{city_name}/ablation_s750_n3/output_eval_no_nlcd',
+                            mode='full')
