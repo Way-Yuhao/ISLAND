@@ -115,3 +115,23 @@ def parse_csv_dates(city_name):
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
     return dates
+
+
+def get_scene_id(city_name):
+    """
+    Gets a 6-digit scene_id for a city. Requires metadata to be already saved in
+    '../data/us_cities.csv'
+    :param city_name:
+    :return:
+    """
+    cities_list_path = "../data/us_cities.csv"
+    # print(f'Parsing metadata from {cities_list_path}')
+    cols = list(pd.read_csv(cities_list_path, nrows=1))
+    cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
+    row = cities_meta.loc[cities_meta['city'] == city_name]
+    if row.empty:
+        raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
+    scene_id = str(row.iloc[0]['scene_id'])
+    if len(scene_id) == 5:
+        scene_id = '0' + scene_id
+    return scene_id
