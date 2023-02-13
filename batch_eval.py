@@ -11,14 +11,15 @@ import pandas as pd
 import cv2
 from interpolator import Interpolator
 from natsort import natsorted
-from tqdm import tqdm
 import random
 import wandb
 import shutil
 from tqdm import tqdm
+from rich.progress import track
 from config import *
 from util.helper import get_season, rprint, yprint, time_func, hash_
 from region_sampler import add_missing_image
+
 
 def evaluate():
     start_time = time.monotonic()
@@ -303,6 +304,7 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
     Find error maps from output directory and computes error
     :return:
     """
+    invalid_frame = False
     root_ = f'./data/{city_name}'
     # output_dir = f'./data/{city_name}/ablation_s750_n3/output_eval_full'
     assert p.exists(output_dir)
@@ -318,22 +320,40 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
         yprint('Using full output from spatial channel only')
     elif mode == 'temporal':
         yprint('Using full output from temporal channel only')
+    elif mode is None:
+        mode = 'naive'
     else:
         raise NotImplementedError()
     for d in tqdm(dates, desc='Calculating error'):
-        output = np.load(p.join(output_dir, f'reconst_{d}_{mode}.npy'))
+        if mode != 'naive':
+            output = np.load(p.join(output_dir, f'reconst_{d}_{mode}.npy'))
+        else:
+            output = np.load(p.join(output_dir, f'reconst_{d}.npy'))
         syn_occlusion = np.load(p.join(output_dir, f'syn_occlusion_{d}.npy'))
         interp = Interpolator(root=root_, target_date=d)
         interp.reconstructed_target = output
         # interp.synthetic_occlusion = syn_occlusion
-        loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=syn_occlusion)
-        print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
         syn_occlusion_perc = np.count_nonzero(syn_occlusion) / (output.shape[0] * output.shape[1])
-        log += [(d, loss, syn_occlusion_perc)]
+        if syn_occlusion_perc < 0.01:
+            invalid_frame = True
+            mae_loss = np.nan
+            mse_loss = np.nan
+        else:
+            mae_loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=syn_occlusion)
+            mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=syn_occlusion)
+        real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
+        total_occlusion_perc = syn_occlusion_perc + real_occlusion_perc
+        log += [(d, mae_loss, mse_loss, syn_occlusion_perc, real_occlusion_perc, total_occlusion_perc)]
+    if not p.exists(f'./data/{city_name}/analysis/'):
+        os.mkdir(f'./data/{city_name}/analysis/')
     log_fpath = f'./data/{city_name}/analysis/error_{mode}_{hash_()}.csv'
-    df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
+    df = pd.DataFrame(log, columns=['target_date', 'mae', 'mse',
+                                    'synthetic occlusion %', 'real occlusion %', 'total occlusion %'])
     df.to_csv(log_fpath, index=False)
+    print('------------------------------------------')
     yprint(f'log file saved to {log_fpath}')
+    print('Average MAE = ', df['mae'].mean())
+    print('Average MSE = ', df['mse'].mean())
 
 
 
@@ -443,7 +463,7 @@ if __name__ == '__main__':
 
     # plot_temporal_cycle(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
-    city_name = 'Houston'
+    city_name = 'Phoenix'
     calc_error_from_outputs(city_name=city_name,
-                            output_dir=f'./data/{city_name}/ablation_s750_n3/output_eval_no_nlcd',
+                            output_dir=f'./data/{city_name}/ablation_s500_n1/output_eval_full',
                             mode='full')

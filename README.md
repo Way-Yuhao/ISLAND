@@ -54,3 +54,5 @@ Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as a
 - [ ] Plot correlation between urban hotspots and SVI
 - [x] finalize journal to publish 
 - [ ] Incorporate LANDSAT 9 to improve temporal continuity
+- [ ] Mention 'B10 frame maycontain np.nan or np.NIF, which has been converted to -1
+- [ ] NEED TO RECHECK DATA UPLOADED FOR HOUSTON REGION

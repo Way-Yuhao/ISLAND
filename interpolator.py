@@ -82,8 +82,9 @@ class Interpolator(abc.ABC):
         frame[np.isnan(frame)] = -1
         frame[np.isinf(frame)] = -1
         if np.any(frame == -1):
-            print(f"{bcolors.WARNING}{target_file} contains np.nan or np.NIF, which has been converted to -1"
-                  f"{bcolors.ENDC}")
+            # print(f"{bcolors.WARNING}{target_file} contains np.nan or np.NIF, which has been converted to -1"
+            #       f"{bcolors.ENDC}")
+            pass
         return frame
 
     def get_target(self, target_date):
@@ -137,7 +138,7 @@ class Interpolator(abc.ABC):
             nlcd_rgb = nlcd
         else:  # regular mode
             files = os.listdir(self.root)
-            nlcds = [f for f in files if 'nlcd' in f]
+            nlcds = [f for f in files if 'nlcd' in f and '.tif' in f]
             nlcds = [f for f in nlcds if '._' not in f]
             nlcd_rgb_path = p.join(self.root, [f for f in nlcds if 'color' in f][0])
             nlcd_path = p.join(self.root, [f for f in nlcds if 'color' not in f][0])

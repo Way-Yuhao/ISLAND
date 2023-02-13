@@ -86,12 +86,12 @@ def run_fill_average(city_name, dates, resume=False):
         # TODO: after testing, saving syn occlusion again is no longer required.
         syn_occlusion_path = p.join(full_output_dir, f'syn_occlusion_{d}.npy')
         added_occlusion = interp.add_existing_occlusion(syn_occlusion_path)
-        # output_filename = f'syn_occlusion_{d}'
-        # np.save(p.join(interp.output_path, output_filename), added_occlusion)
-        # plt.imshow(added_occlusion)
-        # plt.title(f'Added synthetic occlusion on {d}')
-        # output_filename = f'syn_occlusion_{d}.png'
-        # plt.savefig(p.join(interp.output_path, output_filename))
+        output_filename = f'syn_occlusion_{d}'
+        np.save(p.join(interp.output_path, output_filename), added_occlusion)
+        plt.imshow(added_occlusion)
+        plt.title(f'Added synthetic occlusion on {d}')
+        output_filename = f'syn_occlusion_{d}.png'
+        plt.savefig(p.join(interp.output_path, output_filename))
         interp.fill_average()  # run ablation method
         loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
         interp.save_error_frame(mask=added_occlusion, suffix='st')
@@ -109,11 +109,10 @@ def ablation(city_name, occlusion_size=250, num_occlusions=10):
     if p.exists(f'./data/{city_name}/output/'):
         raise FileExistsError('Output directory already exists. Please move the files elsewhere by '
                               'renaming the folder.')
-    timelapse_with_synthetic_occlusion('Houston', occlusion_size=occlusion_size, num_occlusions=num_occlusions,
-                                       resume=False)
-    move_output_to(city_name, to_dir='output_eval_full')
-    run_no_nlcd(city_name, dates, resume=False)
-    move_output_to(city_name, to_dir='output_eval_no_nlcd')
+    # timelapse_with_synthetic_occlusion(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions, resume=False)
+    # move_output_to(city_name, to_dir='output_eval_full')
+    # run_no_nlcd(city_name, dates, resume=False)
+    # move_output_to(city_name, to_dir='output_eval_no_nlcd')
     run_fill_average(city_name, dates, resume=False)
     move_output_to(city_name, to_dir='output_naive_average')
     wandb.alert(
@@ -123,7 +122,7 @@ def ablation(city_name, occlusion_size=250, num_occlusions=10):
 
 
 def main():
-    ablation('Houston', occlusion_size=750, num_occlusions=3)
+    ablation('Phoenix', occlusion_size=500, num_occlusions=1)
 
 
 if __name__ == '__main__':

@@ -10,14 +10,16 @@ import datetime as dt
 import uuid
 import pandas as pd
 
+
 def yprint(msg):
     """
     Print to stdout console in yellow.
     :param msg:
     :return:
     """
+    sys.stdout.flush()
     print(f"{bcolors.WARNING}{msg}{bcolors.ENDC}")
-
+    sys.stdout.flush()
 
 def rprint(msg):
     """
@@ -25,8 +27,9 @@ def rprint(msg):
     :param msg:
     :return:
     """
+    sys.stdout.flush()
     print(f"{bcolors.FAIL}{msg}{bcolors.ENDC}")
-
+    sys.stdout.flush()
 
 def pjoin(*args):
     """
