@@ -50,9 +50,11 @@ Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as a
 - [x] Resolve alignment error
 - [x] Resolve key error for NLCD ocean labels
 - [x] Show comparison with baselines
-- [ ] Implement RMSE in addition to MAE
+- [x] Implement MSE in addition to MAE
 - [ ] Plot correlation between urban hotspots and SVI
 - [x] finalize journal to publish 
 - [ ] Incorporate LANDSAT 9 to improve temporal continuity
 - [ ] Mention 'B10 frame maycontain np.nan or np.NIF, which has been converted to -1
 - [ ] NEED TO RECHECK DATA UPLOADED FOR HOUSTON REGION
+- [ ] In ablation: fill in missing data for Houston
+- [ ] Fig: visualize how performance decreases as synthetic occlusion increases

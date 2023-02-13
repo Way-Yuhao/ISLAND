@@ -16,7 +16,11 @@ from interpolator import Interpolator
 from util.helper import rprint, yprint, parse_csv_dates
 from batch_eval import timelapse_with_synthetic_occlusion
 
+################# one scene for a city #########################
 
+
+
+################# all scenes for a city ########################
 def move_output_to(city_name, to_dir):
     origin_dir = f'./data/{city_name}/output'
     dest_dir = f'./data/{city_name}/{to_dir}'
@@ -109,10 +113,10 @@ def ablation(city_name, occlusion_size=250, num_occlusions=10):
     if p.exists(f'./data/{city_name}/output/'):
         raise FileExistsError('Output directory already exists. Please move the files elsewhere by '
                               'renaming the folder.')
-    # timelapse_with_synthetic_occlusion(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions, resume=False)
-    # move_output_to(city_name, to_dir='output_eval_full')
-    # run_no_nlcd(city_name, dates, resume=False)
-    # move_output_to(city_name, to_dir='output_eval_no_nlcd')
+    timelapse_with_synthetic_occlusion(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions, resume=False)
+    move_output_to(city_name, to_dir='output_eval_full')
+    run_no_nlcd(city_name, dates, resume=False)
+    move_output_to(city_name, to_dir='output_eval_no_nlcd')
     run_fill_average(city_name, dates, resume=False)
     move_output_to(city_name, to_dir='output_naive_average')
     wandb.alert(
@@ -122,7 +126,7 @@ def ablation(city_name, occlusion_size=250, num_occlusions=10):
 
 
 def main():
-    ablation('Phoenix', occlusion_size=500, num_occlusions=1)
+    ablation('Denver', occlusion_size=50, num_occlusions=1)
 
 
 if __name__ == '__main__':
