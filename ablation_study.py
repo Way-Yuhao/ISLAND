@@ -16,11 +16,7 @@ from interpolator import Interpolator
 from util.helper import rprint, yprint, parse_csv_dates
 from batch_eval import timelapse_with_synthetic_occlusion
 
-################# one scene for a city #########################
 
-
-
-################# all scenes for a city ########################
 def move_output_to(city_name, to_dir):
     origin_dir = f'./data/{city_name}/output'
     dest_dir = f'./data/{city_name}/{to_dir}'
@@ -123,10 +119,12 @@ def ablation(city_name, occlusion_size=250, num_occlusions=10):
         title='Ablation study finished',
         text=f'Ablation study for region {city_name} finished processing.'
     )
+    print('--------------------------------------------')
+    yprint(f'Ablation study for {city_name} with size = {occlusion_size} num = {num_occlusions} is complete.')
 
 
 def main():
-    ablation('Denver', occlusion_size=50, num_occlusions=1)
+    ablation('Chicago', occlusion_size=75, num_occlusions=2)
 
 
 if __name__ == '__main__':

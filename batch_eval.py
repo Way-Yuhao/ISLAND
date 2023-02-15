@@ -337,7 +337,7 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
         interp.reconstructed_target = output
         # interp.synthetic_occlusion = syn_occlusion
         syn_occlusion_perc = np.count_nonzero(syn_occlusion) / (output.shape[0] * output.shape[1])
-        if syn_occlusion_perc < 0.001:
+        if syn_occlusion_perc < 0.0001:
             invalid_frame = True
             mae_loss = np.nan
             mse_loss = np.nan
@@ -466,7 +466,7 @@ if __name__ == '__main__':
 
     # plot_temporal_cycle(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
-    city_name = 'Houston'
+    city_name = 'New York'
     calc_error_from_outputs(city_name=city_name,
-                            output_dir=f'./data/{city_name}/ablation_s250_n10/output_eval_naive_average',
-                            mode=None)
+                            output_dir=f'./data/{city_name}/ablation_s100_n2/output_eval_full',
+                            mode='spatial')

@@ -9,12 +9,14 @@ import pandas as pd
 import seaborn as sns
 import wandb
 from tqdm import tqdm
+import shutil
 import cv2
 from matplotlib import pyplot as plt
 from datetime import date, timedelta, datetime
 from config import *
 from interpolator import Interpolator
 from util.helper import rprint, yprint, hash_, pjoin
+from util.geo_reference import save_geotiff
 
 
 def read_npy_stack(path):
@@ -210,13 +212,60 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
     else:
         raise NotImplementedError()
 
+##############################################################################
+
+def how_performance_decreases_as_synthetic_occlusion_increases(city, date_):
+    occlusion_size = 250
+    num_occlusions = [2, 4, 8, 16, 24, 32, 48, 64, 80, 100]
+    root_ = f'./data/{city}/'
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}')
+    log_fpath = p.join(out_dir, 'log.csv')
+    if p.exists(p.join(root_, 'output')):
+        raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
+    if not p.exists(p.join(root_, 'analysis')):
+        os.mkdir(p.join(root_, 'analysis'))
+    if not p.exists(out_dir):
+        os.mkdir(out_dir)
+    log = []
+    # real occlusion (a minimal amount)
+    interp = Interpolator(root_, date_)
+    real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
+    print('real occlusion % = ', real_occlusion_perc)
+    # interp.run_interpolation()
+    # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+    # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{real_occlusion_perc:.2f}%.npy'))
+    # shutil.rmtree(p.join(root_, 'output'))
+    # synthetic occlusions
+    for n in num_occlusions:
+        interp = Interpolator(root_, date_)
+        # interp.add_occlusion(use_true_cloud=True)
+        added_occlusion = interp.add_random_occlusion(size=occlusion_size, num_occlusions=n)
+        interp.run_interpolation()
+        mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+        syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
+        save_geotiff(city, interp.reconstructed_target, date_,
+                     p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}%.tif'))
+        save_geotiff(city, added_occlusion.astype(int), date_,
+                     p.join(out_dir, f'occlusion{syn_occlusion_perc:.2f}%.tif'))
+        output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+        shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}%.npy'))
+        shutil.rmtree(p.join(root_, 'output'))
+        log += [(syn_occlusion_perc, mae_loss, mse_loss)]
+    df = pd.DataFrame(log, columns=['syn_occlusion_perc', 'mae', 'mse'])
+    df.to_csv(log_fpath, index=False)
+    print(df)
+    print('real occlusion % = ', real_occlusion_perc)
+    return
+
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
     # calc_avg_temp_per_class_over_time(city='Chicago')
     # plot_avg_temp_per_class_over_time(city='Chicago')
-    count_hotzones_freq_for(city='Houston', temp_type='st')
+    # count_hotzones_freq_for(city='Houston', temp_type='st')
+    how_performance_decreases_as_synthetic_occlusion_increases('Jacksonville', '20170202')
 
 
 if __name__ == '__main__':

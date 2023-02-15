@@ -75,7 +75,7 @@ def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: s
     return
 
 
-def geo_ref_copy(city, npy_filename, out_path):
+def geo_ref_copy(city, npy_filename, out_path='default'):
     """
     Copies geo-reference data from corresponding GeoTIFF input files and past to output
     :param city:
@@ -94,7 +94,9 @@ def geo_ref_copy(city, npy_filename, out_path):
     assert p.exists(reference_geotiff_path), \
         f'Reference file {reference_geotiff_path} does not exist'
     ref_img = rasterio.open(reference_geotiff_path)
-    out_tif = rasterio.open(p.join(root_, f'output_referenced/{mode}/{mode}_{date_}.tif'), 'w',
+    if out_path == 'default':
+        p.join(root_, f'output_referenced/{mode}/{mode}_{date_}.tif')
+    out_tif = rasterio.open(out_path, 'w',
                             driver='Gtiff', height=ref_img.height, width=ref_img.width,
                             count=1, crs=ref_img.crs, transform=ref_img.transform,
                             dtype=npy_content.dtype)
@@ -103,6 +105,20 @@ def geo_ref_copy(city, npy_filename, out_path):
     out_tif.close()
 
 
+def save_geotiff(city, img, date_, out_path):
+    root_ = f'./data/{city}'
+    reference_geotiff_path = p.join(root_, f'bt_series/LC08_B10_{date_}.tif')
+    ref_img = rasterio.open(reference_geotiff_path)
+    out_tif = rasterio.open(out_path, 'w',
+                            driver='Gtiff', height=ref_img.height, width=ref_img.width,
+                            count=1, crs=ref_img.crs, transform=ref_img.transform,
+                            dtype=img.dtype)
+    out_tif.write(img, 1)
+    ref_img.close()
+    out_tif.close()
+    return
+
+
 if __name__ == "__main__":
 
-    geo_ref_copy('Houston', 'bt_20170116.npy', None)
+    geo_ref_copy('Houston', 'bt_20170116.npy', 'default')
