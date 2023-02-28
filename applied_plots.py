@@ -231,10 +231,10 @@ def how_performance_decreases_as_synthetic_occlusion_increases(city, date_):
     interp = Interpolator(root_, date_)
     real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
     print('real occlusion % = ', real_occlusion_perc)
-    # interp.run_interpolation()
-    # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
-    # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{real_occlusion_perc:.2f}%.npy'))
-    # shutil.rmtree(p.join(root_, 'output'))
+    interp.run_interpolation()
+    output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+    shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{real_occlusion_perc:.2f}%.npy'))
+    shutil.rmtree(p.join(root_, 'output'))
     # synthetic occlusions
     for n in num_occlusions:
         interp = Interpolator(root_, date_)
@@ -242,22 +242,109 @@ def how_performance_decreases_as_synthetic_occlusion_increases(city, date_):
         added_occlusion = interp.add_random_occlusion(size=occlusion_size, num_occlusions=n)
         interp.run_interpolation()
         mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
         mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
         syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
         save_geotiff(city, interp.reconstructed_target, date_,
-                     p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}%.tif'))
-        save_geotiff(city, added_occlusion.astype(int), date_,
-                     p.join(out_dir, f'occlusion{syn_occlusion_perc:.2f}%.tif'))
-        output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
-        shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}%.npy'))
-        shutil.rmtree(p.join(root_, 'output'))
-        log += [(syn_occlusion_perc, mae_loss, mse_loss)]
-    df = pd.DataFrame(log, columns=['syn_occlusion_perc', 'mae', 'mse'])
+                     p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.tif'))
+        save_geotiff(city, added_occlusion.astype(float), date_,
+                     p.join(out_dir, f'occlusion{syn_occlusion_perc:.2f}.tif'))
+        # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+        # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.npy'))
+        log += [(syn_occlusion_perc, mae_loss, rmse_loss, mse_loss)]
+    # add almost 100% cloudy frames
+    # for n in reversed(num_occlusions[:3]):
+    #     interp = Interpolator(root_, date_)
+    #     temp_ = Interpolator(root_, date_)
+    #     added_occlusion_negative = temp_.add_random_occlusion(size=occlusion_size, num_occlusions=n)
+    #     added_occlusion = 1 - added_occlusion_negative
+    #     del temp_
+    #     interp.build_valid_mask()
+    #     real_occlusion = interp.target_valid_mask
+    #     interp.synthetic_occlusion = added_occlusion.copy()
+    #     interp.occluded_target = interp.target.copy()
+    #     interp.occluded_target[added_occlusion] = 0
+    #     interp.run_interpolation()
+    #     mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+    #     rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
+    #     mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+    #     syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
+    #     save_geotiff(city, interp.reconstructed_target, date_,
+    #                  p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.tif'))
+    #     save_geotiff(city, added_occlusion.astype(float), date_,
+    #                  p.join(out_dir, f'occlusion{syn_occlusion_perc:.2f}.tif'))
+    #     log += [(syn_occlusion_perc, mae_loss, rmse_loss, mse_loss)]
+
+    df = pd.DataFrame(log, columns=['syn_occlusion_perc', 'mae', 'rmse', 'mse'])
     df.to_csv(log_fpath, index=False)
     print(df)
     print('real occlusion % = ', real_occlusion_perc)
+    shutil.rmtree(p.join(root_, 'output'))
     return
 
+def how_performance_decreases_as_synthetic_occlusion_increases2(city, date_, added_cloud_dates):
+    """
+    Instead of using random occlusion, we use real occlusions from another date.
+    :param city:
+    :param date_:
+    :return:
+    """
+    # added_cloud_dates = [20180728, 20200514, 20200530, 20180813, 20220520, 20211227]
+    # added_cloud_dates = [20211227]
+    root_ = f'./data/{city}/'
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}')
+    log_fpath = p.join(out_dir, 'log.csv')
+    if p.exists(p.join(root_, 'output')):
+        raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
+    if not p.exists(p.join(root_, 'analysis')):
+        os.mkdir(p.join(root_, 'analysis'))
+    if not p.exists(out_dir):
+        os.mkdir(out_dir)
+    log = []
+    # real occlusion (a minimal amount)
+    interp = Interpolator(root_, date_)
+    real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
+    print('real occlusion % = ', real_occlusion_perc)
+    interp.run_interpolation()
+    output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+    shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{real_occlusion_perc:.2f}%.npy'))
+    shutil.rmtree(p.join(root_, 'output'))
+    # synthetic occlusions
+    for d in added_cloud_dates:
+        interp = Interpolator(root_, date_)
+        interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
+        syn_occlusion = interp.synthetic_occlusion
+        real_occlusion = ~interp.build_valid_mask()
+        added_occlusion = syn_occlusion.copy()
+        added_occlusion[real_occlusion] = False
+        interp.run_interpolation()
+        mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
+        mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+        syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
+        save_geotiff(city, interp.reconstructed_target, date_,
+                     p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.tif'))
+        save_geotiff(city, added_occlusion.astype(float), date_,
+                     p.join(out_dir, f'occlusion{syn_occlusion_perc:.2f}.tif'))
+        # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+        # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.npy'))
+        log += [(syn_occlusion_perc, mae_loss, rmse_loss, mse_loss)]
+    df = pd.DataFrame(log, columns=['syn_occlusion_perc', 'mae', 'rmse', 'mse'])
+    df.to_csv(log_fpath, index=False)
+    print(df)
+    print('real occlusion % = ', real_occlusion_perc)
+    shutil.rmtree(p.join(root_, 'output'))
+    return
+
+
+def performance_degradation_graph():
+    log_path = './data/general/performance_degradation.csv'
+    df = pd.read_csv(log_path)
+    print(df)
+    sns.set_theme()
+    sns.set_context("paper")
+    plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
+    plt.show()
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
@@ -265,8 +352,9 @@ def main():
     # calc_avg_temp_per_class_over_time(city='Chicago')
     # plot_avg_temp_per_class_over_time(city='Chicago')
     # count_hotzones_freq_for(city='Houston', temp_type='st')
-    how_performance_decreases_as_synthetic_occlusion_increases('Jacksonville', '20170202')
-
-
+    # how_performance_decreases_as_synthetic_occlusion_increases2('Austin', '20190816', added_cloud_dates=[20180728, 20200514, 20200530, 20180813, 20220520, 20211227])
+    # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
+    # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
+    performance_degradation_graph()
 if __name__ == '__main__':
     main()

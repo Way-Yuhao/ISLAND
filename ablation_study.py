@@ -3,6 +3,7 @@ Conduct ablation study with synthetic occlusion for a specified city.
 The following model outputs will be generated:
 * Full + spatial only + temporal only -> .../output_eval_full
 * Minus NLCD -> .../output_no_nlcd
+* Naive average -> .../output_naive_average
 """
 __author__ = 'yuhao liu'
 
@@ -14,7 +15,7 @@ from matplotlib import pyplot as plt
 import wandb
 from interpolator import Interpolator
 from util.helper import rprint, yprint, parse_csv_dates
-from batch_eval import timelapse_with_synthetic_occlusion
+from batch_eval import timelapse_with_synthetic_occlusion, calc_error_from_outputs
 
 
 def move_output_to(city_name, to_dir):
@@ -103,13 +104,15 @@ def run_fill_average(city_name, dates, resume=False):
 
 
 def ablation(city_name, occlusion_size=250, num_occlusions=10):
-    yprint(f'Performing ablation study on {city_name} with up to {num_occlusions} random occlusions of size {occlusion_size}')
+    yprint(
+        f'Performing ablation study on {city_name} with up to {num_occlusions} random occlusions of size {occlusion_size}')
     wandb.init()
     dates = parse_csv_dates(city_name)
     if p.exists(f'./data/{city_name}/output/'):
         raise FileExistsError('Output directory already exists. Please move the files elsewhere by '
                               'renaming the folder.')
-    timelapse_with_synthetic_occlusion(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions, resume=False)
+    timelapse_with_synthetic_occlusion(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions,
+                                       resume=False)
     move_output_to(city_name, to_dir='output_eval_full')
     run_no_nlcd(city_name, dates, resume=False)
     move_output_to(city_name, to_dir='output_eval_no_nlcd')
@@ -123,9 +126,16 @@ def ablation(city_name, occlusion_size=250, num_occlusions=10):
     yprint(f'Ablation study for {city_name} with size = {occlusion_size} num = {num_occlusions} is complete.')
 
 
-def main():
-    ablation('Chicago', occlusion_size=75, num_occlusions=2)
+def calc_error_ablation(city_name, output_dir, mode):
+    calc_error_from_outputs(city_name=city_name, output_dir=output_dir, mode=mode)
 
 
 if __name__ == '__main__':
-    main()
+    city_name = 'Jacksonville'
+    occlusion_size = 75
+    num_occlusions = 2
+    mode = None
+    # ablation(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions)
+    calc_error_ablation(city_name,
+                        f'./data/{city_name}/ablation_s{occlusion_size}_n{num_occlusions}/output_naive_average',
+                        mode)

@@ -320,9 +320,9 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
         yprint('Using full model output')
         mode = 'st'
     elif mode == 'spatial':
-        yprint('Using full output from spatial channel only')
+        yprint('Using output from spatial channel only')
     elif mode == 'temporal':
-        yprint('Using full output from temporal channel only')
+        yprint('Using output from temporal channel only')
     elif mode is None:
         mode = 'naive'
     else:
@@ -340,22 +340,25 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
         if syn_occlusion_perc < 0.0001:
             invalid_frame = True
             mae_loss = np.nan
+            rmse_loss = np.nan
             mse_loss = np.nan
         else:
             mae_loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=syn_occlusion)
+            rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=syn_occlusion)
             mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=syn_occlusion)
         real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
         total_occlusion_perc = syn_occlusion_perc + real_occlusion_perc
-        log += [(d, mae_loss, mse_loss, syn_occlusion_perc, real_occlusion_perc, total_occlusion_perc)]
+        log += [(d, mae_loss, rmse_loss, mse_loss, syn_occlusion_perc, real_occlusion_perc, total_occlusion_perc)]
     if not p.exists(f'./data/{city_name}/analysis/'):
         os.mkdir(f'./data/{city_name}/analysis/')
     log_fpath = f'./data/{city_name}/analysis/error_{mode}_{hash_()}.csv'
-    df = pd.DataFrame(log, columns=['target_date', 'mae', 'mse',
+    df = pd.DataFrame(log, columns=['target_date', 'mae', 'rmse', 'mse',
                                     'synthetic occlusion %', 'real occlusion %', 'total occlusion %'])
     df.to_csv(log_fpath, index=False)
     print('------------------------------------------')
     yprint(f'log file saved to {log_fpath}')
     print('Average MAE = ', df['mae'].mean())
+    print('Average RMSE = ', df['rmse'].mean())
     print('Average MSE = ', df['mse'].mean())
 
 
@@ -456,6 +459,7 @@ def compute_st_for_all(city_name):
 
 
 if __name__ == '__main__':
+    pass
     # main()
     # evaluate()
     # evaluate_multiprocess(num_procs=10)
@@ -466,7 +470,3 @@ if __name__ == '__main__':
 
     # plot_temporal_cycle(city_name='Phoenix')
     # timelapse_with_synthetic_occlusion(city_name='Houston')
-    city_name = 'New York'
-    calc_error_from_outputs(city_name=city_name,
-                            output_dir=f'./data/{city_name}/ablation_s100_n2/output_eval_full',
-                            mode='spatial')

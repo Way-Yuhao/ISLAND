@@ -25,8 +25,11 @@ def mp_main():
 
 def main():
     # nlcd = cv2.imread('./data/Jacksonville/')
-    arr = np.array([0, 0, 1, 0, 2])
-    print(np.count_nonzero(arr == 0))
+    # arr = np.array([0, 0, 1, 0, 2])
+    # print(np.count_nonzero(arr == 0))
+    a = [1, 2, 3, 4, 5, 6, 7]
+    for i in reversed(a[:3]):
+        print(i)
 
 
 if __name__ == '__main__':

@@ -13,8 +13,9 @@ from osgeo import gdal
 from osgeo import gdal_array
 from osgeo import osr
 import cv2
+from util.helper import deprecated
 
-
+@deprecated
 def geo_ref(ordered_coors: list, path_image_data: str, results_tiff_file_path: str,
             crs: int = 4326) -> None:
     """
@@ -79,7 +80,8 @@ def geo_ref_copy(city, npy_filename, out_path='default'):
     """
     Copies geo-reference data from corresponding GeoTIFF input files and past to output
     :param city:
-    :param npy_filename:
+    :param npy_filename: input filename. Requires file to be stored in .../{city}/output_XX_/npy/ with a format
+    of XX_YYYYMMDD.npy, where XX is mode and Y M D are year, month, date, respectively.
     :param out_path:
     :return:
     """
@@ -106,6 +108,14 @@ def geo_ref_copy(city, npy_filename, out_path='default'):
 
 
 def save_geotiff(city, img, date_, out_path):
+    """
+
+    :param city:
+    :param img: numpy array file
+    :param date_:
+    :param out_path:
+    :return:
+    """
     root_ = f'./data/{city}'
     reference_geotiff_path = p.join(root_, f'bt_series/LC08_B10_{date_}.tif')
     ref_img = rasterio.open(reference_geotiff_path)
@@ -120,5 +130,16 @@ def save_geotiff(city, img, date_, out_path):
 
 
 if __name__ == "__main__":
-
-    geo_ref_copy('Houston', 'bt_20170116.npy', 'default')
+    # geo_ref_copy('Houston', 'bt_20170116.npy', 'default')
+    os.chdir('..')
+    date_ = '20170422'
+    city = 'Houston'
+    cloud = f'./data/{city}/cloud/LC08_cloud_{date_}.tif'
+    shadow = f'./data/{city}/shadow/LC08_shadow_{date_}.tif'
+    # assert p.exists(cloud)
+    cloud_img = cv2.imread(cloud, -1)
+    shadow_img = cv2.imread(shadow, -1)
+    occlusion = cloud_img + shadow_img
+    occlusion[occlusion > 255] = 255
+    print(occlusion)
+    save_geotiff(city, occlusion, date_, out_path=f'./data/{city}/analysis/LC08_occlusion_{date_}.tif')
