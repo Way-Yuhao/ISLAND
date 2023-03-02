@@ -1,6 +1,7 @@
 import numpy as np
+from util.helper import deprecated
 
-
+@deprecated
 def gkern_center(l=5, sig=1.):
     """\
     creates gaussian kernel with side length `l` and a sigma of `sig`
@@ -13,6 +14,14 @@ def gkern_center(l=5, sig=1.):
 
 
 def gkern(canvas, center, sig):
+    """
+    Gaussian kernel, following
+    https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
+    :param canvas:
+    :param center:
+    :param sig:
+    :return:
+    """
     x_length, y_length = canvas
     x_center, y_center = center
     x_ax = np.linspace(-x_center, x_length - x_center - 1, x_length, dtype=np.float32)
@@ -22,7 +31,7 @@ def gkern(canvas, center, sig):
     kernel = np.outer(x_gauss, y_gauss)
     return kernel  # consider adding / np.sum(kernel)
 
-
+@deprecated
 def l2_kern(canvas, center, sig):
     x_length, y_length = canvas
     x_center, y_center = center

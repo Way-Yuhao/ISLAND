@@ -11,6 +11,7 @@ from tqdm import tqdm
 import abc
 import cv2
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import textwrap
 from config import *
@@ -819,7 +820,6 @@ class Interpolator(abc.ABC):
 
     def plot_violins(self):
         plt.figure(figsize=(15, 5))
-        sns.set(style='whitegrid')
         df = pd.DataFrame({'class': [], 'bt': []})
         palette = []
         i = 0
@@ -836,7 +836,8 @@ class Interpolator(abc.ABC):
             i += 1
         ax = sns.violinplot(x='class', y='bt', data=df, palette=palette)
         ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
-        plt.xlabel('NLCD Landcover Class')
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        plt.xlabel('NLCD Land Cover Class')
         plt.ylabel('Brightness Temperature (K)')
         plt.title('Distribution of Brightness Temperature per Landcover Class')
         plt.tight_layout()
