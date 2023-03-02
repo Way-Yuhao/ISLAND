@@ -7,10 +7,8 @@ from natsort import natsorted
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import wandb
 from tqdm import tqdm
 import shutil
-import cv2
 from matplotlib import pyplot as plt
 from datetime import date, timedelta, datetime
 from config import *
@@ -346,6 +344,65 @@ def performance_degradation_graph():
     plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
     plt.show()
 
+
+def plot_mean_trend_bt_two_dates(city, date1, date2):
+    """
+    :param city:
+    :param date1:
+    :param date2:
+    :return:
+    """
+    sns.set(style='whitegrid', context='paper', font='Times New Roman')
+    interp_1 = Interpolator(root=f'./data/{city}', target_date=date1)
+    interp_2 = Interpolator(root=f'./data/{city}', target_date=date2)
+    y_mean1, y_mean2 = {}, {}
+    i = 0
+    for c, _ in NLCD_2019_META['lut'].items():
+        c = int(c)
+        temp_for_c = interp_1.target.copy()
+        temp_for_c[interp_1.nlcd != c] = 0
+        dp = temp_for_c[np.where(temp_for_c != 0)]
+        if len(dp > 0):
+            y_mean1[c] = np.average(dp)
+    i = 0
+    for c, _ in NLCD_2019_META['lut'].items():
+        c = int(c)
+        temp_for_c = interp_2.target.copy()
+        temp_for_c[interp_2.nlcd != c] = 0
+        dp = temp_for_c[np.where(temp_for_c != 0)]
+        if len(dp > 0):
+            y_mean2[c] = np.average(dp)
+    palette = []
+    df = pd.DataFrame({'class': [], 'delta': []})
+    for c, _ in NLCD_2019_META['lut'].items():
+        c = int(c)
+        if c in y_mean1 and c in y_mean2:
+            delta = y_mean2[c] - y_mean1[c]
+            # log += [(c, delta)]
+            x = NLCD_2019_META['class_names'][str(c)]
+            new_df = pd.DataFrame({'class': [x], 'delta': [delta]})
+            df = pd.concat([df, new_df], ignore_index=True)
+            palette += ['#' + NLCD_2019_META['lut'][str(c)]]
+    # df = pd.DataFrame(log, columns=['class', 'delta'])
+    # print(df)
+    sns.barplot(data=df, y='class', x='delta', palette=palette)
+    plt.xlabel(u'Difference in Mean Brightness Temperature (K)')
+    plt.ylabel('NLCD Land Cover Classes')
+    plt.title(f'Changes in Mean Brightness Temperature\nfrom {date1} to {date2} in {city}')
+    plt.tight_layout()
+    plt.show()
+
+
+def motivation_temporal():
+    # sns.set(style='whitegrid', context='paper', font='Times New Roman')
+    # plot_mean_trend_bt_two_dates('Houston', '20181205', '20181221') # 56F, 62F
+    # plot_mean_trend_bt_two_dates('Houston', '20181205', '20191106') # ok
+    # plot_mean_trend_bt_two_dates('Houston', '20181221', '20170929')  # better, 68F
+    # plot_mean_trend_bt_two_dates('Houston', '20210401', '20191106')  # ok
+    plot_mean_trend_bt_two_dates('Houston', '20210401', '20210924')  # used!
+
+
+
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
@@ -355,6 +412,11 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Austin', '20190816', added_cloud_dates=[20180728, 20200514, 20200530, 20180813, 20220520, 20211227])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
-    performance_degradation_graph()
+    # performance_degradation_graph()
+    motivation_temporal()
+
+
+
+
 if __name__ == '__main__':
     main()
