@@ -9,6 +9,7 @@ import time
 import datetime as dt
 import uuid
 import pandas as pd
+from matplotlib import pyplot as plt
 
 
 def yprint(msg):
@@ -138,3 +139,26 @@ def get_scene_id(city_name):
     if len(scene_id) == 5:
         scene_id = '0' + scene_id
     return scene_id
+
+
+def save_cmap(img, out_path, palette='inferno', vmin=None, vmax=None):
+    """
+    Saves a color-mapped image without boarder. Original resolution of the image
+    is retained.
+    :param img: numpy array
+    :param out_path:
+    :param palette:
+    :param vmin:
+    :param vmax:
+    :return:
+    """
+    cmap = plt.get_cmap(palette)
+    if vmin is None:
+        vmin = img.min()
+    if vmax is None:
+        vmax = img.max()
+    norm = plt.Normalize(vmin=vmin, vmax=vmax)
+    out = cmap(norm(img))
+    plt.imsave(out_path, out)
+    plt.close()
+    return

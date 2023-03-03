@@ -14,7 +14,7 @@ import cv2
 from datetime import date, timedelta, datetime
 from config import *
 from interpolator import Interpolator
-from util.helper import rprint, yprint, hash_, pjoin
+from util.helper import rprint, yprint, hash_, pjoin, save_cmap
 from util.geo_reference import save_geotiff
 
 
@@ -425,18 +425,43 @@ def results_figure():
     :return:
     """
     def _export_row(city, date_, vmin=None, vmax=None):
+        palette = 'inferno'
         b10 = cv2.imread(f'./data/{city}/bt_series/LC08_B10_{date_}.tif', -1)
         bt = cv2.imread(f'./data/{city}/output_referenced/bt/bt_{date_}.tif', -1)
         st = cv2.imread(f'./data/{city}/output_referenced/st/st_{date_}.tif', -1)
         assert b10 is not None
         assert bt is not None
         assert st is not None
-        fig = plt.figure(frameon=False)
-        plt.imshow(b10, cmap='inferno', vmin=vmin, vmax=vmax)
-        plt.savefig(f'./data/{city}/analysis/cmap_b10_{date_}.png')
+        # out_dir = f'./data/{city}/analysis/cmap_out_{date_}/'
+        out_dir = f'./data/general/results_{city}_{date_}/'
+        if not p.exists(out_dir):
+            os.mkdir(out_dir)
+        # copy image that do not need cmap
+        shutil.copyfile(src=f'./data/{city}/TOA_RGB/RGB/LC08_RGB_{date_}.png', dst=p.join(out_dir, f'rgb_{date_}.png'))
+        save_cmap(b10, p.join(out_dir, f'b10_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        save_cmap(bt, p.join(out_dir, f'st_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        save_cmap(st, p.join(out_dir, f'bt_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        # metadata
+        interp = Interpolator(root=f'./data/{city}', target_date=date_)
+        theta = interp.add_occlusion(use_true_cloud=True)
+        with open(p.join(out_dir, 'readme.txt'), 'w') as f:
+            f.write(f'theta = {theta:.2f}')
+        # save color bar
+        sns.set_theme(context='paper', font='Times New Roman')
+        X, Y = np.mgrid[-2:3, -2:3]
+        Z = np.random.rand(*X.shape)
+        FIGSIZE = (3, 3)
+        mpb = plt.pcolormesh(X, Y, Z, cmap=palette, vmin=vmin, vmax=vmax)
+        fig, ax = plt.subplots(figsize=FIGSIZE)
+        plt.colorbar(mpb, ax=ax)
+        ax.remove()
+        plt.savefig(p.join(out_dir, f'cbar_{date_}.png'))
+        plt.tight_layout()
         plt.close()
+        print('files saved to directory ', out_dir)
+        return
 
-    _export_row('Houston', '20220114')
+    _export_row('Houston', '20220114', vmin=280, vmax=320)
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
