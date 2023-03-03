@@ -10,6 +10,7 @@ import seaborn as sns
 from tqdm import tqdm
 import shutil
 from matplotlib import pyplot as plt
+import cv2
 from datetime import date, timedelta, datetime
 from config import *
 from interpolator import Interpolator
@@ -178,38 +179,40 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
     :param temp_type: between 'st' for surface temperature and 'bt' for brightness temperature
     :return:
     """
-    if temp_type == 'st':
-        timelapse_dir = f'./data/{city}/output_st/npy/'
+    sns.set(style='whitegrid', context='paper', font='Times New Roman')
+    if temp_type not in {'st', 'bt'}:
+        raise NotImplementedError()
+    else:
+        timelapse_dir = f'./data/{city}/output_referenced/{temp_type}/'
+        assert p.exists(timelapse_dir)
         files = natsorted(os.listdir(timelapse_dir))
-        # print(files)
-        f0 = np.load(p.join(timelapse_dir, files[0]))
+        # f0 = np.load(p.join(timelapse_dir, files[0]))
+        f0 = cv2.imread(p.join(timelapse_dir, files[0]), -1)
         aggregate = np.zeros_like(f0)
         if len(files) == 0:
             raise FileNotFoundError
         for f in tqdm(files):
             if '._' in f:
                 continue
-            img = np.load(p.join(timelapse_dir, f))
+            # img = np.load(p.join(timelapse_dir, f))
+            img = cv2.imread(p.join(timelapse_dir, f), -1)
             this_frame = np.zeros_like(f0)
             this_frame[img >= threshold] = 1
             aggregate += this_frame
-        plt.imshow(aggregate, cmap='hot')
+        plt.imshow(aggregate, cmap='inferno', vmin=0, vmax=50)
         plt.colorbar(label=f'Number of day exceeding {threshold} Kelvin')
-        plt.title(f'Visualization of hot spots '
-                  f'from {files[0][3:10]} to {files[-1][3:10]} in {city}')
+        plt.title(f'Hot zones '
+                  f'from {files[0][3:11]} to {files[-1][3:11]} in {city}')
         plt.xticks([])
         plt.yticks([])
         plt.show()
+        plt.tight_layout()
 
         if not p.exists(f'./data/{city}/analysis/'):
             os.mkdir(f'./data/{city}/analysis/')
-        np.save(f'./data/{city}/analysis/hotspots_aggregate.npy', aggregate)
-
-    elif temp_type == 'bt':
-        raise NotImplementedError()
-    else:
-        raise NotImplementedError()
-
+        np.save(f'./data/{city}/analysis/hotzones_{threshold}k.npy', aggregate)
+        # plt.savefig(f'./data/{city}/analysis/hotzones_{threshold}k.png')
+        save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k.tif')
 ##############################################################################
 
 def how_performance_decreases_as_synthetic_occlusion_increases(city, date_):
@@ -401,19 +404,25 @@ def motivation_temporal():
     # plot_mean_trend_bt_two_dates('Houston', '20210401', '20191106')  # ok
     plot_mean_trend_bt_two_dates('Houston', '20210401', '20210924')  # used!
 
-
+def hot_zone_wrapper():
+    count_hotzones_freq_for(city='Houston', temp_type='st', threshold=315)
+    # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=320)
+    # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=305)
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
     # calc_avg_temp_per_class_over_time(city='Chicago')
     # plot_avg_temp_per_class_over_time(city='Chicago')
-    # count_hotzones_freq_for(city='Houston', temp_type='st')
+    # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
+    # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=310)
+    # count_hotzones_freq_for(city='Austin', temp_type='st', threshold=310)
     # how_performance_decreases_as_synthetic_occlusion_increases2('Austin', '20190816', added_cloud_dates=[20180728, 20200514, 20200530, 20180813, 20220520, 20211227])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    motivation_temporal()
+    # motivation_temporal()
+    hot_zone_wrapper()
 
 
 
