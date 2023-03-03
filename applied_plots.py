@@ -409,16 +409,40 @@ def motivation_temporal():
     # plot_mean_trend_bt_two_dates('Houston', '20210401', '20191106')  # ok
     plot_mean_trend_bt_two_dates('Houston', '20210401', '20210924')  # used!
 
+
 def hot_zone_wrapper():
     count_hotzones_freq_for(city='Houston', temp_type='st', threshold=315)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=320)
     # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=305)
 
+
+def results_figure():
+    """
+    This function produces the following outputs for each case study:
+    * color mapped bt output
+    * color mapped st output
+    * color mapped input
+    :return:
+    """
+    def _export_row(city, date_, vmin=None, vmax=None):
+        b10 = cv2.imread(f'./data/{city}/bt_series/LC08_B10_{date_}.tif', -1)
+        bt = cv2.imread(f'./data/{city}/output_referenced/bt/bt_{date_}.tif', -1)
+        st = cv2.imread(f'./data/{city}/output_referenced/st/st_{date_}.tif', -1)
+        assert b10 is not None
+        assert bt is not None
+        assert st is not None
+        fig = plt.figure(frameon=False)
+        plt.imshow(b10, cmap='inferno', vmin=vmin, vmax=vmax)
+        plt.savefig(f'./data/{city}/analysis/cmap_b10_{date_}.png')
+        plt.close()
+
+    _export_row('Houston', '20220114')
+
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
     # calc_avg_temp_per_class_over_time(city='Houston')
-    plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
+    # plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
     # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Austin', temp_type='st', threshold=310)
@@ -428,7 +452,7 @@ def main():
     # performance_degradation_graph()
     # motivation_temporal()
     # hot_zone_wrapper()
-
+    results_figure()
 
 
 
