@@ -175,6 +175,8 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
 
 def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
     """
+    Produce a map where the pixel values represent number of days that this location exceeds
+    temperature threshold. Requires data to be store under .../city/output_referenced/
     :param city:
     :param temp_type: between 'st' for surface temperature and 'bt' for brightness temperature
     :return:
