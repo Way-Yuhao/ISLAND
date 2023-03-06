@@ -439,8 +439,8 @@ def results_figure():
         # copy image that do not need cmap
         shutil.copyfile(src=f'./data/{city}/TOA_RGB/RGB/LC08_RGB_{date_}.png', dst=p.join(out_dir, f'rgb_{date_}.png'))
         save_cmap(b10, p.join(out_dir, f'b10_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
-        save_cmap(bt, p.join(out_dir, f'st_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
-        save_cmap(st, p.join(out_dir, f'bt_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        save_cmap(bt, p.join(out_dir, f'bt_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        save_cmap(st, p.join(out_dir, f'st_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
         # metadata
         interp = Interpolator(root=f'./data/{city}', target_date=date_)
         theta = interp.add_occlusion(use_true_cloud=True)
