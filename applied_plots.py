@@ -461,7 +461,12 @@ def results_figure():
         print('files saved to directory ', out_dir)
         return
 
-    _export_row('Houston', '20220114', vmin=280, vmax=320)
+    # _export_row('Houston', '20220114', vmin=280, vmax=320)
+    # _export_row('New York', '20170723', vmin=280, vmax=320)
+    # _export_row('Jacksonville', '20171203', vmin=290, vmax=310)
+    # _export_row('San Francisco', '20200606', vmin=280, vmax=320)
+    _export_row('Phoenix', '20180107', vmin=280, vmax=320)
+
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
