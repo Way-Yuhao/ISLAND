@@ -128,7 +128,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     :param city:
     :return:
     """
-    sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.2)
+    sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
     output_dir = f'./data/{city}/analysis/'
     if not p.exists(output_dir):
         raise FileNotFoundError()
@@ -156,7 +156,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
 
     # df.replace(-1, np.inf)
     df[df < 2] = np.nan
-    plt.figure(figsize=(15, 5))
+    plt.figure(figsize=(13, 8))
     x_dates = [datetime.strptime(str(date_str), '%Y%m%d') for date_str in df['date']]
     # palette = []
     for c, _ in NLCD_2019_META['lut'].items():
@@ -168,12 +168,14 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
         ax = sns.lineplot(data=df, x=x_dates, y=c, color='#' + NLCD_2019_META['lut'][str(c)],
                           label=NLCD_2019_META['class_names'][str(c)], markers=True)
     # plt.title(f'Mean brightness temperature of each land cover class for {city}')
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
+    # plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
+    plt.legend(loc='lower center', markerscale=5, ncol=4, bbox_to_anchor=(0.5, -0.45), fancybox=True)
     plt.ylabel('Surface Temperature (K)')
     plt.xlabel('Date')
     plt.tight_layout()
     # ax.set_xticklabels(labels=x_dates, rotation=45, ha='right')
-    plt.show()
+    # plt.show()
+    plt.savefig(f'./data/general/{city}_temp_trend.png', dpi=300)
 
 
 def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
@@ -473,7 +475,7 @@ def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
     # calc_avg_temp_per_class_over_time(city='Houston')
-    # plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
+    plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
     # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=315)
     # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=300)
@@ -482,7 +484,7 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
     # motivation_temporal()
-    hot_zone_wrapper()
+    # hot_zone_wrapper()
     # results_figure()
 
 
