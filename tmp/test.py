@@ -53,7 +53,7 @@ def check_geotiff():
 
 def main():
     # project_npy2()
-    check_geotiff()
+    # check_geotiff()
 
 
 if __name__ == '__main__':

@@ -837,9 +837,9 @@ class Interpolator(abc.ABC):
         ax = sns.violinplot(x='class', y='bt', data=df, palette=palette)
         ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-        plt.xlabel('NLCD Land Cover Class')
-        plt.ylabel('Brightness Temperature (K)')
-        plt.title('Distribution of Brightness Temperature per Landcover Class')
+        plt.xlabel('NLCD Land Cover Class', fontsize=18)
+        plt.ylabel('Brightness Temperature (K)', fontsize=18)
+        plt.title('Distribution of Brightness Temperature per Landcover Class', fontsize=18)
         plt.tight_layout()
         plt.show()
 

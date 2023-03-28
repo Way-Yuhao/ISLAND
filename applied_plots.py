@@ -14,7 +14,7 @@ import cv2
 from datetime import date, timedelta, datetime
 from config import *
 from interpolator import Interpolator
-from util.helper import rprint, yprint, hash_, pjoin, save_cmap
+from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
 from util.geo_reference import save_geotiff
 
 
@@ -291,6 +291,40 @@ def how_performance_decreases_as_synthetic_occlusion_increases(city, date_):
     shutil.rmtree(p.join(root_, 'output'))
     return
 
+
+def find_dates_at_interval_theta(city, theta_intervals):
+    select_idx = []
+    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    if not p.exists(df_path):
+        root_ = f'./data/{city}'
+        df = pd.read_csv(p.join(root_, 'metadata.csv'))
+        dates = df['date'].values.tolist()
+        dates = [str(d) for d in dates]
+        log = []
+        for d in tqdm(dates):
+            interp = Interpolator(root=root_, target_date=d)
+            theta = interp.add_occlusion(use_true_cloud=True)
+            input_bitmask = np.array(~interp.synthetic_occlusion, dtype=np.bool_)
+            input_bitmask[~interp.target_valid_mask] = False
+            if np.any(input_bitmask):
+                avg = np.average(interp.occluded_target[input_bitmask])
+            else:
+                avg = np.nan
+            log += [(d, avg, theta)]
+        df = pd.DataFrame(log, columns=['date', 'avg', 'theta'])
+        df.to_csv(df_path, index=False)
+        print('csv file saved to ', df_path)
+
+    print('using csv file ', df_path)
+    df = pd.read_csv(df_path)
+    thetas = df['theta']
+    for t in theta_intervals:
+        idx = np.array([np.abs(t - theta) for theta in thetas]).argmin()
+        select_idx.append(idx)
+    selected_dates = [df['date'][i] for i in select_idx]
+    return selected_dates
+
+deprecated
 def how_performance_decreases_as_synthetic_occlusion_increases2(city, date_, added_cloud_dates):
     """
     Instead of using random occlusion, we use real occlusions from another date.
@@ -346,14 +380,102 @@ def how_performance_decreases_as_synthetic_occlusion_increases2(city, date_, add
     return
 
 
-def performance_degradation_graph():
-    log_path = './data/general/performance_degradation.csv'
-    df = pd.read_csv(log_path)
+def how_performance_decreases_as_synthetic_occlusion_increases3(city, date_):
+    theta_intervals = [.1, .2, .3, .4, .5, .6, .7, .8, .9, .95, .99, 1.0]
+    selected_dates = find_dates_at_interval_theta(city=city, theta_intervals=theta_intervals)
+    root_ = f'./data/{city}/'
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}')
+    log_fpath = p.join(out_dir, 'log.csv')
+    if p.exists(p.join(root_, 'output')) and len(os.listdir(p.join(root_, 'output'))) > 1:
+        raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
+    if not p.exists(p.join(root_, 'analysis')):
+        os.mkdir(p.join(root_, 'analysis'))
+    if not p.exists(out_dir):
+        os.mkdir(out_dir)
+    log = []
+    # real occlusion (a minimal amount)
+    interp = Interpolator(root_, date_)
+    real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
+    print('real occlusion % = ', real_occlusion_perc)
+    # interp.run_interpolation()
+    # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+    # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{real_occlusion_perc:.2f}%.npy'))
+    # shutil.rmtree(p.join(root_, 'output'))
+    # synthetic occlusions
+    for d in selected_dates:
+        interp = Interpolator(root_, date_)
+        real_occlusion = ~interp.build_valid_mask()
+        # theta = interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
+        # add occlusion
+        cloud = cv2.imread(f'./data/{city}/cloud/LC08_cloud_{d}.tif', -1)
+        shadow = cv2.imread(f'./data/{city}/shadow/LC08_shadow_{d}.tif', -1)
+        occlusion = cloud + shadow
+        occlusion[occlusion != 0] = 255
+        interp.synthetic_occlusion = np.array(occlusion, dtype=np.bool_)  # FIXME
+        interp.occluded_target = interp.target.copy()
+        interp.occluded_target[occlusion] = 0
+        px_count = occlusion.shape[0] * occlusion.shape[1]
+        theta = np.count_nonzero(occlusion) / px_count
+        # syn_occlusion = interp.synthetic_occlusion
+        # real_occlusion = ~interp.build_valid_mask()
+        added_occlusion = interp.synthetic_occlusion.copy()
+        added_occlusion[real_occlusion] = False
+        interp.run_interpolation()
+        mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
+        mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+        # syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
+        save_geotiff(city, interp.reconstructed_target, date_,
+                     p.join(out_dir, f'r_occlusion{theta:.2f}.tif'))
+        save_geotiff(city, added_occlusion.astype(float), date_,
+                     p.join(out_dir, f'occlusion{theta:.2f}.tif'))
+        # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+        # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.npy'))
+        log += [(theta, mae_loss, rmse_loss, mse_loss)]
+    df = pd.DataFrame(log, columns=['theta', 'mae', 'rmse', 'mse'])
+    df.to_csv(log_fpath, index=False)
     print(df)
-    sns.set_theme()
-    sns.set_context("paper")
-    plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
+    print('real occlusion % = ', real_occlusion_perc)
+    shutil.rmtree(p.join(root_, 'output'))
+    return
+
+
+def performance_degradation_graph(data_list):
+    sns.set_theme(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
+    # log_path = './data/general/performance_degradation.csv'
+    df = pd.DataFrame()
+    for entry in data_list:
+        city, date_ = entry[0], entry[1]
+        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}/log.csv'
+        if not p.exists(log_path):
+            rprint(f'File for {city} on {date_} does not exist.')
+            continue
+        current_df = pd.read_csv(log_path)
+        current_df['city'] = city
+        # print(df)
+        df = pd.concat([df, current_df], ignore_index=True)
+    # print(df)
+    plot = sns.lineplot(data=df, y='mae', x='theta', hue='city', marker='o')
+    plot.set_ylim(0.5, 1.5)
+    plt.xlabel('Occlusion factor, \u03B8')
+    plt.ylabel('MAE (K)')
+    plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.25))
+    plt.tight_layout()
     plt.show()
+    # sns.set_context("paper")
+    # plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
+    # plt.show()
+
+
+def performance_degradation_wrapper():
+    date_list = [('Houston', '20180103'), ('Austin', '20190816'), ('Seattle', '20210420'),
+                 ('Indianapolis', '20210726'), ('Charlotte', '20211018')] # , ('San Diego', '20210104')]
+    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[0][0], date_=date_list[0][1])
+    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[1][0], date_=date_list[1][1])
+    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[2][0], date_=date_list[2][1])
+    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[3][0], date_=date_list[3][1])
+    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[4][0], date_=date_list[4][1])
+    # performance_degradation_graph(date_list)
 
 
 def plot_mean_trend_bt_two_dates(city, date1, date2):
@@ -363,7 +485,7 @@ def plot_mean_trend_bt_two_dates(city, date1, date2):
     :param date2:
     :return:
     """
-    sns.set(style='whitegrid', context='paper', font='Times New Roman')
+    sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
     interp_1 = Interpolator(root=f'./data/{city}', target_date=date1)
     interp_2 = Interpolator(root=f'./data/{city}', target_date=date2)
     y_mean1, y_mean2 = {}, {}
@@ -396,21 +518,80 @@ def plot_mean_trend_bt_two_dates(city, date1, date2):
             palette += ['#' + NLCD_2019_META['lut'][str(c)]]
     # df = pd.DataFrame(log, columns=['class', 'delta'])
     # print(df)
+    plt.figure(figsize=(8, 5))
     sns.barplot(data=df, y='class', x='delta', palette=palette)
     plt.xlabel(u'Difference in Mean Brightness Temperature (K)')
     plt.ylabel('NLCD Land Cover Classes')
     plt.title(f'Changes in Mean Brightness Temperature\nfrom {date1} to {date2} in {city}')
     plt.tight_layout()
-    plt.show()
+    plt.savefig('./data/general/temporal_motivation_p1.png', dpi=300)
+    # plt.show()
 
 
 def motivation_temporal():
     # sns.set(style='whitegrid', context='paper', font='Times New Roman')
-    # plot_mean_trend_bt_two_dates('Houston', '20181205', '20181221') # 56F, 62F
+    plot_mean_trend_bt_two_dates('Houston', '20181205', '20181221') # 56F, 62F
     # plot_mean_trend_bt_two_dates('Houston', '20181205', '20191106') # ok
     # plot_mean_trend_bt_two_dates('Houston', '20181221', '20170929')  # better, 68F
     # plot_mean_trend_bt_two_dates('Houston', '20210401', '20191106')  # ok
-    plot_mean_trend_bt_two_dates('Houston', '20210401', '20210924')  # used!
+    # plot_mean_trend_bt_two_dates('Houston', '20210401', '20170929')  # used!
+
+
+def motivation_temporal2(city='Houston'):
+    sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
+    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    if not p.exists(df_path):
+        root_ = f'./data/{city}'
+        df = pd.read_csv(p.join(root_, 'metadata.csv'))
+        dates = df['date'].values.tolist()
+        dates = [str(d) for d in dates]
+        log = []
+        for d in tqdm(dates):
+            interp = Interpolator(root=root_, target_date=d)
+            theta = interp.add_occlusion(use_true_cloud=True)
+            input_bitmask = np.array(~interp.synthetic_occlusion, dtype=np.bool_)
+            input_bitmask[~interp.target_valid_mask] = False
+            if np.any(input_bitmask):
+                avg = np.average(interp.occluded_target[input_bitmask])
+            else:
+                avg = np.nan
+            log += [(d, avg, theta)]
+        df = pd.DataFrame(log, columns=['date', 'avg', 'theta'])
+        df.to_csv(df_path, index=False)
+        print('csv file saved to ', df_path)
+    else:
+        print('using csv file ', df_path)
+        # plt.figure(figsize=(7.5, 5))
+        fig, axes = plt.subplots(2, 1, figsize=(9, 5), gridspec_kw={'height_ratios': [3, 1]})
+        df = pd.read_csv(df_path)
+        x_dates = [datetime.strptime(str(date_str), '%Y%m%d') for date_str in df['date']]
+        # below_theta_max = [theta < 0.1 for theta in df['theta']]
+        seasons = [get_season(x) for x in x_dates]
+        sns.scatterplot(ax=axes[0], data=df, x=x_dates, y='avg', hue=seasons)
+        axes[0].legend(loc='upper right', bbox_to_anchor=(1.21, 1.03))
+        axes[0].set_ylabel('Average Brightness Temperature (K)')
+        axes[0].set_xlabel('Date')
+        # axes[0].legend(loc='upper center', ncols=4, bbox_to_anchor=(0.5, 1.2))
+        # plt.tight_layout()
+        # plt.show()
+
+        sns.barplot(ax=axes[1], data=df, x=x_dates, y='theta', color='gray')
+        axes[1].set_ylabel('Occlusion factor')
+        # axes[1].set_xlabel('Date')
+        axes[1].get_xaxis().set_visible(False)
+        plt.tight_layout()
+        plt.show()
+        # plt.savefig('./data/general/temporal_motivation_p2.png', dpi=300)
+
+
+def motivation_spatial():
+    sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
+    city = 'San Antonio'
+    date_ = '20190816'
+    interp = Interpolator(root=f'./data/{city}', target_date=date_)
+    interp.plot_violins()
+    # plt.show()
+    plt.savefig('./data/general/motivation_spatial.png', dpi=300)
 
 
 def hot_zone_wrapper():
@@ -475,7 +656,7 @@ def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
     # calc_avg_temp_per_class_over_time(city='Houston')
-    plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
+    # plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
     # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=315)
     # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=300)
@@ -483,9 +664,13 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
+    performance_degradation_wrapper()
     # motivation_temporal()
+    # motivation_temporal2()
+    # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
+    #
 
 
 
