@@ -12,6 +12,7 @@ import shutil
 from matplotlib import pyplot as plt
 import cv2
 from datetime import date, timedelta, datetime
+from rich.progress import track
 from config import *
 from interpolator import Interpolator
 from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
@@ -461,7 +462,8 @@ def performance_degradation_graph(data_list):
     plt.ylabel('MAE (K)')
     plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.25))
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig('./data/general/degradation_plot.png', dpi=300)
     # sns.set_context("paper")
     # plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
     # plt.show()
@@ -470,12 +472,26 @@ def performance_degradation_graph(data_list):
 def performance_degradation_wrapper():
     date_list = [('Houston', '20180103'), ('Austin', '20190816'), ('Seattle', '20210420'),
                  ('Indianapolis', '20210726'), ('Charlotte', '20211018')] # , ('San Diego', '20210104')]
-    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[0][0], date_=date_list[0][1])
-    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[1][0], date_=date_list[1][1])
-    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[2][0], date_=date_list[2][1])
-    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[3][0], date_=date_list[3][1])
-    how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[4][0], date_=date_list[4][1])
+    # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[0][0], date_=date_list[0][1])
+    # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[1][0], date_=date_list[1][1])
+    # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[2][0], date_=date_list[2][1])
+    # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[3][0], date_=date_list[3][1])
+    # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[4][0], date_=date_list[4][1])
     # performance_degradation_graph(date_list)
+    vis_performance_deg_results()
+
+
+def vis_performance_deg_results():
+    city = 'Houston'
+    date_ = '20180103'
+    output_dir = f'./data/{city}/analysis/occlusion_progression_{date_}'
+    assert p.exists(output_dir)
+    files = os.listdir(output_dir)
+    files = [f for f in files if 'r_' in f and 'cmap' not in f]
+    # print(files)
+    for f in tqdm(files):
+        img = cv2.imread(p.join(output_dir, f), -1)
+        save_cmap(img, p.join(output_dir, 'cmap_' + f[:-4] + '.png'), palette='inferno', vmin=270, vmax=290)
 
 
 def plot_mean_trend_bt_two_dates(city, date1, date2):
