@@ -129,7 +129,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     :param city:
     :return:
     """
-    sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
+    sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
     output_dir = f'./data/{city}/analysis/'
     if not p.exists(output_dir):
         raise FileNotFoundError()
@@ -170,13 +170,13 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
                           label=NLCD_2019_META['class_names'][str(c)], markers=True)
     # plt.title(f'Mean brightness temperature of each land cover class for {city}')
     # plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
-    plt.legend(loc='lower center', markerscale=5, ncol=4, bbox_to_anchor=(0.5, -0.45), fancybox=True)
+    plt.legend(loc='lower center', markerscale=5, ncol=4, bbox_to_anchor=(0.5, -0.45), frameon=False)
     plt.ylabel('Surface Temperature (K)')
     plt.xlabel('Date')
     plt.tight_layout()
     # ax.set_xticklabels(labels=x_dates, rotation=45, ha='right')
     # plt.show()
-    plt.savefig(f'./data/general/{city}_temp_trend.png', dpi=300)
+    plt.savefig(f'./data/general/{city}_temp_trend.pdf')
 
 
 def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
@@ -219,7 +219,7 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
         if not p.exists(f'./data/{city}/analysis/'):
             os.mkdir(f'./data/{city}/analysis/')
         # np.save(f'./data/general/{city}_hotzones_{threshold}k.npy', aggregate)
-        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.png')
+        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.png', dpi=1000)
         save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k.tif')
         plt.close()
 ##############################################################################
@@ -478,7 +478,8 @@ def performance_degradation_wrapper():
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[3][0], date_=date_list[3][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[4][0], date_=date_list[4][1])
     # performance_degradation_graph(date_list)
-    vis_performance_deg_results()
+    # vis_performance_deg_results()
+    sensitivity_study(date_list)
 
 
 def vis_performance_deg_results():
@@ -492,6 +493,35 @@ def vis_performance_deg_results():
     for f in tqdm(files):
         img = cv2.imread(p.join(output_dir, f), -1)
         save_cmap(img, p.join(output_dir, 'cmap_' + f[:-4] + '.png'), palette='inferno', vmin=270, vmax=290)
+
+
+def sensitivity_study(data_list):
+    sns.set_theme(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
+    # log_path = './data/general/performance_degradation.csv'
+    df = pd.DataFrame()
+    for entry in data_list:
+        city, date_ = entry[0], entry[1]
+        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_f200/log.csv'
+        if not p.exists(log_path):
+            rprint(f'File for {city} on {date_} does not exist.')
+            continue
+        current_df = pd.read_csv(log_path)
+        current_df['city'] = city
+        # print(df)
+        df = pd.concat([df, current_df], ignore_index=True)
+    # print(df)
+    plot = sns.lineplot(data=df, y='mae', x='theta', hue='city', marker='o')
+    plot.set_ylim(0.5, 1.5)
+    plt.xlabel('Occlusion factor, \u03B8')
+    plt.ylabel('MAE (K)')
+    plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.25))
+    plt.title('f200')
+    plt.tight_layout()
+    plt.show()
+    # plt.savefig('./data/general/degradation_plot.png', dpi=300)
+    # sns.set_context("paper")
+    # plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
+    # plt.show()
 
 
 def plot_mean_trend_bt_two_dates(city, date1, date2):
@@ -540,7 +570,7 @@ def plot_mean_trend_bt_two_dates(city, date1, date2):
     plt.ylabel('NLCD Land Cover Classes')
     plt.title(f'Changes in Mean Brightness Temperature\nfrom {date1} to {date2} in {city}')
     plt.tight_layout()
-    plt.savefig('./data/general/temporal_motivation_p1.png', dpi=300)
+    plt.savefig('./data/general/temporal_motivation_p1.svg', dpi=300)
     # plt.show()
 
 
@@ -596,8 +626,8 @@ def motivation_temporal2(city='Houston'):
         # axes[1].set_xlabel('Date')
         axes[1].get_xaxis().set_visible(False)
         plt.tight_layout()
-        plt.show()
-        # plt.savefig('./data/general/temporal_motivation_p2.png', dpi=300)
+        # plt.show()
+        plt.savefig('./data/general/temporal_motivation_p2.svg')
 
 
 def motivation_spatial():
@@ -607,7 +637,7 @@ def motivation_spatial():
     interp = Interpolator(root=f'./data/{city}', target_date=date_)
     interp.plot_violins()
     # plt.show()
-    plt.savefig('./data/general/motivation_spatial.png', dpi=300)
+    plt.savefig('./data/general/motivation_spatial.svg')
 
 
 def hot_zone_wrapper():
@@ -679,15 +709,12 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Austin', '20190816', added_cloud_dates=[20180728, 20200514, 20200530, 20180813, 20220520, 20211227])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
-    # performance_degradation_graph()
     performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
     # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
-    #
-
 
 
 if __name__ == '__main__':
