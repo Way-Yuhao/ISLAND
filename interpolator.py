@@ -375,7 +375,7 @@ class Interpolator(abc.ABC):
             raise AttributeError()
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
-        return 1 - occlusion_percentage
+        return .8 - .8 * occlusion_percentage
 
     def run_interpolation(self, spatial_global_cutoff=.5):
         print('Running spatial & temporal channel...')
@@ -403,7 +403,7 @@ class Interpolator(abc.ABC):
         else:
             self.reconstructed_target = None
             if occlusion_percentage < .5:
-                self._nlm_local(f=75)  # spatial, local gaussian
+                self._nlm_local(f=275)  # spatial, local gaussian
             else:
                 self._nlm_global()  # spatial, global rectangular
             self.save_timelapse_frame(suffix='spatial')
