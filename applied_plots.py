@@ -129,7 +129,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     :param city:
     :return:
     """
-    sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
+    sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
     output_dir = f'./data/{city}/analysis/'
     if not p.exists(output_dir):
         raise FileNotFoundError()
@@ -170,13 +170,13 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
                           label=NLCD_2019_META['class_names'][str(c)], markers=True)
     # plt.title(f'Mean brightness temperature of each land cover class for {city}')
     # plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
-    plt.legend(loc='lower center', markerscale=5, ncol=4, bbox_to_anchor=(0.5, -0.45), fancybox=True)
+    plt.legend(loc='lower center', markerscale=5, ncol=4, bbox_to_anchor=(0.5, -0.45), frameon=False)
     plt.ylabel('Surface Temperature (K)')
     plt.xlabel('Date')
     plt.tight_layout()
     # ax.set_xticklabels(labels=x_dates, rotation=45, ha='right')
     # plt.show()
-    plt.savefig(f'./data/general/{city}_temp_trend.png', dpi=300)
+    plt.savefig(f'./data/general/{city}_temp_trend.pdf')
 
 
 def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
@@ -219,7 +219,7 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
         if not p.exists(f'./data/{city}/analysis/'):
             os.mkdir(f'./data/{city}/analysis/')
         # np.save(f'./data/general/{city}_hotzones_{threshold}k.npy', aggregate)
-        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.png')
+        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.png', dpi=1000)
         save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k.tif')
         plt.close()
 ##############################################################################
@@ -540,7 +540,7 @@ def plot_mean_trend_bt_two_dates(city, date1, date2):
     plt.ylabel('NLCD Land Cover Classes')
     plt.title(f'Changes in Mean Brightness Temperature\nfrom {date1} to {date2} in {city}')
     plt.tight_layout()
-    plt.savefig('./data/general/temporal_motivation_p1.png', dpi=300)
+    plt.savefig('./data/general/temporal_motivation_p1.svg', dpi=300)
     # plt.show()
 
 
@@ -596,8 +596,8 @@ def motivation_temporal2(city='Houston'):
         # axes[1].set_xlabel('Date')
         axes[1].get_xaxis().set_visible(False)
         plt.tight_layout()
-        plt.show()
-        # plt.savefig('./data/general/temporal_motivation_p2.png', dpi=300)
+        # plt.show()
+        plt.savefig('./data/general/temporal_motivation_p2.svg')
 
 
 def motivation_spatial():
@@ -607,7 +607,7 @@ def motivation_spatial():
     interp = Interpolator(root=f'./data/{city}', target_date=date_)
     interp.plot_violins()
     # plt.show()
-    plt.savefig('./data/general/motivation_spatial.png', dpi=300)
+    plt.savefig('./data/general/motivation_spatial.svg')
 
 
 def hot_zone_wrapper():
