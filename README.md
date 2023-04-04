@@ -1,4 +1,4 @@
-# Landcover-based Surface Temperature Interpolator
+# ISLAND: Informing Brightness and Surface Temperature Through a Land Cover-based Interpolator
 
 ## Resources 
 * Overleaf document: https://www.overleaf.com/project/63c6f44f8443b76167d1829e
