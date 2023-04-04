@@ -42,7 +42,7 @@ All regions above are geo-referenced.
 4. Navigate to the root directory for this project, run `python region_sampler -c CITY`, replace `city` with value from above. This will strip all relevant data from Google EarthEngine.
 
 ### Process data
-Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and surface temperature (ST).  
+Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and land surface temperature (LST).  
 
 ### Data structure
 Once data is downloaded and processed, you should see files being populated at `./data/` and sorted by region.
