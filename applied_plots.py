@@ -442,12 +442,12 @@ def how_performance_decreases_as_synthetic_occlusion_increases3(city, date_):
 
 
 def performance_degradation_graph(data_list):
-    sns.set_theme(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
+    sns.set_theme(style='white', context='paper', font='Times New Roman', font_scale=1.5)
     # log_path = './data/general/performance_degradation.csv'
     df = pd.DataFrame()
     for entry in data_list:
         city, date_ = entry[0], entry[1]
-        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}/log.csv'
+        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_island/log.csv'
         if not p.exists(log_path):
             rprint(f'File for {city} on {date_} does not exist.')
             continue
@@ -457,16 +457,13 @@ def performance_degradation_graph(data_list):
         df = pd.concat([df, current_df], ignore_index=True)
     # print(df)
     plot = sns.lineplot(data=df, y='mae', x='theta', hue='city', marker='o')
-    plot.set_ylim(0.5, 1.5)
+    plot.set_ylim(0.45, 1.5)
     plt.xlabel('Occlusion factor, \u03B8')
     plt.ylabel('MAE (K)')
-    plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.25))
+    plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.22), frameon=False)
     plt.tight_layout()
     # plt.show()
-    plt.savefig('./data/general/degradation_plot.png', dpi=300)
-    # sns.set_context("paper")
-    # plot = sns.lineplot(data=df, y='mae', x='syn_occlusion_perc', hue='city')
-    # plt.show()
+    plt.savefig('./data/general/degradation_plot.pdf')
 
 
 def performance_degradation_wrapper():
@@ -477,8 +474,8 @@ def performance_degradation_wrapper():
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[2][0], date_=date_list[2][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[3][0], date_=date_list[3][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[4][0], date_=date_list[4][1])
-    # performance_degradation_graph(date_list)
-    vis_performance_deg_results()
+    performance_degradation_graph(date_list)
+    # vis_performance_deg_results()
 
 
 def vis_performance_deg_results():
@@ -686,8 +683,6 @@ def main():
     # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
-    #
-
 
 
 if __name__ == '__main__':
