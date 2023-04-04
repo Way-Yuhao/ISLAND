@@ -44,17 +44,28 @@ All regions above are geo-referenced.
 ### Process data
 Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and surface temperature (ST).  
 
-## TODO
-- [x] Implement file check before computing surface temperature
-- [x] Geo-reference our public results
-- [x] Resolve alignment error
-- [x] Resolve key error for NLCD ocean labels
-- [x] Show comparison with baselines
-- [x] Implement MSE in addition to MAE
-- [ ] Plot correlation between urban hotspots and SVI
-- [x] finalize journal to publish 
-- [ ] Incorporate LANDSAT 9 to improve temporal continuity
-- [ ] Mention 'B10 frame maycontain np.nan or np.NIF, which has been converted to -1
-- [ ] NEED TO RECHECK DATA UPLOADED FOR HOUSTON REGION
-- [ ] In ablation: fill in missing data for Houston
-- [ ] Fig: visualize how performance decreases as synthetic occlusion increases
+### Data structure
+Once data is downloaded and processed, you should see files being populated at `./data/` and sorted by region.
+
+    .
+    ├── ...
+    ├── Houston                 # name of the region
+    │   ├── analysis            # directory storing analysis outputs, if any
+    │   ├── bt_series           # brightness temperature input GeoTIFF files
+    │   ├── bt_series_png       # brightness temperature input, rescaled PNG
+    │   ├── cloud               # cloud bitmask
+    │   ├── output              # placeholder directory storing all ISLAND outputs
+    │   ├── output_bt           # temporary directory, storing all BT outputs of ISLAND
+    │   ├── output_st           # temporal directory, storing all LST outputs of ISLAND
+    │   ├── output_referenced   # directory for geo-referenced output GeoTIFF files from ISLAND
+    │   │   ├── bt              # geo-referenced BT output
+    │   │   ├── st              # geo-referenced LST output
+    │   ├── qa_series           # quality assessment bitmask
+    │   ├── shadow              # cloud shadow bitmask
+    │   ├── TOA_RGB             # top-of-atmosphere rescaled RGB images
+    │   ├── metadata.csv        # a csv file containing list of Landsat 8 revisit dates for this site
+    │   ├── nlcd_YYYYMMDD_color.tif # GeoTIFF file containing NLCD land cover lables, color mapped to RGB
+    │   ├── nlcd_YYYYMMDD.tif   # GroTIFF file containing NLCD land cover labels
+    │   └── ...                 
+    └── ...
+
