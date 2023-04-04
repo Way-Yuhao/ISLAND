@@ -33,8 +33,8 @@
 
 All regions above are geo-referenced.
 
-## Generate Your Own Timelapse of Surface Temperature
-
+## Generate Your Own Land Surface Temperature (LST) Maps
+Below are the instructions on how to generate LST maps for any region in the CONUS.
 ### Download data from EarthEngine
 1. Identify a region, call it `city`
 2. Navigate to `./jupyter/8 - ROI Extractor.ipynb ` to obtain `scene_id` associated with a LADNSAT image. The notebook will also ask you to you 4 coordinates defining a polygon within that LANDSAT image. 
