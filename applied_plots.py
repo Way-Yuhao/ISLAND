@@ -602,9 +602,9 @@ def motivation_spatial():
     city = 'San Antonio'
     date_ = '20190816'
     interp = Interpolator(root=f'./data/{city}', target_date=date_)
-    interp.plot_violins()
+    interp.plot_violins(show=False, include_class_agnostic=True)
     # plt.show()
-    plt.savefig('./data/general/motivation_spatial.svg')
+    plt.savefig('./data/general/motivation_spatial.pdf')
 
 
 def hot_zone_wrapper():
@@ -677,10 +677,10 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    performance_degradation_wrapper()
+    # performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
-    # motivation_spatial()
+    motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
 
