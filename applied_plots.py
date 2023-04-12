@@ -385,7 +385,7 @@ def how_performance_decreases_as_synthetic_occlusion_increases3(city, date_):
     theta_intervals = [.1, .2, .3, .4, .5, .6, .7, .8, .9, .95, .99, 1.0]
     selected_dates = find_dates_at_interval_theta(city=city, theta_intervals=theta_intervals)
     root_ = f'./data/{city}/'
-    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}')
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_improved')
     log_fpath = p.join(out_dir, 'log.csv')
     if p.exists(p.join(root_, 'output')) and len(os.listdir(p.join(root_, 'output'))) > 1:
         raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
@@ -441,7 +441,77 @@ def how_performance_decreases_as_synthetic_occlusion_increases3(city, date_):
     return
 
 
+def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
+    """
+    Now testing on all occlusion factors
+    :param city:
+    :param date_:
+    :return:
+    """
+    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    df = pd.read_csv(df_path)
+    root_ = f'./data/{city}/'
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_improved')
+    log_fpath = p.join(out_dir, 'log.csv')
+    if p.exists(p.join(root_, 'output')) and len(os.listdir(p.join(root_, 'output'))) > 1:
+        raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
+    if not p.exists(p.join(root_, 'analysis')):
+        os.mkdir(p.join(root_, 'analysis'))
+    if not p.exists(out_dir):
+        os.mkdir(out_dir)
+    log = []
+    # real occlusion (a minimal amount)
+    interp = Interpolator(root_, date_)
+    real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
+    print('real occlusion % = ', real_occlusion_perc)
+
+    for index, row in df.iterrows():
+        # print(row['date'], row['theta'])
+        d = str(int(row['date']))
+        theta = row['theta']
+        interp = Interpolator(root_, date_)
+        real_occlusion = ~interp.build_valid_mask()
+        # theta = interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
+        # add occlusion
+        cloud = cv2.imread(f'./data/{city}/cloud/LC08_cloud_{d}.tif', -1)
+        shadow = cv2.imread(f'./data/{city}/shadow/LC08_shadow_{d}.tif', -1)
+        occlusion = cloud + shadow
+        occlusion[occlusion != 0] = 255
+        interp.synthetic_occlusion = np.array(occlusion, dtype=np.bool_)  # FIXME
+        interp.occluded_target = interp.target.copy()
+        interp.occluded_target[occlusion] = 0
+        px_count = occlusion.shape[0] * occlusion.shape[1]
+        theta = np.count_nonzero(occlusion) / px_count
+        # syn_occlusion = interp.synthetic_occlusion
+        # real_occlusion = ~interp.build_valid_mask()
+        added_occlusion = interp.synthetic_occlusion.copy()
+        added_occlusion[real_occlusion] = False
+        interp.run_interpolation()
+        mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+        rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
+        mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+        # syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
+        save_geotiff(city, interp.reconstructed_target, date_,
+                     p.join(out_dir, f'r_occlusion{theta:.2f}.tif'))
+        save_geotiff(city, added_occlusion.astype(float), date_,
+                     p.join(out_dir, f'occlusion{theta:.2f}.tif'))
+        # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+        # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.npy'))
+        log += [(theta, mae_loss, rmse_loss, mse_loss)]
+    df = pd.DataFrame(log, columns=['theta', 'mae', 'rmse', 'mse'])
+    df.to_csv(log_fpath, index=False)
+    print(df)
+    print('real occlusion % = ', real_occlusion_perc)
+    shutil.rmtree(p.join(root_, 'output'))
+    return
+
+
 def performance_degradation_graph(data_list):
+    """
+    line plot with dots
+    :param data_list:
+    :return:
+    """
     sns.set_theme(style='white', context='paper', font='Times New Roman', font_scale=1.5)
     # log_path = './data/general/performance_degradation.csv'
     df = pd.DataFrame()
@@ -466,6 +536,37 @@ def performance_degradation_graph(data_list):
     plt.savefig('./data/general/degradation_plot.pdf')
 
 
+def performance_degradation_graph2(data_list):
+    def categorize(row):
+        theta = row['theta']
+        return int(theta * 10) # take floor
+    sns.set_theme(style='white', context='paper', font='Times New Roman', font_scale=1.5)
+    # log_path = './data/general/performance_degradation.csv'
+    df = pd.DataFrame()
+    for entry in data_list:
+        city, date_ = entry[0], entry[1]
+        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_improved/log.csv'
+        if not p.exists(log_path):
+            rprint(f'File for {city} on {date_} does not exist.')
+            continue
+        current_df = pd.read_csv(log_path)
+        current_df['city'] = city
+        # print(df)
+        df = pd.concat([df, current_df], ignore_index=True)
+    # print(df)
+    df['range'] = df.apply(lambda row: categorize(row), axis=1)
+    # plot = sns.lmplot(data=df, y='mae', x='theta', hue='city')
+    plot = sns.boxplot(data=df, y='mae', x='range', color='lightsteelblue')
+    sns.stripplot(data=df, y='mae', x='range', color='black')
+    plot.set_ylim(0.45, 1.5)
+    plt.xlabel('Occlusion factor, \u03B8')
+    plt.ylabel('MAE (K)')
+    # plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.22), frameon=False)
+    plt.tight_layout()
+    plt.show()
+    # plt.savefig('./data/general/degradation_plot.pdf')
+
+
 def performance_degradation_wrapper():
     date_list = [('Houston', '20180103'), ('Austin', '20190816'), ('Seattle', '20210420'),
                  ('Indianapolis', '20210726'), ('Charlotte', '20211018')] # , ('San Diego', '20210104')]
@@ -474,9 +575,11 @@ def performance_degradation_wrapper():
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[2][0], date_=date_list[2][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[3][0], date_=date_list[3][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[4][0], date_=date_list[4][1])
-    performance_degradation_graph(date_list)
+    # performance_degradation_graph(date_list)
     # vis_performance_deg_results()
 
+    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[0][0], date_=date_list[0][1])
+    performance_degradation_graph2(date_list)
 
 def vis_performance_deg_results():
     city = 'Houston'
@@ -677,10 +780,10 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    # performance_degradation_wrapper()
+    performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
-    motivation_spatial()
+    # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
 
