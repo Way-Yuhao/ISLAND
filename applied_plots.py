@@ -11,6 +11,7 @@ from tqdm import tqdm
 import shutil
 from matplotlib import pyplot as plt
 import cv2
+import wandb
 from datetime import date, timedelta, datetime
 from rich.progress import track
 from config import *
@@ -448,7 +449,27 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
     :param date_:
     :return:
     """
+    wandb.init()
     df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    if not p.exists(df_path):
+        root_ = f'./data/{city}'
+        df = pd.read_csv(p.join(root_, 'metadata.csv'))
+        dates = df['date'].values.tolist()
+        dates = [str(d) for d in dates]
+        log = []
+        for d in tqdm(dates):
+            interp = Interpolator(root=root_, target_date=d)
+            theta = interp.add_occlusion(use_true_cloud=True)
+            input_bitmask = np.array(~interp.synthetic_occlusion, dtype=np.bool_)
+            input_bitmask[~interp.target_valid_mask] = False
+            if np.any(input_bitmask):
+                avg = np.average(interp.occluded_target[input_bitmask])
+            else:
+                avg = np.nan
+            log += [(d, avg, theta)]
+        df = pd.DataFrame(log, columns=['date', 'avg', 'theta'])
+        df.to_csv(df_path, index=False)
+        print('csv file saved to ', df_path)
     df = pd.read_csv(df_path)
     root_ = f'./data/{city}/'
     out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_improved')
@@ -503,7 +524,13 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
     print(df)
     print('real occlusion % = ', real_occlusion_perc)
     shutil.rmtree(p.join(root_, 'output'))
+    wandb.alert(
+        title='Process finished',
+        text=f'Data for region {city} finished processing.'
+    )
     return
+
+def recalculate_degradation_error():
 
 
 def performance_degradation_graph(data_list):
@@ -568,8 +595,8 @@ def performance_degradation_graph2(data_list):
 
 
 def performance_degradation_wrapper():
-    date_list = [('Houston', '20180103'), ('Austin', '20190816'), ('Seattle', '20210420'),
-                 ('Indianapolis', '20210726'), ('Charlotte', '20211018')] # , ('San Diego', '20210104')]
+    # date_list = [('Houston', '20180103'), ('Austin', '20190816'), ('Seattle', '20210420'),
+    #              ('Indianapolis', '20210726'), ('Charlotte', '20211018')] # , ('San Diego', '20210104')]
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[0][0], date_=date_list[0][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[1][0], date_=date_list[1][1])
     # how_performance_decreases_as_synthetic_occlusion_increases3(city=date_list[2][0], date_=date_list[2][1])
@@ -578,8 +605,12 @@ def performance_degradation_wrapper():
     # performance_degradation_graph(date_list)
     # vis_performance_deg_results()
 
+    date_list = [('Houston', '20180103'), ('Austin', '20190816'),('Oklahoma City', '20180719')]
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[0][0], date_=date_list[0][1])
-    performance_degradation_graph2(date_list)
+    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[1][0], date_=date_list[1][1])
+    how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[2][0], date_=date_list[2][1])
+    # performance_degradation_graph2(date_list)
+
 
 def vis_performance_deg_results():
     city = 'Houston'
