@@ -511,6 +511,7 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
         mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
         rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
         mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+        mape_loss, _ = interp.calc_loss_hybrid(metric='mape', synthetic_only_mask=added_occlusion)
         # syn_occlusion_perc = np.count_nonzero(added_occlusion) / (added_occlusion.shape[0] * added_occlusion.shape[1])
         save_geotiff(city, interp.reconstructed_target, date_,
                      p.join(out_dir, f'r_occlusion{theta:.2f}.tif'))
@@ -518,8 +519,8 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
                      p.join(out_dir, f'occlusion{theta:.2f}.tif'))
         # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
         # shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{syn_occlusion_perc:.2f}.npy'))
-        log += [(theta, mae_loss, rmse_loss, mse_loss)]
-    df = pd.DataFrame(log, columns=['theta', 'mae', 'rmse', 'mse'])
+        log += [(theta, mae_loss, rmse_loss, mse_loss, mape_loss)]
+    df = pd.DataFrame(log, columns=['theta', 'mae', 'rmse', 'mse', 'mape'])
     df.to_csv(log_fpath, index=False)
     print(df)
     print('real occlusion % = ', real_occlusion_perc)
@@ -530,7 +531,16 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
     )
     return
 
-def recalculate_degradation_error():
+
+def recalculate_degradation_error(city, date_):
+    root_ = f'./data/{city}/'
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_improved')
+    assert p.exists(out_dir)
+    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    df = pd.read_csv(df_path)
+    for index, row in df.iterrows():
+        d = str(int(row['date']))
+        theta = row['theta']
 
 
 def performance_degradation_graph(data_list):
@@ -563,10 +573,18 @@ def performance_degradation_graph(data_list):
     plt.savefig('./data/general/degradation_plot.pdf')
 
 
-def performance_degradation_graph2(data_list):
+def performance_degradation_graph2(data_list, y_axis_metric):
     def categorize(row):
         theta = row['theta']
-        return int(theta * 10) # take floor
+        if theta < 0.9:
+            cat = int(theta * 10)/10  # take floor
+        elif theta < 0.99:
+            cat = 0.9
+        else:
+            cat = 1.0
+        return cat
+    if y_axis_metric not in ['mae', 'mape']:
+        raise AttributeError()
     sns.set_theme(style='white', context='paper', font='Times New Roman', font_scale=1.5)
     # log_path = './data/general/performance_degradation.csv'
     df = pd.DataFrame()
@@ -583,15 +601,23 @@ def performance_degradation_graph2(data_list):
     # print(df)
     df['range'] = df.apply(lambda row: categorize(row), axis=1)
     # plot = sns.lmplot(data=df, y='mae', x='theta', hue='city')
-    plot = sns.boxplot(data=df, y='mae', x='range', color='lightsteelblue')
-    sns.stripplot(data=df, y='mae', x='range', color='black')
-    plot.set_ylim(0.45, 1.5)
+    if y_axis_metric == 'mape':
+        plt.figure(figsize=(6.4, 3))
+    plot = sns.boxplot(data=df, y=y_axis_metric, x='range', color='lavender', showfliers=False)
+    sns.stripplot(data=df, y=y_axis_metric, x='range', color='black', marker='o')
+    # plot.set_xlim(-0.7, 9.7)
+    if y_axis_metric == 'mae':
+        plot.set_ylim(0, 2.8)
+        plt.ylabel('MAE (K)')
+    else:
+        # plot.set_ylim(0, 0.01)
+        plt.ylabel('MAPE')
     plt.xlabel('Occlusion factor, \u03B8')
-    plt.ylabel('MAE (K)')
+
     # plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.22), frameon=False)
     plt.tight_layout()
-    plt.show()
-    # plt.savefig('./data/general/degradation_plot.pdf')
+    # plt.show()
+    plt.savefig(f'./data/general/degradation_plot_{y_axis_metric}.pdf')
 
 
 def performance_degradation_wrapper():
@@ -605,11 +631,13 @@ def performance_degradation_wrapper():
     # performance_degradation_graph(date_list)
     # vis_performance_deg_results()
 
-    date_list = [('Houston', '20180103'), ('Austin', '20190816'),('Oklahoma City', '20180719')]
+    date_list = [('Houston', '20200414'), ('Austin', '20190816'), ('Oklahoma City', '20180719'),
+                 ('San Diego', '20181112')]
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[0][0], date_=date_list[0][1])
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[1][0], date_=date_list[1][1])
-    how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[2][0], date_=date_list[2][1])
-    # performance_degradation_graph2(date_list)
+    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[2][0], date_=date_list[2][1])
+    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[3][0], date_=date_list[3][1])
+    performance_degradation_graph2(date_list, y_axis_metric='mape')
 
 
 def vis_performance_deg_results():

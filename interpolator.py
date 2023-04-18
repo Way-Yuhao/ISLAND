@@ -923,7 +923,7 @@ class Interpolator(abc.ABC):
         """
         Calculate loss while expecting the reconstruction contains hybrid occlusions,
         both real and synthetic
-        :param metric: mae, mse, rmse
+        :param metric: mae, mse, rmse, mape
         :param synthetic_only_mask:
         :return: loss and if mae loss is specified, error_map
         """
@@ -936,6 +936,9 @@ class Interpolator(abc.ABC):
             error_map = np.square(a - b)
         elif metric == 'rmse':
             error_map = np.square(a - b)
+        elif metric == 'mape':
+            error_map = np.abs(a - b)
+            error_map = error_map / a
         else:
             raise AttributeError(f'Unknown loss function encountered: {metric}.')
 
