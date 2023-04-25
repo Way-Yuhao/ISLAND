@@ -472,7 +472,7 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
         print('csv file saved to ', df_path)
     df = pd.read_csv(df_path)
     root_ = f'./data/{city}/'
-    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_improved')
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_fixed_occ')
     log_fpath = p.join(out_dir, 'log.csv')
     if p.exists(p.join(root_, 'output')) and len(os.listdir(p.join(root_, 'output'))) > 1:
         raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
@@ -490,6 +490,8 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
         # print(row['date'], row['theta'])
         d = str(int(row['date']))
         theta = row['theta']
+        # if theta < 0.9 or theta > 0.99:
+        #     continue
         interp = Interpolator(root_, date_)
         real_occlusion = ~interp.build_valid_mask()
         # theta = interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
@@ -500,7 +502,7 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
         occlusion[occlusion != 0] = 255
         interp.synthetic_occlusion = np.array(occlusion, dtype=np.bool_)  # FIXME
         interp.occluded_target = interp.target.copy()
-        interp.occluded_target[occlusion] = 0
+        interp.occluded_target[interp.synthetic_occlusion] = 0
         px_count = occlusion.shape[0] * occlusion.shape[1]
         theta = np.count_nonzero(occlusion) / px_count
         # syn_occlusion = interp.synthetic_occlusion
@@ -590,7 +592,7 @@ def performance_degradation_graph2(data_list, y_axis_metric):
     df = pd.DataFrame()
     for entry in data_list:
         city, date_ = entry[0], entry[1]
-        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_improved/log.csv'
+        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_fixed_occ/log.csv'
         if not p.exists(log_path):
             rprint(f'File for {city} on {date_} does not exist.')
             continue
@@ -607,7 +609,7 @@ def performance_degradation_graph2(data_list, y_axis_metric):
     sns.stripplot(data=df, y=y_axis_metric, x='range', color='black', marker='o')
     # plot.set_xlim(-0.7, 9.7)
     if y_axis_metric == 'mae':
-        plot.set_ylim(0, 2.8)
+        plot.set_ylim(0, 5)
         plt.ylabel('MAE (K)')
     else:
         # plot.set_ylim(0, 0.01)
@@ -616,8 +618,8 @@ def performance_degradation_graph2(data_list, y_axis_metric):
 
     # plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.22), frameon=False)
     plt.tight_layout()
-    # plt.show()
-    plt.savefig(f'./data/general/degradation_plot_{y_axis_metric}.pdf')
+    plt.show()
+    # plt.savefig(f'./data/general/degradation_plot_{y_axis_metric}.pdf')
 
 
 def performance_degradation_wrapper():
@@ -633,11 +635,14 @@ def performance_degradation_wrapper():
 
     date_list = [('Houston', '20200414'), ('Austin', '20190816'), ('Oklahoma City', '20180719'),
                  ('San Diego', '20181112')]
+    # date_list = [('Houston', '20190327'), ('Austin', '20210922'), ('Oklahoma City', '20180719'),
+    #              ('San Diego', '20181112')]
+    # date_list = [('Oklahoma City', '20180719'), ('San Diego', '20181112')]
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[0][0], date_=date_list[0][1])
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[1][0], date_=date_list[1][1])
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[2][0], date_=date_list[2][1])
     # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[3][0], date_=date_list[3][1])
-    performance_degradation_graph2(date_list, y_axis_metric='mape')
+    performance_degradation_graph2([date_list[3]], y_axis_metric='mae')
 
 
 def vis_performance_deg_results():
