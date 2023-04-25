@@ -105,6 +105,32 @@ def calc_avg_temp_per_class_over_time(city=""):
     for f in tqdm(files, desc='Scanning predicted frames'):
         new_row = {'date': f[3:11]}
         prediction = cv2.imread(p.join(timelapse_dir, f), -1)
+        # all classes
+        if not np.all(np.isnan(prediction)) and np.any(prediction):
+            pred_copy = prediction.copy()
+            new_row['all'] = [np.nanmean(pred_copy)]
+            developed_area = np.zeros_like(prediction, dtype=bool)
+            developed_area[nlcd == 21] = True
+            developed_area[nlcd == 22] = True
+            developed_area[nlcd == 23] = True
+            developed_area[nlcd == 24] = True
+            # built up
+            temp_developed = pred_copy.copy()
+            temp_developed[~developed_area] = 0
+            px_count = np.count_nonzero(temp_developed)
+            avg_temp_developed = np.sum(temp_developed) / px_count
+            new_row['developed'] = [avg_temp_developed]
+            # natural
+            temp_natural = pred_copy.copy()
+            temp_natural[developed_area] = 0
+            px_count = np.count_nonzero(temp_natural)
+            avg_temp_natural = np.sum(temp_natural) / px_count
+            new_row['natural'] = [avg_temp_natural]
+        else:
+            new_row['all'] = [np.nan]
+            new_row['developed'] = [np.nan]
+            new_row['natural'] = [np.nan]
+        # individual classes
         for c, _ in NLCD_2019_META['lut'].items():
             temp_for_c = prediction.copy()
             temp_for_c[nlcd != int(c)] = 0
@@ -929,10 +955,41 @@ def results_figure():
     # _export_row('Phoenix', '20180107', vmin=280, vmax=320)
 
 
+def vis_uhie_wrt_baseline(city, hash_code=None):
+    sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
+    output_dir = f'./data/{city}/analysis/'
+    if not p.exists(output_dir):
+        raise FileNotFoundError()
+    files = os.listdir(output_dir)
+    files = [f for f in files if 'average_temp_trend' in f]
+    files = [f for f in files if 'csv' in f]
+    files = [f for f in files if '._' not in f]  # neglect temporary files
+    if len(files) == 0:
+        raise FileNotFoundError('No corresponding csv files found in ', output_dir)
+    elif len(files) > 1:
+        if hash_code is None:
+            raise FileExistsError('Multiple csv files found. Please specify a hashcode')
+        else:  # hash code is specified
+            files = [f for f in files if hash_code in f]
+            if len(files) == 0:
+                raise FileNotFoundError('No csv file matches with the specified hash code: ', hash_code)
+            elif len(files) > 1:
+                raise FileExistsError('Hash collision')
+    # only 1 matching csv file exists
+    assert (len(files) == 1)
+    yprint(f'Parsing dataframe from {files[0]}')
+    df = pd.read_csv(p.join(output_dir, files[0]))
+    df[df < 2] = np.nan
+    x_dates = [datetime.strptime(str(date_str), '%Y%m%d') for date_str in df['date']]
+    df['diff'] = df['developed'] - df['natural']
+    sns.lineplot(data=df, x=x_dates, y='diff')
+    plt.show()
+
+
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
-    # calc_avg_temp_per_class_over_time(city='Houston')
+    # calc_avg_temp_per_class_over_time(city='New York')
     # plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
     # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=315)
@@ -941,13 +998,14 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    performance_degradation_wrapper()
+    # performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
     # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
 
+    vis_uhie_wrt_baseline('New York')
 
 if __name__ == '__main__':
     main()
