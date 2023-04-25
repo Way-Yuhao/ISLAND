@@ -18,6 +18,7 @@ from config import *
 from interpolator import Interpolator
 from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
 from util.geo_reference import save_geotiff
+from util.occlusion_sampler import OcclusionSampler
 
 
 def read_npy_stack(path):
@@ -534,6 +535,94 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
     return
 
 
+def how_performance_decreases_as_synthetic_occlusion_increases5(city, date_, sampler):
+    """
+    Now with data augmentation
+    :param city:
+    :param date_:
+    :return:
+    """
+    wandb.init()
+    SAMPLES_PER_BIN = 10
+    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    if not p.exists(df_path):
+        root_ = f'./data/{city}'
+        df = pd.read_csv(p.join(root_, 'metadata.csv'))
+        dates = df['date'].values.tolist()
+        dates = [str(d) for d in dates]
+        log = []
+        for d in tqdm(dates):
+            interp = Interpolator(root=root_, target_date=d)
+            theta = interp.add_occlusion(use_true_cloud=True)
+            input_bitmask = np.array(~interp.synthetic_occlusion, dtype=np.bool_)
+            input_bitmask[~interp.target_valid_mask] = False
+            if np.any(input_bitmask):
+                avg = np.average(interp.occluded_target[input_bitmask])
+            else:
+                avg = np.nan
+            log += [(d, avg, theta)]
+        df = pd.DataFrame(log, columns=['date', 'avg', 'theta'])
+        df.to_csv(df_path, index=False)
+        print('csv file saved to ', df_path)
+    df = pd.read_csv(df_path)
+    root_ = f'./data/{city}/'
+    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_sample')
+    log_fpath = p.join(out_dir, 'log.csv')
+    if p.exists(p.join(root_, 'output')) and len(os.listdir(p.join(root_, 'output'))) > 1:
+        raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
+    if not p.exists(p.join(root_, 'analysis')):
+        os.mkdir(p.join(root_, 'analysis'))
+    if not p.exists(out_dir):
+        os.mkdir(out_dir)
+    log = []
+    # real occlusion (a minimal amount)
+    interp = Interpolator(root_, date_)
+    real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
+    occlusion_shape = interp.synthetic_occlusion.shape
+    print('real occlusion % = ', real_occlusion_perc)
+    ranges = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    for theta_range in ranges:
+        for k in range(SAMPLES_PER_BIN):
+            # d = str(int(row['date']))
+            # # theta = row['theta']
+            interp = Interpolator(root_, date_)
+            real_occlusion = ~interp.build_valid_mask()
+            # # theta = interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
+            # # add occlusion
+            # cloud = cv2.imread(f'./data/{city}/cloud/LC08_cloud_{d}.tif', -1)
+            # shadow = cv2.imread(f'./data/{city}/shadow/LC08_shadow_{d}.tif', -1)
+            # occlusion = cloud + shadow
+            # occlusion[occlusion != 0] = 255
+            # interp.synthetic_occlusion = np.array(occlusion, dtype=np.bool_)  # FIXME
+            occlusion = sampler.sample(theta_range, occlusion_shape)
+            interp.synthetic_occlusion = occlusion
+            interp.occluded_target = interp.target.copy()
+            interp.occluded_target[interp.synthetic_occlusion] = 0
+            px_count = occlusion.shape[0] * occlusion.shape[1]
+            theta = np.count_nonzero(occlusion) / px_count
+            added_occlusion = interp.synthetic_occlusion.copy()
+            added_occlusion[real_occlusion] = False
+            interp.run_interpolation()
+            mae_loss, _ = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
+            rmse_loss, _ = interp.calc_loss_hybrid(metric='rmse', synthetic_only_mask=added_occlusion)
+            mse_loss, _ = interp.calc_loss_hybrid(metric='mse', synthetic_only_mask=added_occlusion)
+            mape_loss, _ = interp.calc_loss_hybrid(metric='mape', synthetic_only_mask=added_occlusion)
+            save_geotiff(city, interp.reconstructed_target, date_,
+                         p.join(out_dir, f'r_occlusion{theta:.2f}.tif'))
+            save_geotiff(city, added_occlusion.astype(float), date_,
+                         p.join(out_dir, f'occlusion{theta:.2f}.tif'))
+            log += [(theta, mae_loss, rmse_loss, mse_loss, mape_loss)]
+    df = pd.DataFrame(log, columns=['theta', 'mae', 'rmse', 'mse', 'mape'])
+    df.to_csv(log_fpath, index=False)
+    print(df)
+    print('real occlusion % = ', real_occlusion_perc)
+    shutil.rmtree(p.join(root_, 'output'))
+    wandb.alert(
+        title='Process finished',
+        text=f'Data for region {city} finished processing.'
+    )
+    return
+
 def recalculate_degradation_error(city, date_):
     root_ = f'./data/{city}/'
     out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_improved')
@@ -575,7 +664,7 @@ def performance_degradation_graph(data_list):
     plt.savefig('./data/general/degradation_plot.pdf')
 
 
-def performance_degradation_graph2(data_list, y_axis_metric):
+def performance_degradation_graph2(data_list, y_axis_metric, hue=True):
     def categorize(row):
         theta = row['theta']
         if theta < 0.9:
@@ -592,7 +681,7 @@ def performance_degradation_graph2(data_list, y_axis_metric):
     df = pd.DataFrame()
     for entry in data_list:
         city, date_ = entry[0], entry[1]
-        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_fixed_occ/log.csv'
+        log_path = f'./data/{city}/analysis/occlusion_progression_{date_}_sample/log.csv'
         if not p.exists(log_path):
             rprint(f'File for {city} on {date_} does not exist.')
             continue
@@ -606,7 +695,13 @@ def performance_degradation_graph2(data_list, y_axis_metric):
     if y_axis_metric == 'mape':
         plt.figure(figsize=(6.4, 3))
     plot = sns.boxplot(data=df, y=y_axis_metric, x='range', color='lavender', showfliers=False)
-    sns.stripplot(data=df, y=y_axis_metric, x='range', color='black', marker='o')
+    if hue is True:
+        color = None
+        hue = 'city'
+    else:
+        color = 'black'
+        hue = None
+    sns.stripplot(data=df, y=y_axis_metric, x='range', color=color, marker='o', hue=hue)
     # plot.set_xlim(-0.7, 9.7)
     if y_axis_metric == 'mae':
         plot.set_ylim(0, 5)
@@ -615,7 +710,6 @@ def performance_degradation_graph2(data_list, y_axis_metric):
         # plot.set_ylim(0, 0.01)
         plt.ylabel('MAPE')
     plt.xlabel('Occlusion factor, \u03B8')
-
     # plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.22), frameon=False)
     plt.tight_layout()
     plt.show()
@@ -638,11 +732,14 @@ def performance_degradation_wrapper():
     # date_list = [('Houston', '20190327'), ('Austin', '20210922'), ('Oklahoma City', '20180719'),
     #              ('San Diego', '20181112')]
     # date_list = [('Oklahoma City', '20180719'), ('San Diego', '20181112')]
-    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[0][0], date_=date_list[0][1])
-    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[1][0], date_=date_list[1][1])
-    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[2][0], date_=date_list[2][1])
-    # how_performance_decreases_as_synthetic_occlusion_increases4(city=date_list[3][0], date_=date_list[3][1])
-    performance_degradation_graph2([date_list[3]], y_axis_metric='mae')
+
+    city_list = [entry[0] for entry in date_list]
+    sampler = OcclusionSampler(city_list)
+    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[0][0], date_=date_list[0][1], sampler=sampler)
+    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[1][0], date_=date_list[1][1], sampler=sampler)
+    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[2][0], date_=date_list[2][1], sampler=sampler)
+    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[3][0], date_=date_list[3][1], sampler=sampler)
+    # performance_degradation_graph2(date_list, y_axis_metric='mae')
 
 
 def vis_performance_deg_results():
