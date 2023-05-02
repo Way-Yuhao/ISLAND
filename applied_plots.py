@@ -720,6 +720,8 @@ def performance_degradation_graph2(data_list, y_axis_metric, hue=True):
     # plot = sns.lmplot(data=df, y='mae', x='theta', hue='city')
     if y_axis_metric == 'mape':
         plt.figure(figsize=(6.4, 3))
+    else:
+        pass
     plot = sns.boxplot(data=df, y=y_axis_metric, x='range', color='lavender', showfliers=False)
     if hue is True:
         color = None
@@ -730,13 +732,17 @@ def performance_degradation_graph2(data_list, y_axis_metric, hue=True):
     sns.stripplot(data=df, y=y_axis_metric, x='range', color=color, marker='o', hue=hue)
     # plot.set_xlim(-0.7, 9.7)
     if y_axis_metric == 'mae':
-        plot.set_ylim(0, 5)
+        plot.set_ylim(0.5, 3.6)
         plt.ylabel('MAE (K)')
+        # plt.legend(loc='lower center', ncols=4, bbox_to_anchor=(0.5, -0.3), frameon=False,
+        #            markerscale=0.8, columnspacing=0.7, handletextpad=0.2)
+        plot.get_legend().remove()
     else:
-        # plot.set_ylim(0, 0.01)
+        plot.set_ylim(0, 0.011)
         plt.ylabel('MAPE')
+        plot.get_legend().remove()
     plt.xlabel('Occlusion factor, \u03B8')
-    # plt.legend(loc='upper center', ncols=3, bbox_to_anchor=(0.5, 1.22), frameon=False)
+
     plt.tight_layout()
     plt.show()
     # plt.savefig(f'./data/general/degradation_plot_{y_axis_metric}.pdf')
@@ -761,24 +767,25 @@ def performance_degradation_wrapper():
 
     city_list = [entry[0] for entry in date_list]
     sampler = OcclusionSampler(city_list)
-    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[0][0], date_=date_list[0][1], sampler=sampler)
-    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[1][0], date_=date_list[1][1], sampler=sampler)
-    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[2][0], date_=date_list[2][1], sampler=sampler)
-    how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[3][0], date_=date_list[3][1], sampler=sampler)
-    # performance_degradation_graph2(date_list, y_axis_metric='mae')
+    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[0][0], date_=date_list[0][1], sampler=sampler)
+    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[1][0], date_=date_list[1][1], sampler=sampler)
+    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[2][0], date_=date_list[2][1], sampler=sampler)
+    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[3][0], date_=date_list[3][1], sampler=sampler)
+    performance_degradation_graph2(date_list, y_axis_metric='mape')
+    # vis_performance_deg_results()
 
 
 def vis_performance_deg_results():
     city = 'Houston'
-    date_ = '20180103'
-    output_dir = f'./data/{city}/analysis/occlusion_progression_{date_}'
+    date_ = '20200414'
+    output_dir = f'./data/{city}/analysis/occlusion_progression_{date_}_sample'
     assert p.exists(output_dir)
     files = os.listdir(output_dir)
     files = [f for f in files if 'r_' in f and 'cmap' not in f]
     # print(files)
     for f in tqdm(files):
         img = cv2.imread(p.join(output_dir, f), -1)
-        save_cmap(img, p.join(output_dir, 'cmap_' + f[:-4] + '.png'), palette='inferno', vmin=270, vmax=290)
+        save_cmap(img, p.join(output_dir, 'cmap_' + f[:-4] + '.png'), palette='inferno', vmin=285, vmax=305)
 
 
 def plot_mean_trend_bt_two_dates(city, date1, date2):
@@ -942,15 +949,15 @@ def results_figure():
         fig, ax = plt.subplots(figsize=FIGSIZE)
         plt.colorbar(mpb, ax=ax)
         ax.remove()
-        plt.savefig(p.join(out_dir, f'cbar_{date_}.png'))
+        plt.savefig(p.join(out_dir, f'cbar_{date_}.pdf'))
         plt.tight_layout()
         plt.close()
         print('files saved to directory ', out_dir)
         return
 
-    _export_row('Houston', '20220114', vmin=280, vmax=310)
+    # _export_row('Houston', '20220114', vmin=280, vmax=310)
     # _export_row('New York', '20170723', vmin=280, vmax=320)
-    # _export_row('Jacksonville', '20171203', vmin=290, vmax=310)
+    _export_row('Jacksonville', '20171203', vmin=290, vmax=320)
     # _export_row('San Francisco', '20200606', vmin=280, vmax=320)
     # _export_row('Phoenix', '20180107', vmin=280, vmax=320)
 
@@ -985,11 +992,12 @@ def vis_uhie_wrt_baseline(city, hash_code=None):
     sns.lineplot(data=df, x=x_dates, y='diff')
     plt.show()
 
+# def vis_wetland(city='Jacksonville'):
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
-    # calc_avg_temp_per_class_over_time(city='New York')
+    # calc_avg_temp_per_class_over_time(city='Jacksonville')
     # plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
     # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=315)
@@ -998,14 +1006,15 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    # performance_degradation_wrapper()
+    performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
     # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
+    # vis_wetland()
 
-    vis_uhie_wrt_baseline('New York')
+    # vis_uhie_wrt_baseline('New York')
 
 if __name__ == '__main__':
     main()
