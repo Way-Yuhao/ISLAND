@@ -20,7 +20,8 @@ def temp_vs_emissivity():
     plt.legend()
     plt.show()
 
-def bt_vs_emissivity():
+
+def bt_vs_emissivity(b):
     ts = 300  # brightness temperature (Kelvin)
     lambda_ = 11e-6  # wavelength (m)
     rho = 1.438e-2  # scaling constant, (m Kelvin)
@@ -28,7 +29,8 @@ def bt_vs_emissivity():
     ems = np.linspace(0.9, 1.0, 100)
     bt = ts + ts * lambda_ * b
 
-def calc_surface_temp():
+
+def calc_surface_temp(lambda_):
     bt = 300  # brightness temperature (Kelvin)
     rho = 1.438e-2  # scaling constant, (m Kelvin)
     em = 0.966
@@ -38,8 +40,10 @@ def calc_surface_temp():
 
 def main():
     # mpl.use('Qt5Agg')
-    temp_vs_emissivity()
+    # temp_vs_emissivity()
     # calc_surface_temp()
+    cmap()
+
 
 if __name__ == '__main__':
     main()

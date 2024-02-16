@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="R10" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="R10 (2)" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
-      <paths name="Foresight">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/workspace/EarthEngine" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="R10">
         <serverdata>
           <mappings>
@@ -16,10 +9,10 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="Zelda">
+      <paths name="R10 (2)">
         <serverdata>
           <mappings>
-            <mapping deploy="/workspace/EarthEngine" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/yuhaoliu/Code/UrbanSurfTemp" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

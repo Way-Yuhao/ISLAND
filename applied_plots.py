@@ -207,7 +207,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     plt.savefig(f'./data/general/{city}_temp_trend.pdf')
 
 
-def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
+def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295, vmin=0, vmax=50):
     """
     Produce a map where the pixel values represent number of days that this location exceeds
     temperature threshold. Requires data to be store under .../city/output_referenced/
@@ -235,7 +235,7 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
             this_frame = np.zeros_like(f0)
             this_frame[img >= threshold] = 1
             aggregate += this_frame
-        plt.imshow(aggregate, cmap='cividis', vmin=0, vmax=50)
+        plt.imshow(aggregate, cmap='cividis', vmin=vmin, vmax=vmax)
         plt.colorbar(label=f'Number of day exceeding {threshold} Kelvin')
         plt.title(f'Hot zones '
                   f'from {files[0][3:11]} to {files[-1][3:11]} in {city}')
@@ -247,8 +247,8 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295):
         if not p.exists(f'./data/{city}/analysis/'):
             os.mkdir(f'./data/{city}/analysis/')
         # np.save(f'./data/general/{city}_hotzones_{threshold}k.npy', aggregate)
-        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.png', dpi=1000)
-        save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k.tif')
+        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.pdf', dpi=1000)
+        save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k_nws.tif')
         plt.close()
 ##############################################################################
 
@@ -905,9 +905,14 @@ def motivation_spatial():
 
 
 def hot_zone_wrapper():
-    count_hotzones_freq_for(city='Houston', temp_type='st', threshold=315)
-    count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=320)
-    count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=305)
+    # using arbitrarily defined values for max visual contrast
+    # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=315)
+    # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=320)
+    # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=305)
+    # using NWS extreme danger definition
+    count_hotzones_freq_for(city='Houston', temp_type='st', threshold=306, vmin=0, vmax=80)
+    count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=311, vmin=30, vmax=80)
+    count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=308, vmin=0, vmax=40)
 
 
 def results_figure():
@@ -1006,11 +1011,11 @@ def main():
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    performance_degradation_wrapper()
+    # performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
     # motivation_spatial()
-    # hot_zone_wrapper()
+    hot_zone_wrapper()
     # results_figure()
     # vis_wetland()
 
