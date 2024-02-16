@@ -1,3 +1,4 @@
-from util.helper import send_slack_message
+from util.helper import alert
 
-send_slack_message('nah')
+alert('nah')
+alert('nah')

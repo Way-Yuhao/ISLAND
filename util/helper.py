@@ -13,6 +13,9 @@ from matplotlib import pyplot as plt
 import requests
 from dotenv import load_dotenv
 
+# Global variables
+slack_alert_msg_printed = False
+
 def yprint(msg):
     """
     Print to stdout console in yellow.
@@ -23,6 +26,7 @@ def yprint(msg):
     print(f"{bcolors.WARNING}{msg}{bcolors.ENDC}")
     sys.stdout.flush()
 
+
 def rprint(msg):
     """
     Print to stdout console in red.
@@ -32,6 +36,7 @@ def rprint(msg):
     sys.stdout.flush()
     print(f"{bcolors.FAIL}{msg}{bcolors.ENDC}")
     sys.stdout.flush()
+
 
 def pjoin(*args):
     """
@@ -164,14 +169,23 @@ def save_cmap(img, out_path, palette='inferno', vmin=None, vmax=None):
     plt.close()
     return
 
-def send_slack_message(message):
+
+def alert(message):
+    """
+    Sends a message to a slack channel. Requires a SLACK_WEBHOOK_URL to be set in .env file.
+    :param message:
+    :return:
+    """
+    global slack_alert_msg_printed # print out error msg only once
     load_dotenv('../env/.env')
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
     if webhook_url is None:
-        msg = 'Slack webhook URL not found. To configure, create ../env/.env file and add SLACK_WEBHOOK_URL'
-        yprint(msg)
-        yprint('Message routed to stdout')
-        print(message)
+        if not slack_alert_msg_printed:
+            msg = 'Slack webhook URL not found. To configure, create ../env/.env file and add SLACK_WEBHOOK_URL'
+            yprint(msg)  # Assuming yprint is a typo and meant print. Adjust as necessary for your logging method.
+            yprint('Message routed to stdout')
+            slack_alert_msg_printed = True  # Mark the warning as printed
+        rprint(message)
         return
     else:
         data = {'text': message}
