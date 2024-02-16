@@ -172,7 +172,8 @@ def save_cmap(img, out_path, palette='inferno', vmin=None, vmax=None):
 
 def alert(message):
     """
-    Sends a message to a slack channel. Requires a SLACK_WEBHOOK_URL to be set in .env file.
+    Sends a message to a designated slack channel, which a SLACK_WEBHOOK_URL to be set in .env file.
+    If webhook URL is not found, the message is printed to stdout in red.
     :param message:
     :return:
     """
