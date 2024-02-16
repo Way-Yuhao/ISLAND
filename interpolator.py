@@ -18,9 +18,10 @@ from config import *
 from util.filters import *
 from util.helper import deprecated, rprint, yprint
 
-
+@deprecated
 class Interpolator(abc.ABC):
 
+    @deprecated
     def __init__(self, root, target_date=None, no_log=False,
                  ablation_no_nlcd=False):
         self.root = root  # root directory
