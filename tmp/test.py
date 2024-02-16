@@ -1,6 +1,6 @@
 import requests
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 def send_slack_message(webhook_url, message):
     data = {'text': message}
