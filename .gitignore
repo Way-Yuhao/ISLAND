@@ -10,4 +10,4 @@ yuhao_liu.env
 *.pyc
 yuhao_liu.env
 plots/myplot10
-.idea/
+.env

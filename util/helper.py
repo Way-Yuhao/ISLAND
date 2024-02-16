@@ -10,7 +10,8 @@ import datetime as dt
 import uuid
 import pandas as pd
 from matplotlib import pyplot as plt
-
+import requests
+from dotenv import load_dotenv
 
 def yprint(msg):
     """
@@ -162,3 +163,22 @@ def save_cmap(img, out_path, palette='inferno', vmin=None, vmax=None):
     plt.imsave(out_path, out)
     plt.close()
     return
+
+def send_slack_message(message):
+    load_dotenv('../env/.env')
+    webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+    if webhook_url is None:
+        msg = 'Slack webhook URL not found. To configure, create ../env/.env file and add SLACK_WEBHOOK_URL'
+        yprint(msg)
+        yprint('Message routed to stdout')
+        print(message)
+        return
+    else:
+        data = {'text': message}
+        response = requests.post(webhook_url, json=data)
+        if response.status_code != 200:
+            raise ValueError(
+                'Request to slack returned an error %s, the response is:\n%s'
+                % (response.status_code, response.text)
+            )
+        return
