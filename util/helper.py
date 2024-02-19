@@ -209,6 +209,23 @@ def alert(message):
 def monitor(func):
     """
     Decorator to monitor the execution of a function. If the function fails, the stack trace is printed.
+    No message is sent at completion.
+    :param func:
+    :return:
+    """
+    def inner(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            stack_trace = traceback.format_exc()
+            title = 'Code failed'
+            alert(f'*{title}*```{stack_trace}```')
+            raise e
+    return inner
+
+def monitor_complete(func):
+    """
+    Decorator to monitor the execution of a function. If the function fails, the stack trace is printed.
     If the function succeeds, a message is sent to a designated slack channel.
     :param func:
     :return:

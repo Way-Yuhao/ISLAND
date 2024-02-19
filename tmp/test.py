@@ -1,4 +1,4 @@
-from util.helper import alert, monitor, timer
+from util.helper import alert, monitor, timer, monitor_complete
 import wandb
 import traceback
 
