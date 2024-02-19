@@ -17,11 +17,11 @@ import textwrap
 from config import *
 from util.filters import *
 from util.helper import deprecated, rprint, yprint
+import Interpolator
 
-@deprecated
-class Interpolator(abc.ABC):
 
-    @deprecated
+class BT_Interpolator(abc.ABC):
+
     def __init__(self, root, target_date=None, no_log=False,
                  ablation_no_nlcd=False):
         self.root = root  # root directory
@@ -648,7 +648,7 @@ class Interpolator(abc.ABC):
         # px_count = ref_frame_valid_mask.shape[0] * ref_frame_valid_mask.shape[1]
         # ref_occlusion_percentage = np.count_nonzero(ref_frame_valid_mask) / px_count
 
-        ref_interp = Interpolator(root=self.root, target_date=self.ref_frame_date, ablation_no_nlcd=self.ablation_no_nlcd)
+        ref_interp = BT_Interpolator(root=self.root, target_date=self.ref_frame_date, ablation_no_nlcd=self.ablation_no_nlcd)
         ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
         if ref_occlusion_percentage <= global_threshold:  # use local gaussian
             ref_interp._nlm_local(f=75)
@@ -710,7 +710,7 @@ class Interpolator(abc.ABC):
         # target_frame = self._clean(target_frame)
         # load one image from the past
         self.ref_frame_date = ref_frame_date
-        past_interp = Interpolator(root=self.root, target_date=self.ref_frame_date)
+        past_interp = BT_Interpolator(root=self.root, target_date=self.ref_frame_date)
         past_syn_occlusion_perc = past_interp.add_occlusion(fpath=p.join(past_interp.root, 'cloud',
                                                                          f'LC08_cloud_{ref_syn_cloud_date}.tif'))
         past_interp._nlm_global()

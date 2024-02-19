@@ -15,7 +15,7 @@ import wandb
 from datetime import date, timedelta, datetime
 from rich.progress import track
 from config import *
-from interpolator import Interpolator
+from bt_interpolator import Interpolator
 from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
 from util.geo_reference import save_geotiff
 from util.occlusion_sampler import OcclusionSampler

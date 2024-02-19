@@ -9,7 +9,7 @@ import seaborn as sns
 import pandas as pd
 from tqdm import tqdm
 import cv2
-from interpolator import Interpolator
+from bt_interpolator import Interpolator
 from config import *
 from util.helper import deprecated
 import textwrap

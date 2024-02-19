@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import wandb
-from interpolator import Interpolator
+from bt_interpolator import Interpolator
 from util.helper import rprint, yprint, parse_csv_dates
 from batch_eval import timelapse_with_synthetic_occlusion, calc_error_from_outputs
 

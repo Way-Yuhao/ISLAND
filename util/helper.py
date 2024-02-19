@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 # Global variables
 slack_alert_msg_printed = False
 
+
 def yprint(msg):
     """
     Print to stdout console in yellow.

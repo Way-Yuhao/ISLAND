@@ -16,7 +16,7 @@ import cv2
 import seaborn as sns
 from retry import retry
 import wandb
-from interpolator import Interpolator
+from bt_interpolator import Interpolator
 from util.helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later

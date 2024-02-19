@@ -9,7 +9,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import cv2
-from interpolator import Interpolator
+from bt_interpolator import Interpolator
 from natsort import natsorted
 import random
 import wandb
