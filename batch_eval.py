@@ -17,7 +17,7 @@ import shutil
 from tqdm import tqdm
 from rich.progress import track
 from config import *
-from util.helper import get_season, rprint, yprint, time_func, hash_
+from util.helper import get_season, rprint, yprint, timer, hash_
 from region_sampler import add_missing_image
 
 
@@ -192,7 +192,7 @@ def temp_pairwise_cycle_eval_single(root_, target_date, ref_frame, log):
     del interp
 
 
-@time_func
+@timer
 def temp_pairwise_cycle_eval_mp(city_name):
     """
     fixed cloud-free target, fixed synthetic occlusion, using a set of real reference frames (potentially cloudy)
@@ -253,7 +253,7 @@ def plot_temporal_cycle(city_name):
 
 ###################### experiments with synthetic occlusions ######################
 
-@time_func
+@timer
 def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, resume=False):
     """
     Generates timelapses of BT for a given city while adding random synthetic occlusion.

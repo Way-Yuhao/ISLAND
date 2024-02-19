@@ -65,7 +65,12 @@ def deprecated(func):
     return new_func
 
 
-def time_func(func):
+def timer(func):
+    """
+    Decorator to measure the execution time of a function.
+    :param func:
+    :return:
+    """
     def inner(*args, **kwargs):
         start_time = time.monotonic()
         func(*args, **kwargs)
@@ -182,14 +187,16 @@ def alert(message):
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
     if webhook_url is None:
         if not slack_alert_msg_printed:
-            msg = 'Slack webhook URL not found. To configure, create ../env/.env file and add SLACK_WEBHOOK_URL'
+            msg = 'To send alerts to slack, set SLACK_WEBHOOK_URL in /env/.env file.'
             yprint(msg)  # Assuming yprint is a typo and meant print. Adjust as necessary for your logging method.
             yprint('Message routed to stdout')
             slack_alert_msg_printed = True  # Mark the warning as printed
         rprint(message)
         return
     else:
-        data = {'text': message}
+        data = {'text': message,
+                'username': 'Webhook Alert',
+                'icon_emoji': ':robot_face:'}
         response = requests.post(webhook_url, json=data)
         if response.status_code != 200:
             raise ValueError(
@@ -197,3 +204,22 @@ def alert(message):
                 % (response.status_code, response.text)
             )
         return
+
+
+def monitor(func):
+    """
+    Decorator to monitor the execution of a function. If the function fails, the stack trace is printed.
+    If the function succeeds, a message is sent to a designated slack channel.
+    :param func:
+    :return:
+    """
+    def inner(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+            alert(f'Code executed successfully: {func.__name__}')
+        except Exception as e:
+            stack_trace = traceback.format_exc()
+            title = 'Code failed'
+            alert(f'*{title}*```{stack_trace}```')
+            raise e
+    return inner

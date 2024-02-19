@@ -644,7 +644,7 @@ def export_all():
     return
 
 
-@time_func
+@timer
 def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     global GLOBAL_REFERENCE_DATE
     ee_init(high_volume=high_volume_api)

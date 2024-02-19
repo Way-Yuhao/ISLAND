@@ -1,4 +1,16 @@
-from util.helper import alert
+from util.helper import alert, monitor, timer
+import wandb
+import traceback
 
-alert('nah')
-alert('nah')
+
+@timer
+@monitor
+def stupid_function():
+    # 1 / 0
+    print('Hello, world!')
+
+
+if __name__ == "__main__":
+    stupid_function()
+
+
