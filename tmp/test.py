@@ -4,7 +4,7 @@ import traceback
 
 
 @timer
-@monitor
+@monitor_complete
 def stupid_function():
     # 1 / 0
     print('Hello, world!')
