@@ -532,7 +532,7 @@ class BT_Interpolator(BaseInterpolator):
         selected_ref_dates = df['ref_dates'].values
         reconst_imgs = []
 
-        for d in tqdm(selected_ref_dates, desc='running temporal channel on all selected frames'):
+        for d in selected_ref_dates:
             self.temporal_interp(ref_frame_date=d)
             reconst_imgs.append(self.reconstructed_target)
             # self.save_output()

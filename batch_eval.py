@@ -9,14 +9,15 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import cv2
-# from interpolators.bt_interpolator import BT_Interpolator as Interpolator
-from interpolators.lst_interpolator import LST_Interpolator as Interpolator
+from interpolators.bt_interpolator import BT_Interpolator as Interpolator
+# from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from natsort import natsorted
 import random
 import wandb
 import shutil
 from tqdm import tqdm
 from rich.progress import track
+from natsort import natsorted
 from config import *
 from util.helper import get_season, rprint, yprint, timer, hash_, deprecated
 from region_sampler import add_missing_image
@@ -377,7 +378,7 @@ def solve_all_bt(city_name, resume=False):
     root_ = f'./data/{city_name}/'
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
     dates = df['date'].values.tolist()
-    dates = [str(d) for d in dates]
+    dates = natsorted([str(d) for d in dates])
     for d in tqdm(dates):
         if resume:
             existing_output_files = os.listdir(p.join(root_, 'output'))
@@ -460,7 +461,6 @@ def compute_st_for_all(city_name):
     else:
         rprint(
             f'The following dates does not have surface temperature outputs: \n{failed_dates}\nCheck error messages in red above.')
-
 
 
 if __name__ == '__main__':

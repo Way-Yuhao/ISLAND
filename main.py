@@ -7,7 +7,8 @@ import shutil
 import pandas as pd
 import json
 from tqdm import tqdm
-from interpolators.lst_interpolator import LST_Interpolator as Interpolator
+# from interpolators.lst_interpolator import LST_Interpolator as Interpolator
+from interpolators.bt_interpolator import BT_Interpolator as Interpolator
 from batch_eval import solve_all_bt, move_bt, compute_st_for_all
 from util.helper import get_season, rprint, yprint, timer, monitor, alert, deprecated
 from util.geo_reference import geo_ref_copy
@@ -87,8 +88,7 @@ def process_city_bt():
     in advance.
     :return:
     """
-    raise Exception('nah')
-    yprint('Deprecated function. This meethod runs interpolation on bt and then compute lst.')
+    yprint('Deprecated function. This method runs interpolation on bt and then compute lst.')
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
@@ -177,7 +177,6 @@ def process_city_lst():
 
 def main():
     process_city_bt()
-    # raise Exception('nah')
 
 
 if __name__ == '__main__':
