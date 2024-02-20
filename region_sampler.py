@@ -16,7 +16,7 @@ import cv2
 import seaborn as sns
 from retry import retry
 import wandb
-from bt_interpolator import Interpolator
+from interpolators.interpolator import BaseInterpolator
 from util.helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
@@ -720,7 +720,7 @@ def generate_log(root_path):
     flist = [f for f in flist if 'tif' in f]
     dates = [f[11:-4] for f in flist]  # a list of all reference frame dates
     cloud_percentages = []
-    dummy_interp = Interpolator(root=root_path, target_date=dates[0], no_log=True)
+    dummy_interp = BaseInterpolator(root=root_path, target_date=dates[0], no_log=True)
     for d in tqdm(dates, desc='scanning frames'):
         frame_valid_mask = dummy_interp.build_valid_mask(alt_date=d)
         px_count = frame_valid_mask.shape[0] * frame_valid_mask.shape[1]

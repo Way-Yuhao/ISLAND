@@ -7,7 +7,6 @@ import argparse
 import shutil
 import pandas as pd
 import json
-from rich.progress import track
 from batch_eval import solve_all_bt, move_bt, compute_st_for_all
 from util.helper import get_season, rprint, yprint, timer
 from util.geo_reference import geo_ref_copy

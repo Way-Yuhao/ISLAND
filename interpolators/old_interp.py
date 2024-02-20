@@ -1,5 +1,5 @@
 """
-Interpolates the TOA Brightness Temperature (B10 band from Landsat 8/9)
+This file is the old interpolator class before seperated from base and child class.
 """
 import os
 import os.path as p

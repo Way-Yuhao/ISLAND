@@ -9,7 +9,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import cv2
-from bt_interpolator import Interpolator
+from interpolators.bt_interpolator import BT_Interpolator as Interpolator
 from natsort import natsorted
 import random
 import wandb
@@ -251,6 +251,7 @@ def plot_temporal_cycle(city_name):
     axes[1].set_ylabel('Cloud coverage (%)')
     plt.show()
 
+
 ###################### experiments with synthetic occlusions ######################
 
 @timer
@@ -362,7 +363,6 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
     print('Average MSE = ', df['mse'].mean())
 
 
-
 ######### experiments with real occlusion ################
 
 def solve_all_bt(city_name, resume=False):
@@ -455,7 +455,8 @@ def compute_st_for_all(city_name):
     if len(failed_dates) == 0:
         yprint('No issues found in surface temperature calculation.')
     else:
-        rprint(f'The following dates does not have surface temperature outputs: \n{failed_dates}\nCheck error messages in red above.')
+        rprint(
+            f'The following dates does not have surface temperature outputs: \n{failed_dates}\nCheck error messages in red above.')
 
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ class BaseInterpolator(ABC):
         self.target = None  # ground truth image, without synthetic occlusion
         self.target_valid_mask = None  # true valid mask, constrained by data loss
         self.target_date = target_date
-        self.get_target(target_date)
+        # self.get_target(target_date)  # child class specific
         self.nlcd, self.nlcd_rgb = self.get_nlcd()
         self.correct_nlcd_key_error()
         self.synthetic_occlusion = None  # artificially introduced occlusion

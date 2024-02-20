@@ -5,28 +5,21 @@ import os
 import os.path as p
 import datetime as dt
 from datetime import timedelta
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
-import abc
-import cv2
-from matplotlib import pyplot as plt
-from matplotlib.ticker import MaxNLocator
-import seaborn as sns
-import textwrap
 from config import *
 from util.filters import *
 from util.helper import deprecated, rprint, yprint
-from interpolator import BaseInterpolator
+from interpolators.interpolator import BaseInterpolator
 
 
 class BT_Interpolator(BaseInterpolator):
 
-    def __init__(self, root, target_date=None, no_log=False,
-                 ablation_no_nlcd=False):
-        super().__init__(root, target_date, no_log, ablation_no_nlcd)
+    def __init__(self, root, target_date=None, no_log=False):
+        super().__init__(root, target_date, no_log)
         self.bt_path = p.join(root, 'bt_series')
         self.interp_mode = 'bt'
+        self.get_target(target_date)
         return
 
     # def get_frame(self, frame_date, mode='bt'):
@@ -470,7 +463,7 @@ class BT_Interpolator(BaseInterpolator):
 
         print("processing missing pixels...")
         no_local_data_counter = 0
-        pbar = tqdm(total=np.count_nonzero(self.synthetic_occlusion))
+        pbar = tqdm(total=np.count_nonzero(self.synthetic_occlusion), position=0)
         x_cord, y_cord = np.nonzero(self.synthetic_occlusion)
         for x, y in zip(x_cord, y_cord):
             c = self.nlcd[x, y]
@@ -568,10 +561,9 @@ class BT_Interpolator(BaseInterpolator):
         target_avgs, past_avgs = {}, {}  # mean temperature (scalar) for all pixels in each class
 
         self.ref_frame_date = ref_frame_date
-        ref_frame = self.get_frame(self.ref_frame_date)
+        ref_frame = self.get_frame(self.ref_frame_date, mode=self.interp_mode)
 
-        ref_interp = BT_Interpolator(root=self.root, target_date=self.ref_frame_date,
-                                     ablation_no_nlcd=self.ablation_no_nlcd)
+        ref_interp = BT_Interpolator(root=self.root, target_date=self.ref_frame_date)
         ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
         if ref_occlusion_percentage <= global_threshold:  # use local gaussian
             ref_interp._nlm_local(f=75)
