@@ -6,10 +6,10 @@ class MyAbstractBaseClass(ABC):
     def __init__(self):
         self.a = 0
 
-    @abstractmethod
     def my_abstract_method(self):
-        pass
+        print("This is an abstract method.")
 
+    @abstractmethod
     def alert(self):
         print("This is an alert method.")
 
@@ -18,11 +18,14 @@ class MyAbstractBaseClass(ABC):
 class ConcreteClass(MyAbstractBaseClass):
 
     def __init__(self):
-        # super().__init__()
+        super().__init__()
         self.b = 1
 
     def my_abstract_method(self):
-        print("Implementation of the abstract method.")
+        super().my_abstract_method()
+
+    def alert(self):
+        print('nah')
 
 
 # Attempting to instantiate MyAbstractBaseClass would raise an error.
