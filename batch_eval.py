@@ -19,7 +19,7 @@ from tqdm import tqdm
 from rich.progress import track
 from natsort import natsorted
 from config import *
-from util.helper import get_season, rprint, yprint, timer, hash_, deprecated
+from util.helper import get_season, rprint, yprint, timer, hash_, deprecated, alert
 from region_sampler import add_missing_image
 
 

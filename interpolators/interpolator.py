@@ -19,15 +19,11 @@ class BaseInterpolator(ABC):
 
     def __init__(self, root, target_date=None, no_log=False):
         self.root = root  # root directory
-        # self.bt_path = p.join(root, 'bt_series')
         self.cloud_path = p.join(root, 'cloud')
         self.cloud_shadow_path = p.join(root, 'cloud_shadow')
         self.output_path = p.join(root, 'output')
         if not p.exists(self.output_path):
             os.mkdir(self.output_path)
-        ######## ablation flags ############
-        # self.ablation_no_nlcd = ablation_no_nlcd
-        ####################################
         self.target = None  # ground truth image, without synthetic occlusion
         self.target_valid_mask = None  # true valid mask, constrained by data loss
         self.target_date = target_date
@@ -48,10 +44,8 @@ class BaseInterpolator(ABC):
             self.metadata = df
         # temporal
         self.ref_frame_date = None
-
         # child class attributes
         self.interp_mode = None  # to be defined in child class
-
         return
 
     # TODO check mode for all function calls
@@ -524,7 +518,7 @@ class BaseInterpolator(ABC):
             output_vmin = 270
             output_vmax = 330
             plt.imshow(img, cmap='magma', vmax=output_vmax, vmin=output_vmin)
-            plt.title(f'Reconstructed Brightness Temperature on {self.target_date}')
+            plt.title(f'Reconstructed Temperature on {self.target_date}')
             plt.colorbar(label='Kelvin')
             output_filename = f'reconst_{self.target_date}{suffix}.png'
             plt.savefig(p.join(self.output_path, output_filename))

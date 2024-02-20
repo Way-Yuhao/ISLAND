@@ -349,10 +349,6 @@ class BT_Interpolator(BaseInterpolator):
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         print(f'occlusion percentage (real + synth) = {occlusion_percentage:.3f}')
 
-        # self.reconstructed_target = self.occluded_target.copy()
-        # self.save_output('occluded')
-        # self.reconstructed_target = None
-
         # TODO: local gaussian for all?
         if occlusion_percentage > .99:
             # remote these
@@ -491,10 +487,6 @@ class BT_Interpolator(BaseInterpolator):
         print('\tdelta cycle < ', max_delta_cycle)
         print('\tcloud coverage percentage < ', max_cloud_perc)
 
-        # flist = os.listdir(p.join(self.root, 'cloud'))
-        # flist = [f for f in flist if 'tif' in f]
-        # ref_dates_str = [f[11:-4] for f in flist]  # a list of all reference frame dates
-
         ref_dates_str = self.metadata['date'].values.tolist()
         ref_occlusion_perc = self.metadata['cloud_percentage'].values.tolist()
         ref_dates = [dt.datetime.strptime(str(d), '%Y%m%d').date() for d in ref_dates_str]
@@ -520,7 +512,7 @@ class BT_Interpolator(BaseInterpolator):
         df = df.loc[df['same_year_delta'] < max_delta_cycle * 16 + 1]  # filter by max delta cycle
         df = df.loc[df['ref_percs'] < max_cloud_perc]  # filter by max cloud coverage
         df = df.sort_values(by=['days_delta'])
-        # print(df)
+
         print(f'Found {len(df.index)} candidate frames that satisfy conditions:')
         if df.empty:
             yprint('No candidate reference frames satisfy conditions above. Mission aborted.')
@@ -535,7 +527,6 @@ class BT_Interpolator(BaseInterpolator):
         for d in selected_ref_dates:
             self.temporal_interp(ref_frame_date=d)
             reconst_imgs.append(self.reconstructed_target)
-            # self.save_output()
             self.reconstructed_target = None
 
         # blended image is the average of all reconstructed images, with equal weights
@@ -544,7 +535,7 @@ class BT_Interpolator(BaseInterpolator):
             blended_img += i
         blended_img /= len(reconst_imgs)
         self.reconstructed_target = blended_img
-        # self.save_output()
+
 
     def temporal_interp(self, ref_frame_date, global_threshold=.5):
         """

@@ -8,61 +8,44 @@ import pandas as pd
 import json
 from tqdm import tqdm
 from natsort import natsorted
-# from interpolators.lst_interpolator import LST_Interpolator as Interpolator
-from interpolators.bt_interpolator import BT_Interpolator as Interpolator
+from interpolators.lst_interpolator import LST_Interpolator as Interpolator
+# from interpolators.bt_interpolator import BT_Interpolator as Interpolator
 from batch_eval import solve_all_bt, move_bt, compute_st_for_all
 from util.helper import get_season, rprint, yprint, timer, monitor, alert, deprecated
 from util.geo_reference import geo_ref_copy
 
 
-
-
-def geo_reference_outputs(city_name):
+def solve_all_lst(city_name, resume=False):
     """
-    Geo-reference the outputs of the interpolation for the entire city.
+    Generates timelapse for all available input frames without adding synthetic occlusion
     :param city_name:
+    :param resume: skip existing outputs and resume at the next frame
     :return:
     """
-    # acquire bounding box
-    cities_list_path = "./data/us_cities.csv"
-    cols = list(pd.read_csv(cities_list_path, nrows=1))
-    cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
-    row = cities_meta.loc[cities_meta['city'] == city_name]
-    if row.empty:
-        raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
-    scene_id = str(row.iloc[0]['scene_id'])
-    if len(scene_id) == 5:
-        scene_id = '0' + scene_id
-    bounding_box = row.iloc[0]['bounding_box']
-    assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
-    assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
-    bounding_box = json.loads(bounding_box)
-    # geo-reference
-    output_dir = f'./data/{city_name}/output_referenced'
-    assert not p.exists(output_dir)
-    os.mkdir(output_dir)
-    os.mkdir(p.join(output_dir, 'st'))
-    os.mkdir(p.join(output_dir, 'bt'))
-    # brightness temperature
-    bt_dir = f'./data/{city_name}/output_bt/npy/'
-    bt_files = os.listdir(bt_dir)
-    bt_files = [f for f in bt_files if '.npy' if f]
-    for f in bt_files:
-        geo_ref_copy(city_name, f,  p.join(output_dir, 'bt', f[:-4] + '.tif'))
-        # geo_ref(bounding_box, p.join(bt_dir, f), p.join(output_dir, 'bt', f[:-4] + '.tif'))
-    # surface temperature
-    st_dir = f'./data/{city_name}/output_st/npy/'
-    st_files = os.listdir(st_dir)
-    st_files = [f for f in st_files if '.npy' if f]
-    for f in st_files:
-        geo_ref_copy(city_name, f, p.join(output_dir, 'st', f[:-4] + '.tif'))
-        # geo_ref(bounding_box, p.join(st_dir, f), p.join(output_dir, 'st', f[:-4] + '.tif'))
-    print(f'Geo-reference finished for {city_name}.')
+    root_ = f'./data/{city_name}/'
+    df = pd.read_csv(p.join(root_, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = natsorted([str(d) for d in dates])
+    for d in tqdm(dates):
+        if resume:
+            existing_output_files = os.listdir(p.join(root_, 'output'))
+            current_date_files = [f for f in existing_output_files if d in f]
+            if len(current_date_files) > 0:
+                print(f'Found outputs for date {d}. Skipped.')
+                continue
+        yprint(f'Evaluating {d}')
+        interp = Interpolator(root=root_, target_date=d)
+        interp.add_occlusion(use_true_cloud=True)
+        interp.run_interpolation()  # saves results to output
+
+        # geo reference
 
 
-# @monitor
-@deprecated
-def process_city_bt():
+
+
+
+@monitor
+def process_city_lst():
     """
     Computes brightness temperature and surface temperature for a given city. Require inputs to be downloaded
     in advance.
@@ -101,17 +84,13 @@ def process_city_bt():
             raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists. '
                                   f'Please ether turn \'resume\' on or remove the existing '
                                   f'directory.')
-        solve_all_bt(city_name=CITY_NAME, resume=RESUME)  # solve for brightness temperature
-        move_bt(city_name=CITY_NAME)
-        compute_st_for_all(city_name=CITY_NAME)  # solve for surface temperature
+        solve_all_lst(city_name=CITY_NAME, resume=RESUME)
     geo_reference_outputs(CITY_NAME)
     alert(f'Interpolation for {CITY_NAME} finished.')
 
 
-
-
 def main():
-    process_city_bt()
+    process_city_lst()
 
 
 if __name__ == '__main__':
