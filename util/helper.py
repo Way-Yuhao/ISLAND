@@ -183,12 +183,15 @@ def alert(message):
     :param message:
     :return:
     """
-    global slack_alert_msg_printed # print out error msg only once
+    global slack_alert_msg_printed  # print out error msg only once
+    path_to_restore = os.getcwd()
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
     load_dotenv('../env/.env')
+    os.chdir(path_to_restore)
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
     if webhook_url is None:
         if not slack_alert_msg_printed:
-            msg = 'To send alerts to slack, set SLACK_WEBHOOK_URL in /env/.env file.'
+            msg = 'To send alerts to slack, set SLACK_WEBHOOK_URL in ./env/.env file.'
             yprint(msg)  # Assuming yprint is a typo and meant print. Adjust as necessary for your logging method.
             yprint('Message routed to stdout')
             slack_alert_msg_printed = True  # Mark the warning as printed

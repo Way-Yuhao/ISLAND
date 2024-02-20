@@ -17,7 +17,7 @@ class BT_Interpolator(BaseInterpolator):
 
     def __init__(self, root, target_date=None, no_log=False):
         super().__init__(root, target_date, no_log)
-        self.bt_path = p.join(root, 'bt_series')
+        # self.bt_path = p.join(root, 'bt_series')
         self.interp_mode = 'bt'
         self.get_target(target_date)
         return

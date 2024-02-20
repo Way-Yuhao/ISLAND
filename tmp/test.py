@@ -1,5 +1,6 @@
+import os
 from abc import ABC, abstractmethod
-
+from util.helper import alert
 
 class MyAbstractBaseClass(ABC):
 
@@ -32,8 +33,10 @@ class ConcreteClass(MyAbstractBaseClass):
 # concrete_instance = MyAbstractBaseClass()  # This would raise an error.
 
 # Correctly implemented subclass can be instantiated.
-concrete_instance = ConcreteClass()
-concrete_instance.my_abstract_method()
-concrete_instance.alert()
-print(concrete_instance.a)
-print(concrete_instance.b)
+# concrete_instance = ConcreteClass()
+# concrete_instance.my_abstract_method()
+# concrete_instance.alert()
+# print(concrete_instance.a)
+# print(concrete_instance.b)
+alert("This is an alert message.")
+

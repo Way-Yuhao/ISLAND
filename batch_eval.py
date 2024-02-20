@@ -9,7 +9,8 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import cv2
-from interpolators.bt_interpolator import BT_Interpolator as Interpolator
+# from interpolators.bt_interpolator import BT_Interpolator as Interpolator
+from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from natsort import natsorted
 import random
 import wandb
@@ -17,7 +18,7 @@ import shutil
 from tqdm import tqdm
 from rich.progress import track
 from config import *
-from util.helper import get_season, rprint, yprint, timer, hash_
+from util.helper import get_season, rprint, yprint, timer, hash_, deprecated
 from region_sampler import add_missing_image
 
 
@@ -365,6 +366,7 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
 
 ######### experiments with real occlusion ################
 
+@deprecated # requires BT_Interpolator
 def solve_all_bt(city_name, resume=False):
     """
     Generates timelapse for all available input frames without adding synthetic occlusion
@@ -389,13 +391,13 @@ def solve_all_bt(city_name, resume=False):
         interp.run_interpolation()
 
 
+@deprecated  # requires BT_Interpolator
 def move_bt(city_name):
     root_ = f'./data/{city_name}/'
     assert not p.exists(p.join(root_, 'output_bt')), 'Output directory already exists'
     os.mkdir((p.join(root_, 'output_bt')))
     os.mkdir((p.join(root_, 'output_bt', 'png')))
     os.mkdir((p.join(root_, 'output_bt', 'npy')))
-    # TODO: create a folder for geo-referenced data
     df = pd.read_csv(p.join(root_, 'metadata.csv'))
     dates = df['date'].values.tolist()
     dates = [str(d) for d in dates]
@@ -410,6 +412,7 @@ def move_bt(city_name):
         shutil.copyfile(bt_src, bt_dst)
 
 
+@deprecated  # requires BT_Interpolator
 def compute_st_for_all(city_name):
     """
     Generates emissivity-corrected surface temperature frames from existing
@@ -457,6 +460,7 @@ def compute_st_for_all(city_name):
     else:
         rprint(
             f'The following dates does not have surface temperature outputs: \n{failed_dates}\nCheck error messages in red above.')
+
 
 
 if __name__ == '__main__':
