@@ -44,7 +44,7 @@ def solve_all_lst(city_name, resume=False):
 
 
 
-@monitor
+# @monitor
 def process_city_lst():
     """
     Computes brightness temperature and surface temperature for a given city. Require inputs to be downloaded
@@ -85,7 +85,7 @@ def process_city_lst():
                                   f'Please ether turn \'resume\' on or remove the existing '
                                   f'directory.')
         solve_all_lst(city_name=CITY_NAME, resume=RESUME)
-    geo_reference_outputs(CITY_NAME)
+    # geo_reference_outputs(CITY_NAME) # TODO
     alert(f'Interpolation for {CITY_NAME} finished.')
 
 

@@ -192,7 +192,7 @@ class BaseInterpolator(ABC):
         plt.title(f'{msg} Temperature on {self.target_date}')
         plt.colorbar(label='Kelvin')
         plt.show()
-        return 0
+        return
 
     @deprecated  # reason: clean
     def display_target(self, mode=None, img=None, text=None):

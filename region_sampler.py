@@ -15,8 +15,7 @@ from config import *
 import cv2
 import seaborn as sns
 from retry import retry
-import wandb
-from interpolators.interpolator import BaseInterpolator
+from interpolators.lst_interpolator import LST_Interpolator
 from util.helper import *
 
 GLOBAL_REFERENCE_DATE = None  # used to calculate the validity of date for LANDSAT 8, to be defined later
@@ -668,7 +667,8 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     ## export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
     ##                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box,
+                          scale_factor=0.00341802, offset=149.0)
     ## resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
     ## resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
@@ -720,7 +720,7 @@ def generate_log(root_path):
     flist = [f for f in flist if 'tif' in f]
     dates = [f[11:-4] for f in flist]  # a list of all reference frame dates
     cloud_percentages = []
-    dummy_interp = BaseInterpolator(root=root_path, target_date=dates[0], no_log=True)
+    dummy_interp = LST_Interpolator(root=root_path, target_date=dates[0], no_log=True)
     for d in tqdm(dates, desc='scanning frames'):
         frame_valid_mask = dummy_interp.build_valid_mask(alt_date=d)
         px_count = frame_valid_mask.shape[0] * frame_valid_mask.shape[1]
@@ -766,7 +766,7 @@ def add_missing_image(city_name, date_):
     export_landsat_band(satellite='LC08', band_name=band, output_dir=output_dir, scene_id=scene_id,
                         date_=date_, export_boundary=bounding_box)
 
-
+@monitor
 def main():
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
@@ -776,13 +776,8 @@ def main():
     for entry in args.c:
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
-    # CITY_NAME = 'San Diego'
-    # wandb.init()
     export_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=False)
-    # wandb.alert(
-    #     title='Download finished',
-    #     text=f'Data for region {CITY_NAME} finished downloading.'
-    # )
+    alert('City {} download finished.'.format(CITY_NAME))
 
 
 if __name__ == '__main__':
