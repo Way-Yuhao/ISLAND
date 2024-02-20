@@ -2,13 +2,12 @@ import os
 import os.path as p
 import numpy as np
 import time
-import wandb
 import argparse
 import shutil
 import pandas as pd
 import json
 from batch_eval import solve_all_bt, move_bt, compute_st_for_all
-from util.helper import get_season, rprint, yprint, timer
+from util.helper import get_season, rprint, yprint, timer, monitor, alert
 from util.geo_reference import geo_ref_copy
 
 
@@ -50,6 +49,7 @@ def geo_reference_outputs(city_name):
     print(f'Geo-reference finished for {city_name}.')
 
 
+@monitor
 def process_city():
     """
     Computes brightness temperature and surface temperature for a given city. Require inputs to be downloaded
@@ -64,11 +64,7 @@ def process_city():
                         help='Toggle to resume from previous run. Will not overwrite files.')
     parser.add_argument('--skip_to_ref', required=False, action='store_true',
                         help='Toggle to skip to geo-reference step.')
-    parser.add_argument('--no_wandb', required=False, action='store_true',
-                        help='Toggle to suppress wandb alerts.')
     args = parser.parse_args()
-    if not args.no_wandb:
-        wandb.init()
     RESUME = args.r
     CITY_NAME = ""
     for entry in args.c:
@@ -97,12 +93,7 @@ def process_city():
         move_bt(city_name=CITY_NAME)
         compute_st_for_all(city_name=CITY_NAME)  # solve for surface temperature
     geo_reference_outputs(CITY_NAME)
-    if not args.no_wandb:
-        wandb.alert(
-            title='Interpolation finished',
-            text=f'Data for region {CITY_NAME} finished processing.'
-        )
-    print('--------------------------------------')
+    alert(f'Interpolation for {CITY_NAME} finished.')
 
 
 def main():
