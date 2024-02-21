@@ -12,6 +12,9 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import requests
 from dotenv import load_dotenv
+import contextlib
+import io
+from functools import wraps
 
 # Global variables
 slack_alert_msg_printed = False
@@ -244,3 +247,40 @@ def monitor_complete(func):
             alert(f'*{title}*```{stack_trace}```')
             raise e
     return inner
+
+
+def capture_stdout(func):
+    """
+    Suppresses stdout output, unless it contains an error message, in which case a ValueError is raised.
+    :param func:
+    :return:
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Create a StringIO buffer to capture output
+        stdout_capture = io.StringIO()
+        with contextlib.redirect_stdout(stdout_capture):
+            # Call the original function and capture its return value
+            retval = func(*args, **kwargs)
+        # Retrieve the captured output
+        std_output = stdout_capture.getvalue()
+        if ('error' in std_output.lower() or 'warning' in std_output.lower()
+                or 'failed' in std_output.lower() or 'exception' in std_output.lower()):
+            # rprint(f'Found error in suppressed stdout from {func.__name__}')
+            # print(std_output)
+            raise ValueError(f'Found error in suppressed stdout from {func.__name__}\n{std_output}')
+        # Return both the function's original return value and the captured output
+        return retval
+    return wrapper
+
+# def capture_stdout(func):
+#     @wraps(func)
+#     def wrapper(*args, **kwargs):
+#         stdout_capture = io.StringIO()
+#         with contextlib.redirect_stdout(stdout_capture):
+#             retval = func(*args, **kwargs)
+#         std_output = stdout_capture.getvalue()
+#         if 'error' in std_output.lower() or 'warning' in std_output.lower() or 'failed' in std_output.lower() or 'exception' in std_output.lower():
+#             raise ValueError(f'Found error in suppressed stdout from {func.__name__}\n{std_output}')
+#         return retval
+#     return wrapper

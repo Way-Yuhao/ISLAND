@@ -309,16 +309,29 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
     filename = os.path.join(output_dir, f'{satellite}_{affix}_{date_}.tif')
     try:
         projection = img.projection().getInfo()
+        download_func = capture_stdout(geemap.ee_export_image)
         if scale_factor is not None or offset is not None:
-            geemap.ee_export_image(img.multiply(scale_factor).add(offset), filename=filename, scale=30, region=export_boundary,
-                                   crs=projection['crs'], file_per_band=False)
-        else:
-            geemap.ee_export_image(img, filename=filename, scale=30,
+            download_func(img.multiply(scale_factor).add(offset), filename=filename, scale=30,
                                    region=export_boundary,
                                    crs=projection['crs'], file_per_band=False)
-    except ee.EEException as e:
-        print('ERROR: ', e)
-        return 1
+        else:
+            download_func(img, filename=filename, scale=30,
+                                   region=export_boundary,
+                                   crs=projection['crs'], file_per_band=False)
+    except (ee.EEException, ValueError) as e:
+        if 'not found' in str(e).lower():  # acceptable error
+            # print('ERROR: ', e)
+            return 1
+        elif 'request size' in str(e).lower():  # critical error
+            alert('ERROR: Encountered a critical error when exporting image. Request size too large.')
+            # rprint('ERROR: Encountered a critical error when exporting image. Request size too large.')
+            rprint('Terminating program...')
+            print(str(e))
+            exit(1)
+        else:
+            print('ERROR: ', e)
+            alert(f'ERROR: Encountered an unexpected error when exporting image: {e}')
+            return 1
     return 0
 
 
@@ -450,7 +463,7 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
             output = output.astype(np.uint16)
             cv2.imwrite(pjoin(output_dir, 'RGB', output_fname), output)
         else:
-            print(f"clipping to range ", clip)
+            # print(f"clipping to range ", clip)
             output_fname = r_file.replace('B4', 'RGB')
             output_fname = output_fname.replace('tif', 'png')
             output[output > clip] = clip
@@ -636,7 +649,7 @@ def export_all():
                           start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
                           start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    ##resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
@@ -649,31 +662,33 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     ee_init(high_volume=high_volume_api)
     start_date = '20170101'
     cycles = 125
-    num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
+    # num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
     # for future speed up, use a pool of threads for high-volume API
-    # plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
-    # ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-    # export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-    # color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-    #                dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
-    # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-    #            num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-    ## export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-    ##                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    # export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    ## export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
-    ##                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
+    ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
+    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
+                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+
     export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
                           start_date=start_date, num_cycles=cycles, export_boundary=bounding_box,
                           scale_factor=0.00341802, offset=149.0)
-    ## resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
-    ## resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+
+    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    #export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
+    # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     generate_log(root_path=f'./data/{city_name}')
     return
 
@@ -681,7 +696,7 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
 def export_wrapper(city_name, high_volume_api=False, startFromScratch=True):
     if startFromScratch is False:
         rprint('WARNING: startFromScratch is disabled. Files may be over written.')
-    cities_list_path = "data/us_cities.csv"
+    cities_list_path = "./data/us_cities.csv"
     print(f'Parsing metadata from {cities_list_path}')
     cols = list(pd.read_csv(cities_list_path, nrows=1))
     cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
@@ -766,7 +781,8 @@ def add_missing_image(city_name, date_):
     export_landsat_band(satellite='LC08', band_name=band, output_dir=output_dir, scene_id=scene_id,
                         date_=date_, export_boundary=bounding_box)
 
-@monitor
+
+# @monitor
 def main():
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
