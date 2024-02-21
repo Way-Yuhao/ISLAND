@@ -11,7 +11,7 @@ import geemap
 import numpy as np
 from tqdm import tqdm
 from datetime import date, timedelta, datetime
-from config import *
+from config.config import *
 import cv2
 import seaborn as sns
 from retry import retry
@@ -122,142 +122,9 @@ def generate_cycles(start_date: str, end_date=None, num_days=None, num_cycles=No
 
 
 def generate_cycles_unified(start_date: str, end_date=None, num_days=None, num_cycles=None):
+    # Placeholder for future implementation for LANDSAT 8 + 9
     raise NotImplementedError
 
-
-####################################################################################
-
-# def init_dir(output_dir, overwrite):
-#     assert p.exists(output_dir), f'ERROR: output directory {output_dir} does not exist.'
-#     if not overwrite:
-#         assert len(os.listdir(output_dir)) == 0, f'ERROR: directory {output_dir} is not empty.'
-#         os.mkdir(p.join(output_dir, 'input'))
-#         os.mkdir(p.join(output_dir, 'label'))
-#     else:
-#         if len(os.listdir(output_dir)) != 0:
-#             print(f"WARNING: directory is not empty. Overwriting existing files")
-#     print(f'writing files to {output_dir}...')
-#     return
-#
-#
-# def init_dir_train_dev(output_dir):
-#     assert p.exists(output_dir), f'ERROR: output directory {output_dir} does not exist.'
-#     assert len(os.listdir(output_dir)) == 0, f'ERROR: directory {output_dir} is not empty.'
-#     os.mkdir(p.join(output_dir, 'train'))
-#     os.mkdir(p.join(output_dir, 'dev'))
-#     init_dir(p.join(output_dir, 'train'), overwrite=False)
-#     init_dir(p.join(output_dir, 'dev'), overwrite=False)
-#     return
-#
-#
-# def sample_region_single(input_meta, label_meta, boundary, map_, output_dir):
-#     """
-#     Sample one crop in a pre-defined region
-#     :param input_meta:
-#     :param label_meta:
-#     :param boundary:
-#     :param map_:
-#     :param output_dir:
-#     :return:
-#     """
-#     print(f"Sampling tile {input_meta['id'][-20:]}...")
-#     data_loader = torch.utils.data.DataLoader(
-#         SeqEarthEngineLoader(root="./", geemap_obj=map_, bounding_box=boundary, image_meta=input_meta,
-#                              label_meta=label_meta), batch_size=1, num_workers=0)
-#     num_samples = len(data_loader)
-#     loader_iter = iter(data_loader)
-#     print(f'Extracting {num_samples} samples')
-#     for i in tqdm(range(num_samples)):
-#         input_, label = loader_iter.next()
-#         np.save(p.join(output_dir, f"input/{i}.npy"), input_)
-#         np.save(p.join(output_dir, f"label/{i}.npy"), label)
-#
-#
-# def sample_region_series(start_date, num_cycles, input_meta, label_meta, boundary, map_, output_dir):
-#     global_idx = 0
-#     missing_tiles = []
-#     cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
-#     for date_ in cycles:
-#         cur_input_meta = input_meta.copy()
-#         cur_input_meta['id'] = cur_input_meta['id'].format(date_)
-#         try:
-#             data_loader = torch.utils.data.DataLoader(
-#                 SeqEarthEngineLoader(root="./", geemap_obj=map_, bounding_box=boundary, image_meta=cur_input_meta,
-#                                      label_meta=label_meta), batch_size=1, num_workers=0)
-#             num_samples = len(data_loader)
-#             loader_iter = iter(data_loader)
-#             print(f"Sampling tile {cur_input_meta['id'][-20:]}")
-#             for _ in tqdm(range(num_samples)):
-#                 input_, label = loader_iter.next()
-#                 np.save(p.join(output_dir, f"input/{global_idx}.npy"), input_)
-#                 np.save(p.join(output_dir, f"label/{global_idx}.npy"), label)
-#                 global_idx += 1
-#         except AttributeError:
-#             print(f"ERROR: encountered an Attribute Error when attempting to load tile {cur_input_meta['id'][-20:]}. "
-#                   f"Data entry may not exist.")
-#             missing_tiles.append(cur_input_meta['id'])
-#
-#     if not missing_tiles:
-#         print("All tiles have been sampled. ")
-#     else:
-#         print(f'Encountered missing {len(missing_tiles)} missing tiles: {missing_tiles}')
-#     print(f"Total number of crops sampled = {global_idx}")
-#     return
-#
-#
-# def split_train_dev_local(input_dir, output_dir, validation_split=0.2, mode='sequential'):
-#     init_dir_train_dev(output_dir)
-#     dataset_size = len(glob.glob1(p.join(input_dir, 'input'), '*.npy'))
-#     assert len(glob.glob1(p.join(input_dir, 'label'), '*.npy')) == dataset_size
-#     indices = list(range(dataset_size))
-#     print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split,
-#                                                                                 validation_split))
-#     if mode == 'sequential':
-#         split = int(np.floor(validation_split * dataset_size))
-#         train_indices, dev_indices = indices[split:], indices[:split]
-#         print('mode = sequential sampling')
-#         print("dev set: entry {} to {} | train set: entry {} to {}"
-#               .format(dev_indices[0], dev_indices[-1], train_indices[0], train_indices[-1]))
-#     elif mode == 'random':
-#         train_indices, dev_indices = train_test_split(indices, test_size=VALIDATION_SPLIT)
-#         print('mode = random sampling')
-#     else:
-#         raise AttributeError(f'Encountered unexpected mode: {mode}')
-#     print(f'Splitting into {len(train_indices)} trianing and {len(dev_indices)} dev samples')
-#     j = 0
-#     for i in tqdm(train_indices):
-#         shutil.copyfile(p.join(input_dir, f'input/{i}.npy'), p.join(output_dir, f'train/input/{j}.npy'))
-#         shutil.copyfile(p.join(input_dir, f'label/{i}.npy'), p.join(output_dir, f'train/label/{j}.npy'))
-#         j += 1
-#     j = 0
-#     for i in tqdm(dev_indices):
-#         shutil.copyfile(p.join(input_dir, f'input/{i}.npy'), p.join(output_dir, f'dev/input/{j}.npy'))
-#         shutil.copyfile(p.join(input_dir, f'label/{i}.npy'), p.join(output_dir, f'dev/label/{j}.npy'))
-#         j += 1
-#
-#     return
-#
-#
-# def run_sampler():
-#     # output_dir = "/mnt/data1/yl241/datasets/ee_buffer/houston_cloud"
-#     # train_dev_dir = "/mnt/data1/yl241/datasets/ee_buffer/houston_train_dev_random_cloud"
-#
-#     start_date = '20180101'
-#     num_cycles = 50
-#     # map_ = geemap.Map()
-#     # init_dir(output_dir, overwrite=False)
-#     # sample_region_series(start_date=start_date, num_cycles=num_cycles, input_meta=LANDSAT8_META,
-#     #                      label_meta=NLCD_2019_META, boundary=HOUSTON_BOUNDING_BOX, map_=map_,
-#     #                      output_dir=output_dir)
-#
-#     # split_train_dev_local(input_dir=output_dir, output_dir=train_dev_dir, validation_split=VALIDATION_SPLIT,
-#     #                       mode='random')
-#
-#     # print(find_next_valid_date('20211112', False))
-#     # print(generate_cycles(start_date='20210807', num_cycles=20))
-#
-#
-# ########################################################################################
 
 @retry(tries=10, delay=1, backoff=2)
 def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
@@ -411,10 +278,6 @@ def resave_emis(source, dest):
         plt.close()
     # print(f'{len([f in files and ])}')
     return
-
-
-def scale(*args):
-    raise NotImplementedError
 
 
 def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num_cycles, download_monochrome=True,
@@ -579,80 +442,6 @@ def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
     plt.xticks(rotation=45)
     plt.savefig(p.join(root_path, 'cloud_coverage.png'))
     print('Cloud coverage plot saved.')
-    return
-
-
-@deprecated
-def run_exports():
-    ee.Initialize()
-    # output_dir = "../data/export/bt_series"
-    # export_landsat_series(output_dir, satellite='LC08', band='B10', scene_id='025039', start_date='20180101',
-    #                       num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX)
-
-    output_dir = "data/export/qa_series"
-    export_landsat_series(output_dir, satellite='LC08', band='QA_PIXEL', scene_id='025039', start_date='20180101',
-                          num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX)
-
-    # print(generate_cycles(start_date='20130401', num_cycles=20))
-
-
-@deprecated
-def run_exports_win():
-    """
-    Attempting to fix display isses for TIF images on Windows Machines
-    :return:
-    """
-    output_dir = "./data/export2/TOA_RGB"
-    export_rgb(output_dir, satellite='LC08', scene_id='025039', start_date='20180101',
-               num_cycles=50, export_boundary=HOUSTON_BOUNDING_BOX, download_monochrome=False, clip=0.3)
-
-
-@deprecated  # use export_city instead
-def export_all():
-    """
-    A collection that includes
-    * Top-of-atmosphere RGB (TOA_RGB)
-    * Brightness Temperature (bt_series)
-    * Rescaled BT for visualization (bt_series_png)
-    * cloud bitmask (cloud)
-    * shadow bitmask (shadow)
-    * cirrus (cirrus)
-    * QA assessment (qa_series)
-    :return:
-    """
-    # root_path = '../data/Houston'
-    root_path = '../data/Phoenix'
-    global GLOBAL_REFERENCE_DATE
-    start_date = '20180101'
-    cycles = 50
-    # scene_id = '025039'
-    # scene_id = '041036'
-    scene_id = '037037'
-    GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
-    # bounding_box = HOUSTON_BOUNDING_BOX
-    # LA
-    # bounding_box = [[[-118.41654, 33.723626], [-118.41654, 34.333656], [-117.603448, 34.333656], [-117.603448, 33.723626], [-118.41654, 33.723626]]]
-    # Phoenix
-    bounding_box = [
-        [[-112.39009, 33.171612], [-112.39009, 33.833492], [-111.549529, 33.833492], [-111.549529, 33.171612],
-         [-112.39009, 33.171612]]]
-    if not p.exists(root_path):
-        os.mkdir(root_path)
-
-    ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
-    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-    export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    ##resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     return
 
 

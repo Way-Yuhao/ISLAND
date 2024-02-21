@@ -4,7 +4,6 @@ from os import path as p
 import traceback
 import warnings
 import functools
-from config import bcolors
 import time
 import datetime as dt
 import uuid
@@ -19,6 +18,16 @@ from functools import wraps
 # Global variables
 slack_alert_msg_printed = False
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def yprint(msg):
     """

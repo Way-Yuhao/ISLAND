@@ -1,0 +1,9 @@
+surfrad:
+  column_names: [
+    'year', 'jday', 'month', 'day', 'hour', 'min', 'dt', 'zen',
+    'dw_solar', 'uw_solar', 'direct_n', 'diffuse',
+    'dw_ir', 'dw_casetemp', 'dw_dometemp',
+    'uw_ir', 'uw_casetemp', 'uw_dometemp',
+    'uvb', 'par', 'netsolar', 'netir', 'totalnet',
+    'temp', 'rh', 'windspd', 'winddir', 'pressure'
+  ]

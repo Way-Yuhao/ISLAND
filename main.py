@@ -15,8 +15,6 @@ from util.helper import get_season, rprint, yprint, timer, monitor, alert, depre
 from util.geo_reference import geo_ref_copy
 
 
-
-
 def geo_reference_outputs(city_name):
     """
     Geo-reference the outputs of the interpolation for the entire city.
