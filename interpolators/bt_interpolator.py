@@ -7,7 +7,7 @@ import datetime as dt
 from datetime import timedelta
 import pandas as pd
 from tqdm import tqdm
-from config import *
+from config.config import *
 from util.filters import *
 from util.helper import deprecated, rprint, yprint
 from interpolators.interpolator import BaseInterpolator

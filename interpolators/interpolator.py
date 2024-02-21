@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import textwrap
-from config import *
+from config.config import *
 from util.filters import *
 from util.helper import deprecated, rprint, yprint
 
