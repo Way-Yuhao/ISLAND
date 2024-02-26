@@ -32,7 +32,7 @@ class LST_Interpolator(BaseInterpolator):
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         return 1 - occlusion_percentage
 
-    def run_interpolation(self, spatial_global_cutoff=.5):
+    def run_interpolation(self, spatial_global_cutoff=.5, spatial_kern_size=75):
         print('Running spatial & temporal channel...')
 
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
@@ -54,7 +54,7 @@ class LST_Interpolator(BaseInterpolator):
         else:
             self.reconstructed_target = None
             if occlusion_percentage < .5:
-                self._nlm_local(f=75)  # spatial, local gaussian
+                self._nlm_local(f=spatial_kern_size)  # spatial, local gaussian
             else:
                 self._nlm_global()  # spatial, global rectangular
             self.save_timelapse_frame(suffix='spatial')
@@ -63,14 +63,17 @@ class LST_Interpolator(BaseInterpolator):
 
             self.reconstructed_target = None
             try:
-                self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1)
+                self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1,
+                                                 spatial_kern_size=spatial_kern_size)
             except ArithmeticError:
                 yprint('Retrying temporal reference with max_delta_cycle = 4')
                 try:
-                    self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.1)
+                    self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.1,
+                                                     spatial_kern_size=spatial_kern_size)
                 except ArithmeticError:
                     yprint('Retrying temporal reference with max_delta_cycle = 4 and max_cloud_prec = .2')
-                    self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.2)
+                    self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.2,
+                                                     spatial_kern_size=spatial_kern_size)
             # assume temporal computation is successful
             self.save_timelapse_frame(suffix='temporal')
             reconst_temporal = self.reconstructed_target.copy()
@@ -125,7 +128,7 @@ class LST_Interpolator(BaseInterpolator):
                 yprint(f'Unable to acquire average temperature for class {c}. Default to global average.')
                 self.reconstructed_target[replacement_bitmap] = default_avg_temp
 
-    def _nlm_local(self, f=100):
+    def _nlm_local(self, f):
         """
         spatial channel, local gaussian filter with kernel size of f
         :param f: kernel size, in pixels
@@ -171,7 +174,7 @@ class LST_Interpolator(BaseInterpolator):
         print(f'{no_local_data_counter} pixels ({no_local_data_counter / (x_length * y_length):.5%}) '
               f'used global calculations')
 
-    def temporal_interp_multi_frame(self, num_frames, max_delta_cycle, max_cloud_perc):
+    def temporal_interp_multi_frame(self, num_frames, max_delta_cycle, max_cloud_perc, spatial_kern_size):
         assert num_frames in range(1, 11)  # between 1 and 11 frames
         print(f'Looking for at most {num_frames} reference frame candidates subject to')
         print('\tdelta cycle < ', max_delta_cycle)
@@ -215,7 +218,7 @@ class LST_Interpolator(BaseInterpolator):
         reconst_imgs = []
 
         for d in selected_ref_dates:
-            self.temporal_interp(ref_frame_date=d)
+            self.temporal_interp(ref_frame_date=d, spatial_kern_size=spatial_kern_size, global_threshold=.5)
             reconst_imgs.append(self.reconstructed_target)
             self.reconstructed_target = None
 
@@ -226,7 +229,7 @@ class LST_Interpolator(BaseInterpolator):
         blended_img /= len(reconst_imgs)
         self.reconstructed_target = blended_img
 
-    def temporal_interp(self, ref_frame_date, global_threshold=.5):
+    def temporal_interp(self, ref_frame_date, spatial_kern_size, global_threshold=.5):
         """
         performs temporal interpolation with respect to one specified reference frame. This method does not introduce
         synthetic occlusion to reference frame.
@@ -246,7 +249,7 @@ class LST_Interpolator(BaseInterpolator):
         ref_interp = LST_Interpolator(root=self.root, target_date=self.ref_frame_date)
         ref_occlusion_percentage = ref_interp.add_occlusion(use_true_cloud=True)
         if ref_occlusion_percentage <= global_threshold:  # use local gaussian
-            ref_interp._nlm_local(f=75)
+            ref_interp._nlm_local(f=spatial_kern_size)
             if np.isnan(ref_interp.reconstructed_target).any():
                 ref_interp.reconstructed_target = None
                 ref_interp._nlm_global()

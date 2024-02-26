@@ -36,7 +36,7 @@ def solve_all_lst(city_name, resume=False):
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
         interp.add_occlusion(use_true_cloud=True)
-        interp.run_interpolation()  # saves results to output
+        interp.run_interpolation(spatial_kern_size=200)  # saves results to output
 
         # geo reference
 
@@ -102,7 +102,9 @@ def geo_ref_copy_lst(city, npy_filename, out_path='default'):
     ref_img.close()
     out_tif.close()
 
-# @monitor
+
+@monitor
+@timer
 def process_city_lst():
     """
     Computes brightness temperature and surface temperature for a given city. Require inputs to be downloaded
