@@ -39,5 +39,11 @@ concrete_instance.my_abstract_method()
 concrete_instance.alert()
 print(concrete_instance.a)
 print(concrete_instance.b)
+# concrete_instance.alert()
+# concrete_instance.alert()
+# concrete_instance.alert()
+# write a main function
+def main():
+    alert("This is an alert message.")
 
 

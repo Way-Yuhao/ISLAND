@@ -63,13 +63,10 @@ def geo_reference_lst(city_name):
     bounding_box = json.loads(bounding_box)
     # geo-reference
     output_dir = f'./data/{city_name}/output_referenced'
-    assert not p.exists(output_dir)
-    os.mkdir(output_dir)
-    # os.mkdir(p.join(output_dir, 'st'))
-    # os.mkdir(p.join(output_dir, 'bt'))
+    if not p.exists(output_dir):
+        os.mkdir(output_dir)
     os.mkdir(p.join(output_dir, 'lst'))
-    # brightness temperature
-    # surface temperature
+    # land surface temperature
     st_dir = f'./data/{city_name}/output/'
     st_files = os.listdir(st_dir)
     st_files = [f for f in st_files if '_st.npy' in f]
