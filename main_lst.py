@@ -48,31 +48,27 @@ def geo_reference_lst(city_name):
     :return:
     """
     # acquire bounding box
-    cities_list_path = "./data/us_cities.csv"
-    cols = list(pd.read_csv(cities_list_path, nrows=1))
-    cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
-    row = cities_meta.loc[cities_meta['city'] == city_name]
-    if row.empty:
-        raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
-    scene_id = str(row.iloc[0]['scene_id'])
-    if len(scene_id) == 5:
-        scene_id = '0' + scene_id
-    bounding_box = row.iloc[0]['bounding_box']
-    assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
-    assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
-    bounding_box = json.loads(bounding_box)
-    # geo-reference
-    output_dir = f'./data/{city_name}/output_referenced'
+    # cities_list_path = "./data/us_cities.csv"
+    # cols = list(pd.read_csv(cities_list_path, nrows=1))
+    # cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
+    # row = cities_meta.loc[cities_meta['city'] == city_name]
+    # if row.empty:
+    #     raise IndexError(f'City {city_name} is not specified in {cities_list_path}')
+    # scene_id = str(row.iloc[0]['scene_id'])
+    # if len(scene_id) == 5:
+    #     scene_id = '0' + scene_id
+    # bounding_box = row.iloc[0]['bounding_box']
+    # assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
+    # assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
+    output_dir = f'./data/{city_name}/output_referenced/lst'
     if not p.exists(output_dir):
         os.mkdir(output_dir)
-    os.mkdir(p.join(output_dir, 'lst'))
-    # land surface temperature
+    # geo-reference land surface temperature
     st_dir = f'./data/{city_name}/output/'
     st_files = os.listdir(st_dir)
     st_files = [f for f in st_files if '_st.npy' in f]
     for f in st_files:
-        geo_ref_copy_lst(city_name, f, p.join(output_dir, 'lst', f[8:16] + '.tif'))
-        # geo_ref(bounding_box, p.join(st_dir, f), p.join(output_dir, 'st', f[:-4] + '.tif'))
+        geo_ref_copy_lst(city_name, f, p.join(output_dir, f[8:16] + '.tif'))
     print(f'Geo-reference finished for {city_name}.')
 
 
@@ -117,36 +113,41 @@ def process_city_lst():
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
-    parser.add_argument('-r', required=False, action='store_true',
-                        help='Toggle to resume from previous run. Will not overwrite files.')
+    # parser.add_argument('-r', required=False, action='store_true',
+    #                     help='Toggle to resume from previous run. Will not overwrite files.')
+    parser.add_argument('--remove_output', required=False, action='store_true',
+                        help='Toggle to remove existing output directory.')
+    parser.add_argument('--remove_output_ref', required=False, action='store_true',
+                        help='Toggle to remove existing output_referenced directory.')
     parser.add_argument('--skip_to_ref', required=False, action='store_true',
                         help='Toggle to skip to geo-reference step.')
     args = parser.parse_args()
-    RESUME = args.r
     CITY_NAME = ""
     for entry in args.c:
         CITY_NAME += entry + " "
     CITY_NAME = CITY_NAME[:-1]
 
     yprint(f'-------- Processing {CITY_NAME} --------')
-    if p.exists(f'./data/{CITY_NAME}/output_referenced/'):
-        shutil.rmtree(f'./data/{CITY_NAME}/output_referenced/')
-        yprint(f'Removing ./data/{CITY_NAME}/output_referenced/')
+    # remove existing output directories when prompted
+    if args.remove_output:
+        shutil.rmtree(f'./data/{CITY_NAME}/output')
+        yprint(f'Removed output directory for {CITY_NAME}')
+    if args.remove_output_ref:
+        shutil.rmtree(f'./data/{CITY_NAME}/output_referenced')
+        yprint(f'Removed output_referenced directory for {CITY_NAME}')
+    # check if output directories already exist
+    if p.exists(f'./data/{CITY_NAME}/output'):
+        alert(f'Output directory ./data/{CITY_NAME}/output/ already exists. May overwrite existing files.')
+    else:
+        os.mkdir(f'./data/{CITY_NAME}/output')
+    if p.exists(f'./data/{CITY_NAME}/output_referenced'):
+        alert(f'Output_referenced directory ./data/{CITY_NAME}/output_referenced/ already exists. '
+              f'May overwrite existing files.')
+    else:
+        os.mkdir(f'./data/{CITY_NAME}/output_referenced')
+    # run interpolation
     if not args.skip_to_ref:
-        if RESUME:
-            yprint('WARNING: resume mode is on')
-            if p.exists(f'./data/{CITY_NAME}/output_bt'):
-                shutil.rmtree(f'./data/{CITY_NAME}/output_bt')
-                yprint(f'Removing ./data/{CITY_NAME}/output_bt')
-            if p.exists(f'./data/{CITY_NAME}/output_st'):
-                shutil.rmtree(f'./data/{CITY_NAME}/output_st')
-                yprint(f'Removing ./data/{CITY_NAME}/output_st')
-            time.sleep(2)  # allow previous messages to print
-        elif p.exists(f'./data/{CITY_NAME}/output'):
-            raise FileExistsError(f'Output directory ./data/{CITY_NAME}/output/ already exists. '
-                                  f'Please ether turn \'resume\' on or remove the existing '
-                                  f'directory.')
-        solve_all_lst(city_name=CITY_NAME, resume=RESUME)
+        solve_all_lst(city_name=CITY_NAME, resume=False)
     geo_reference_lst(CITY_NAME)
     alert(f'Interpolation for {CITY_NAME} finished.')
 
