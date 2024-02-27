@@ -11,6 +11,7 @@ import requests
 import pandas as pd
 from io import StringIO
 
+
 def read_surfrad_file_from_url(config, url):
     """
     Read a SURFRAD data file from a URL and return a DataFrame.
@@ -63,6 +64,9 @@ def read_surfrad_file_from_url(config, url):
     else:
         print(f"Failed to download the file: HTTP {response.status_code}")
         return None
+
+
+def find
 
 @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
 def main(surfrad_config: DictConfig):

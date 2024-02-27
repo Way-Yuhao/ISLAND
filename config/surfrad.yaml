@@ -1,5 +1,5 @@
- # Define the column names based on the Fortran code variables and their quality control indicators
- column_names : [
+# Define the column names based on the Fortran code variables and their quality control indicators
+column_names : [
      'year', 'jday', 'month', 'day', 'hour', 'min',
      'dt', 'zen', 'dw_solar', 'qc_dwsolar', 'uw_solar', 'qc_uwsolar', 'direct_n',
      'qc_direct_n', 'diffuse', 'qc_diffuse', 'dw_ir', 'qc_dwir', 'dw_casetemp',
@@ -7,5 +7,4 @@
      'qc_uwcasetemp', 'uw_dometemp', 'qc_uwdometemp', 'uvb', 'qc_uvb', 'par', 'qc_par',
      'netsolar', 'qc_netsolar', 'netir', 'qc_netir', 'totalnet', 'qc_totalnet', 'temp',
      'qc_temp', 'rh', 'qc_rh', 'windspd', 'qc_windspd', 'winddir', 'qc_winddir',
-     'pressure', 'qc_pressure'
- ]
+     'pressure', 'qc_pressure']
