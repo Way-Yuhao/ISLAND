@@ -68,7 +68,7 @@ def geo_reference_lst(city_name):
     st_files = os.listdir(st_dir)
     st_files = [f for f in st_files if '_st.npy' in f]
     for f in st_files:
-        geo_ref_copy_lst(city_name, f, p.join(output_dir, f[8:16] + '.tif'))
+        geo_ref_copy_lst(city_name, f, p.join(output_dir, f'lst_{f[8:16]}.tif'))
     print(f'Geo-reference finished for {city_name}.')
 
 

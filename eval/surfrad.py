@@ -23,7 +23,14 @@ column_names = [
     'pressure', 'qc_pressure'
 ]
 
+
 def read_surfrad_file_from_url(url):
+    """
+    Read a SURFRAD data file from a URL and return a DataFrame.
+    Example url: 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
+    :param url:
+    :return:
+    """
     response = requests.get(url)
     # Check if the request was successful
     if response.status_code == 200:
