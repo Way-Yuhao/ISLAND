@@ -1,3 +1,6 @@
+"""
+Evaluation scripts for LST Interpolator
+"""
 import argparse
 import time
 import datetime
@@ -9,17 +12,16 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import cv2
-from interpolators.bt_interpolator import BT_Interpolator as Interpolator
-# from interpolators.lst_interpolator import LST_Interpolator as Interpolator
+# from interpolators.bt_interpolator import BT_Interpolator as Interpolator
+from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from natsort import natsorted
 import random
-import wandb
 import shutil
 from tqdm import tqdm
 from rich.progress import track
 from natsort import natsorted
-from config import *
-from util.helper import get_season, rprint, yprint, timer, hash_, deprecated, alert
+from config.config import *
+from util.helper import get_season, rprint, yprint, timer, hash_, deprecated, alert, monitor
 from region_sampler import add_missing_image
 
 
@@ -80,7 +82,7 @@ def evaluate_multiprocess(num_procs=4):
     pool.close()
     pool.join()
     print('---------------------------------')
-    print(f"{bcolors.WARNING}May have encountered error. Scroll up to view.")
+    rprint("May have encountered error. Scroll up to view.")
     d = {'cloud_perc': list(cloud_percs), 'MAE': list(maes), 'MSE': list(mses)}
     df = pd.DataFrame(data=d)
     df.to_csv(stats_fpath)
@@ -101,7 +103,7 @@ def eval_single(occlusion_fpath, lock, cloud_percs, maes, mses):
         print(f"{cloud_perc:.3%} | mae = {mae:.3f} | mse = {mse:.3f}")
         interp.save_output()
     except ValueError as e:
-        print(f"{bcolors.FAIL}ERROR: {e}{bcolors.ENDC}")
+        rprint(f"ERROR: {e}")
 
     with lock:  # to ensure atomic IO operations
         cloud_percs.append(cloud_perc)
@@ -257,6 +259,7 @@ def plot_temporal_cycle(city_name):
 ###################### experiments with synthetic occlusions ######################
 
 @timer
+@monitor
 def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, resume=False):
     """
     Generates timelapses of BT for a given city while adding random synthetic occlusion.
@@ -294,12 +297,14 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
         plt.savefig(p.join(interp.output_path, output_filename))
         interp.run_interpolation()
         loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
-        interp.save_error_frame(mask=added_occlusion, suffix='st')
+        interp.save_error_frame(mask=added_occlusion, suffix='lst')
         print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
         log += [(d, loss, np.count_nonzero(added_occlusion))]
     df = pd.DataFrame(log, columns=['target_date', 'mae', 'synthetic occlusion percentage'])
     df.to_csv(log_fpath, index=False)
     print('csv file saved to ', log_fpath)
+    alert(f'Simulated evaluation finished for {city_name} with {num_occlusions} '
+          f'synthetic occlusions of size {occlusion_size}.')
 
 
 def calc_error_from_outputs(city_name, output_dir, mode=None):
@@ -464,7 +469,7 @@ def compute_st_for_all(city_name):
 
 
 if __name__ == '__main__':
-    pass
+
     # main()
     # evaluate()
     # evaluate_multiprocess(num_procs=10)
@@ -474,4 +479,4 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
 
     # plot_temporal_cycle(city_name='Phoenix')
-    # timelapse_with_synthetic_occlusion(city_name='Houston')
+    timelapse_with_synthetic_occlusion(city_name='New York', occlusion_size=100, num_occlusions=2)
