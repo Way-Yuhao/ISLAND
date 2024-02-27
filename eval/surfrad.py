@@ -5,6 +5,7 @@ __author__ = 'yuhao liu'
 
 import os
 import sys
+import ee
 from omegaconf import DictConfig, OmegaConf
 import hydra
 import requests
@@ -66,7 +67,35 @@ def read_surfrad_file_from_url(config, url):
         return None
 
 
-def find
+def get_emis_at(lon, lat):
+    point = ee.Geometry.Point(lon, lat)
+    image = ee.Image('NASA/ASTER_GED/AG100_003').multiply(0.001)
+    info = image.reduceRegion(ee.Reducer.first(), point, scale=30).getInfo()
+    emis_10 = info['emissivity_band10']
+    emis_11 = info['emissivity_band11']
+    emis_12 = info['emissivity_band12']
+    emis_13 = info['emissivity_band13']
+    emis_14 = info['emissivity_band14']
+    broadband_emis = calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14)
+    return broadband_emis
+
+
+def calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14):
+    """
+    Calculate the broadband emissivity from the ASTER emissivity bands.
+    Following K. Ogawa, T. Schmugge, and S. Rokugawa, “Estimating broadband emissivity of arid regions and its
+    seasonal variations using thermal infrared remote sensing,” (in English),
+    IEEE Trans. Geosci. Remote Sens., vol. 46, no. 2, pp. 334–343, Feb. 2008.
+    :param emis_10:
+    :param emis_11:
+    :param emis_12:
+    :param emis_13:
+    :param emis_14:
+    :return:
+    """
+    # Calculate the broadband emissivity
+    broadband_emis = 0.128 + 0.014 * emis_10 + 0.145 * emis_11 + 0.241 * emis_12 + 0.467 * emis_13 + 0.004 * emis_14
+    return broadband_emis
 
 @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
 def main(surfrad_config: DictConfig):

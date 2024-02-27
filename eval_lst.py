@@ -479,4 +479,4 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
 
     # plot_temporal_cycle(city_name='Phoenix')
-    timelapse_with_synthetic_occlusion(city_name='New York', occlusion_size=100, num_occlusions=2)
+    timelapse_with_synthetic_occlusion(city_name='New York', occlusion_size=250, num_occlusions=2)
