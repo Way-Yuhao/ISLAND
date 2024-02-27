@@ -295,7 +295,7 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
         plt.title(f'Added synthetic occlusion on {d}')
         output_filename = f'syn_occlusion_{d}.png'
         plt.savefig(p.join(interp.output_path, output_filename))
-        interp.run_interpolation()
+        interp.run_interpolation(spatial_kern_size=200)
         loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
         interp.save_error_frame(mask=added_occlusion, suffix='lst')
         print(f'MAE loss over synthetic occluded areas = {loss:.3f}')

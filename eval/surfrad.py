@@ -11,20 +11,7 @@ import requests
 import pandas as pd
 from io import StringIO
 
-# Define the column names based on the Fortran code variables and their quality control indicators
-column_names = [
-    'year', 'jday', 'month', 'day', 'hour', 'min',
-    'dt', 'zen', 'dw_solar', 'qc_dwsolar', 'uw_solar', 'qc_uwsolar', 'direct_n',
-    'qc_direct_n', 'diffuse', 'qc_diffuse', 'dw_ir', 'qc_dwir', 'dw_casetemp',
-    'qc_dwcasetemp', 'dw_dometemp', 'qc_dwdometemp', 'uw_ir', 'qc_uwir', 'uw_casetemp',
-    'qc_uwcasetemp', 'uw_dometemp', 'qc_uwdometemp', 'uvb', 'qc_uvb', 'par', 'qc_par',
-    'netsolar', 'qc_netsolar', 'netir', 'qc_netir', 'totalnet', 'qc_totalnet', 'temp',
-    'qc_temp', 'rh', 'qc_rh', 'windspd', 'qc_windspd', 'winddir', 'qc_winddir',
-    'pressure', 'qc_pressure'
-]
-
-
-def read_surfrad_file_from_url(url):
+def read_surfrad_file_from_url(config, url):
     """
     Read a SURFRAD data file from a URL and return a DataFrame.
     Example url: 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
@@ -62,7 +49,7 @@ def read_surfrad_file_from_url(url):
             except ValueError as e:
                 print(f"Error processing line: {e}")
                 continue
-        df = pd.DataFrame(data_rows, columns=column_names)
+        df = pd.DataFrame(data_rows, columns=config.column_names)
         # Convert each identified QC column to integer
         qc_columns = [col for col in df.columns if col.startswith('qc_')]
         for col in qc_columns:
@@ -77,11 +64,11 @@ def read_surfrad_file_from_url(url):
         print(f"Failed to download the file: HTTP {response.status_code}")
         return None
 
-
-def main():
+@hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
+def main(surfrad_config: DictConfig):
     # Example usage
     url = 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
-    df = read_surfrad_file_from_url(url)
+    df = read_surfrad_file_from_url(surfrad_config, url)
     if df is not None:
         print(df.head())
 
