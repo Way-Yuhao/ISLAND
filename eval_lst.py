@@ -260,7 +260,7 @@ def plot_temporal_cycle(city_name):
 
 @timer
 @monitor
-def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, resume=False):
+def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, spatial_kern_size, resume=False):
     """
     Generates timelapses of BT for a given city while adding random synthetic occlusion.
     Evaluates loss only on synthetically occluded areas.
@@ -295,7 +295,7 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
         plt.title(f'Added synthetic occlusion on {d}')
         output_filename = f'syn_occlusion_{d}.png'
         plt.savefig(p.join(interp.output_path, output_filename))
-        interp.run_interpolation(spatial_kern_size=200)
+        interp.run_interpolation(spatial_kern_size=spatial_kern_size)
         loss, error_map = interp.calc_loss_hybrid(metric='mae', synthetic_only_mask=added_occlusion)
         interp.save_error_frame(mask=added_occlusion, suffix='lst')
         print(f'MAE loss over synthetic occluded areas = {loss:.3f}')
@@ -304,7 +304,8 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
     df.to_csv(log_fpath, index=False)
     print('csv file saved to ', log_fpath)
     alert(f'Simulated evaluation finished for {city_name} with {num_occlusions} '
-          f'synthetic occlusions of size {occlusion_size}.')
+          f'synthetic occlusions of size {occlusion_size}'
+          f'using spatial kernel size {spatial_kern_size}.')
 
 
 def calc_error_from_outputs(city_name, output_dir, mode=None):
@@ -479,4 +480,4 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
 
     # plot_temporal_cycle(city_name='Phoenix')
-    timelapse_with_synthetic_occlusion(city_name='New York', occlusion_size=250, num_occlusions=2)
+    timelapse_with_synthetic_occlusion(city_name='Houston', occlusion_size=250, num_occlusions=2, spatial_kern_size=200)
