@@ -16,6 +16,7 @@ from io import StringIO
 def read_surfrad_file_from_url(config, url):
     """
     Read a SURFRAD data file from a URL and return a DataFrame.
+    * Do NOT use lon, lat and elevation from the file, as they are not accurate.
     Example url: 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
     :param url:
     :return:
@@ -56,11 +57,11 @@ def read_surfrad_file_from_url(config, url):
         qc_columns = [col for col in df.columns if col.startswith('qc_')]
         for col in qc_columns:
             df[col] = df[col].astype(int)
-        # Add station metadata as new columns to the DataFrame
-        df['station_name'] = station_name
-        df['latitude'] = latitude
-        df['longitude'] = longitude
-        df['elevation'] = elevation
+        # DO NOT USE station metadata as new columns to the DataFrame
+        # df['station_name'] = station_name
+        # df['latitude'] = latitude
+        # df['longitude'] = longitude
+        # df['elevation'] = elevation
         return df
     else:
         print(f"Failed to download the file: HTTP {response.status_code}")
@@ -100,7 +101,10 @@ def calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14):
 
 
 def get_surfrad_surf_temp_at(station, time):
-    pass
+    raise NotImplementedError()
+
+
+
 
 @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
 def main(surfrad_config: DictConfig):
