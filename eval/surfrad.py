@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 from io import StringIO
-from util.equations import calc_lst
+from util.equations import calc_lst, calc_broadband_emis
 
 
 def read_surfrad_file_from_url(config, url):
@@ -89,24 +89,11 @@ def get_emis_at(lon, lat):
     return broadband_emis
 
 
-def calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14):
-    """
-    Calculate the broadband emissivity from the ASTER emissivity bands.
-    Following K. Ogawa, T. Schmugge, and S. Rokugawa, “Estimating broadband emissivity of arid regions and its
-    seasonal variations using thermal infrared remote sensing,” (in English),
-    IEEE Trans. Geosci. Remote Sens., vol. 46, no. 2, pp. 334–343, Feb. 2008.
-    :return:
-    """
-    # Calculate the broadband emissivity
-    broadband_emis = 0.128 + 0.014 * emis_10 + 0.145 * emis_11 + 0.241 * emis_12 + 0.467 * emis_13 + 0.004 * emis_14
-    return broadband_emis
-
-
 def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     assert isinstance(time, datetime), "time must be a datetime object"
     year_ = time.year
     year_2 = str(time.year)[-2:]
-    jday = time.timetuple().tm_yday
+    jday = str(time.timetuple().tm_yday).zfill(3)
     url = f'https://gml.noaa.gov/aftp/data/radiation/surfrad/{station_id.lower()}/{year_}/{station_id.lower()}{year_2}{jday}.dat'
     config = OmegaConf.load('../config/surfrad.yaml')
     emis = config['stations'][station_id]['emis']

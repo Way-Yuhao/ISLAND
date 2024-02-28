@@ -58,11 +58,6 @@ def acquire_reference_date(start_date, scene_id):
 def verify_date(date_str: str, suppressOutput=False) -> bool:
     date = datetime.strptime(date_str, '%Y%m%d')
     end_date = datetime.strptime(NULLIFY_DATES_AFTER, '%Y%m%d')
-    # if (date - nullified_date).days >= 0:
-    #     if not suppressOutput:
-    #         print(f'Invalid date encountered: {date_str}. Need to specify a date before {NULLIFY_DATES_AFTER}')
-    #     return False
-    # else:
     time_delta = datetime.strptime(GLOBAL_REFERENCE_DATE, '%Y%m%d') - date
     r = time_delta.days % 16
     if r == 0:

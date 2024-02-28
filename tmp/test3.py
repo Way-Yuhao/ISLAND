@@ -1,29 +1,48 @@
+import os
 import ee
-import geemap
+from datetime import datetime, date, timedelta
+from omegaconf import DictConfig, OmegaConf
+from util.ee_utils import (acquire_reference_date, generate_cycles,
+                           get_landsat_lst, get_landsat_capture_time, load_ee_image,
+                           is_landsat_pixel_clear)
+from eval.surfrad import get_surfrad_surf_temp_at
+import pandas as pd
+from rich.progress import Progress
 
-# Initialize the Earth Engine API
-ee.Initialize()
+start_date = '20140101'
+end_date = '20200101'
+scene_id = '016032'
+config = OmegaConf.load
 
-# Your specific longitude and latitude
-lon = -95.43495
-lat = 29.75765
-point = ee.Geometry.Point(lon, lat)
+config = OmegaConf.load('../config/surfrad.yaml')
+lon = config.stations.PSU.Longitude
+lat = config.stations.PSU.Latitude
+ref_date = acquire_reference_date(start_date, scene_id)
+print('ref date =', ref_date)
+cycles = generate_cycles(ref_date, end_date)
+# print(cycles)
+data = []
+with Progress() as progress:
+    task_id = progress.add_task("[cyan]Processing...", total=len(cycles))
+    for date_ in cycles:
+        progress.update(task_id, advance=1)
+        try:
+            image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_016032_{date_}')
+        except ee.EEException as e:
+            continue
+        landsat_lst = get_landsat_lst(lon, lat, image=image)
+        capture_time = get_landsat_capture_time(image=image)
+        surfrad_lst = get_surfrad_surf_temp_at('PSU', capture_time)
+        condition_clear = is_landsat_pixel_clear(lon, lat, image=image)
+        data.append({
+            'date': date_,
+            'landsat_lst': landsat_lst,
+            'surfrad_lst': surfrad_lst,
+            'condition_clear': condition_clear,
+            'delta_lst': landsat_lst - surfrad_lst
+        })
+df = pd.DataFrame(data)
+print(df)
 
-# Load an image
-#image = ee.Image('LANDSAT/LC08/C01/T1/LC08_044034_20140318')  # Example Landsat image
-# image = ee.Image('LANDSAT/LC08/C01/T1/LC08_026047_20230124')  # Example Landsat image
-
-dataset = ee.ImageCollection('USGS/NLCD_RELEASES/2019_REL/NLCD')
-# Filter the collection to the 2016 product.
-image = dataset.filter(ee.Filter.eq('system:index', '2019')).first()
-
-# Use reduceRegion to sample the image at the given point
-# The reducer is set to 'first' to get the value of the pixel at the point
-# scale is set according to the image resolution, adjust accordingly
-info = image.reduceRegion(ee.Reducer.first(), point, scale=30).getInfo()
-
-# Extract pixel value (example for extracting a band value)
-# Replace 'B1' with the specific band you're interested in
-pixel_value = info['landcover']  # Adjust 'B1' to the band you're interested in
-
-print(pixel_value)
+# date_ = acquire_reference_date('20130101', '016032')
+# print(date_)
