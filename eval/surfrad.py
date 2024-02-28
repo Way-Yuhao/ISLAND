@@ -10,7 +10,9 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 import requests
 import pandas as pd
+from datetime import datetime
 from io import StringIO
+from util.equations import calc_lst
 
 
 def read_surfrad_file_from_url(config, url):
@@ -100,8 +102,27 @@ def calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14):
     return broadband_emis
 
 
-def get_surfrad_surf_temp_at(station, time):
-    raise NotImplementedError()
+def get_surfrad_surf_temp_at(station_id: str, time: datetime):
+    assert isinstance(time, datetime), "time must be a datetime object"
+    year_ = time.year
+    year_2 = str(time.year)[-2:]
+    jday = time.timetuple().tm_yday
+    url = f'https://gml.noaa.gov/aftp/data/radiation/surfrad/{station_id.lower()}/{year_}/{station_id.lower()}{year_2}{jday}.dat'
+    config = OmegaConf.load('../config/surfrad.yaml')
+    emis = config['stations'][station_id]['emis']
+    # find df for the corresponding day
+    df = read_surfrad_file_from_url(config, url)
+    # find data for the corresponding time during the day
+    row = df[df['hour'] == time.hour]
+    row = row[row['min'] == time.minute]
+    uw_ir = row['uw_ir'].iloc[0]
+    dw_ir = row['dw_ir'].iloc[0]
+    air_temp = row['temp'].iloc[0]
+    # print('upwelling thermal infrared (Watts m^-2): ', uw_ir)
+    # print('downwelling thermal infrared (Watts m^-2): ', dw_ir)
+    # print('10-m air temperature (Celcius): ', air_temp)
+    surf_temp = calc_lst(emis, uw_ir, dw_ir)
+    return surf_temp
 
 
 
@@ -116,4 +137,6 @@ def main(surfrad_config: DictConfig):
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    lst = get_surfrad_surf_temp_at('PSU', datetime(2019, 11, 23, 15, 53))
+    print(lst)

@@ -6,6 +6,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 230 m
     Time_Zone: "6 hours from UTC"
     Installed: "April 1994"
+    emis: 0.9751  # broadband emissivity calculated from ASTER GEDv3 at prescribed lon, lat
   TBL:
     Name: "Table Mountain, Boulder, Colorado"
     Latitude: 40.12498
@@ -13,6 +14,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 1689 m
     Time_Zone: "7 hours from UTC"
     Installed: "July 1995"
+    emis: 0.9711
   DRA:
     Name: "Desert Rock, Nevada"
     Latitude: 36.62373
@@ -20,6 +22,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 1007 m
     Time_Zone: "8 hours from UTC"
     Installed: "March 1998"
+    emis: 0.9698
   FPK:
     Name: "Fort Peck, Montana"
     Latitude: 48.30783
@@ -27,6 +30,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 634 m
     Time_Zone: "7 hours from UTC"
     Installed: "November 1994"
+    emis: 0.9791
   GWN:
     Name: "Goodwin Creek, Mississippi"
     Latitude: 34.2547
@@ -34,6 +38,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 98 m
     Time_Zone: "6 hours from UTC"
     Installed: "December 1994"
+    emis: 0.9690
   PSU:
     Name: "Penn. State Univ., Pennsylvania"
     Latitude: 40.72012
@@ -41,6 +46,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 376 m
     Time_Zone: "5 hours from UTC"
     Installed: "June 1998"
+    emis: 0.9717
   SXF:
     Name: "Sioux Falls, South Dakota"
     Latitude: 43.73403
@@ -48,12 +54,14 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 473 m
     Time_Zone: "6 hours from UTC"
     Installed: "June 2003"
+    emis: 0.9727
   SGP:
     Name: "ARM Southern Great Plains Facility, Oklahoma"
     Latitude: 36.60406
     Longitude: -97.48525
     Elevation: 314 m
     Time_Zone: "6 hours from UTC"
+    emis: 0.9743
 
 # Define the column names based on the Fortran code variables and their quality control indicators
 column_names : [
