@@ -4,7 +4,10 @@ Earth Engine related utilities
 """
 import os
 import ee
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
+import geopandas as gpd
+from shapely.geometry import Point
+from shapely.ops import nearest_points
 
 
 def load_ee_image(url):
@@ -127,3 +130,47 @@ def generate_cycles(start_date, end_date):
         cycles.append(cur.strftime('%Y%m%d'))
         cur = cur + timedelta(days=16)
     return cycles
+
+
+def cvt_lat_lon_to_path_row(lat: float, lon: float):
+    """
+    Convert latitude and longitude to Landsat WRS-2 Path and Row.
+    If there are multiple matches, the patch whose center is closest to the specified point is returned.
+    :param lat: latitude
+    :param lon: longitude
+    :return: dictionary with 'path' and 'row'
+    """
+    # Load WRS-2 Path/Row shapefile
+    wrs_path_row_shp = '../config/WRS2/WRS2_descending.shp'
+    assert os.path.exists(wrs_path_row_shp), f'File not found: {wrs_path_row_shp}'
+    wrs = gpd.read_file('../config/WRS2/WRS2_descending.shp')
+    point = Point(lon, lat)
+    # Perform spatial query to find the Path/Row intersecting with the point
+    matches = wrs[wrs.geometry.intersects(point)]
+    if len(matches) == 0 or matches is None:
+        print('No matching Path/Row found.')
+        return None
+    else:
+        # Define a projected CRS that is appropriate for your area of interest
+        # This is an example using EPSG:3857 which is commonly used for Web Mercator
+        projected_crs = "EPSG:3857"
+        # Convert the CRS of the geometries
+        matches = matches.copy()
+        matches.geometry = matches.geometry.to_crs(projected_crs)
+        point = gpd.GeoSeries([point], crs="EPSG:4326").to_crs(projected_crs)[0]
+        # Now you can calculate the centroid and distance
+        distances = matches.geometry.centroid.distance(point)
+        # Find the index of the patch with the smallest distance
+        closest_index = distances.idxmin()
+        # Get the path and row of the closest patch
+        closest_path = matches.loc[closest_index, 'PATH']
+        closest_row = matches.loc[closest_index, 'ROW']
+        return {'path': closest_path, 'row': closest_row}
+
+
+if __name__ == '__main__':
+    # Test the function cvt_lat_lon_to_path_row
+    lon = -95.096
+    lat = 31.230
+    patch = cvt_lat_lon_to_path_row(lat, lon)
+    print(patch)

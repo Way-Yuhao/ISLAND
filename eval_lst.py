@@ -304,7 +304,7 @@ def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions
     df.to_csv(log_fpath, index=False)
     print('csv file saved to ', log_fpath)
     alert(f'Simulated evaluation finished for {city_name} with {num_occlusions} '
-          f'synthetic occlusions of size {occlusion_size}'
+          f'synthetic occlusions of size {occlusion_size} '
           f'using spatial kernel size {spatial_kern_size}.')
 
 
@@ -370,6 +370,18 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
     print('Average RMSE = ', df['rmse'].mean())
     print('Average MSE = ', df['mse'].mean())
 
+
+def simulated_eval_with_squares_wrapper(city_name, occlusion_size, num_occlusions, spatial_kern_size, resume=False):
+    yprint(f'Running simulated evaluation for {city_name} with '
+           f'{num_occlusions} synthetic occlusions of size {occlusion_size} ')
+    out_dir = f'./data/{city_name}/output_simeval_f{occlusion_size}_s{spatial_kern_size}_n{num_occlusions}'
+    timelapse_with_synthetic_occlusion(city_name=city_name, occlusion_size=occlusion_size,
+                                       num_occlusions=num_occlusions, spatial_kern_size=spatial_kern_size,
+                                       resume=resume)
+    # rename the directory
+    os.rename(f'./data/{city_name}/output', out_dir)
+    calc_error_from_outputs(city_name=city_name, output_dir=out_dir, mode='full')
+    return
 
 ######### experiments with real occlusion ################
 
@@ -480,4 +492,12 @@ if __name__ == '__main__':
     # temp_pairwise_cycle_eval_mp(city_name='Phoenix')
 
     # plot_temporal_cycle(city_name='Phoenix')
-    timelapse_with_synthetic_occlusion(city_name='Houston', occlusion_size=250, num_occlusions=2, spatial_kern_size=200)
+
+
+    # timelapse_with_synthetic_occlusion(city_name='Houston', occlusion_size=250,
+    #                                    num_occlusions=2, spatial_kern_size=200,
+    #                                    resume=True)
+    # calc_error_from_outputs(city_name='Houston', output_dir='./data/Houston/output_simeval_f75_s250_n2',
+    #                         mode='full')
+    simulated_eval_with_squares_wrapper(city_name='Houston', occlusion_size=500, num_occlusions=2, spatial_kern_size=250,
+                                        resume=False)
