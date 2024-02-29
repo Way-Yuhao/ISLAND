@@ -74,30 +74,3 @@ column_names : [
      'qc_temp', 'rh', 'qc_rh', 'windspd', 'qc_windspd', 'winddir', 'qc_winddir',
      'pressure', 'qc_pressure']
 
-#SURFRAD_station_locations: # high resolution coordinates acquired from https://gml.noaa.gov/grad/surfrad/sitepage.html
-#  Penn_State:
-#    Tower: {lat: 40.72033, lon: -77.93100}
-#    Tracker: {lat: 40.72023, lon: -77.93090}
-#    Platform: {lat: 40.72012, lon: -77.93085}
-#  Fort_Peck:
-#    Tower: {lat: 48.30798, lon: -105.10177}
-#    Tracker: {lat: 48.30780, lon: -105.10172}
-#    Platform: {lat: 48.30783, lon: -105.10170}
-#  Bondville:
-#    Tower: {lat: 40.05155, lon: -88.37325}
-#    Tracker: {lat: 40.05195, lon: -88.37310}
-#    Platform: {lat: 40.05192, lon: -88.37309}
-#  Table_Mountain:
-#    Tower: {lat: 40.12557, lon: -105.23775}
-#    Tracker: {lat: 40.12493, lon: -105.23677}
-#    Platform: {lat: 40.12498, lon: -105.23680}
-#  Desert_Rock:
-#    Tower: {lat: 36.62320, lon: -116.01962}
-#    Tracker: {lat: 36.62387, lon: -116.01948}
-#    Platform: {lat: 36.62373, lon: -116.01947}
-#  Sioux_Falls:
-#    Tower: {lat: 43.73431, lon: -96.62334}
-#    Tracker: {lat: 43.73399, lon: -96.62328}
-#    Platform: {lat: 43.73403, lon: -96.62328}
-#  Goodwin_Creek:
-#    Tracker: {lat: 34.2547, lon: -89.8729}

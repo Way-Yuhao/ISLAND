@@ -132,7 +132,7 @@ def generate_cycles(start_date, end_date):
     return cycles
 
 
-def cvt_lat_lon_to_path_row(lat: float, lon: float):
+def cvt_lat_lon_to_path_row(lat: float, lon: float) -> dict:
     """
     Convert latitude and longitude to Landsat WRS-2 Path and Row.
     If there are multiple matches, the patch whose center is closest to the specified point is returned.
