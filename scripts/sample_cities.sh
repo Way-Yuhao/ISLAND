@@ -22,7 +22,7 @@
 
 
 #python region_sampler.py -c New York
-python region_sampler.py -c Los Angeles
+# python region_sampler.py -c Los Angeles
 #python region_sampler.py -c Chicago
 #python region_sampler.py -c Houston
 #python region_sampler.py -c Phoenix
@@ -40,4 +40,13 @@ python region_sampler.py -c Los Angeles
 #python region_sampler.py -c Seattle
 #python region_sampler.py -c Denver
 #python region_sampler.py -c Oklahoma City
+
+# python region_sampler.py -s BND
+python region_sampler.py -s TBL
+python region_sampler.py -s DRA
+python region_sampler.py -s FPK
+python region_sampler.py -s GWN
+python region_sampler.py -s PSU
+python region_sampler.py -s SXF
+python region_sampler.py -s SGP
 
