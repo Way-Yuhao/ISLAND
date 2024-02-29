@@ -8,7 +8,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Installed: "April 1994"
     emis: 0.9751  # broadband emissivity calculated from ASTER GEDv3 at prescribed lon, lat
     scene_id: '023032' # WRS-2 path and row
-    bounding_box: [[[-88.95478, 39.739204], [-87.828176, 39.739204], [-87.828176, 40.420096], [-88.95478, 40.420096], [-88.95478, 39.739204]]]
+    bounding_box: [[[-88.764038, 39.812459], [-87.973022, 39.812459], [-87.973022, 40.34625], [-88.764038, 40.34625], [-88.764038, 39.812459]]]
   TBL:
     Name: "Table Mountain, Boulder, Colorado"
     Latitude: 40.12498

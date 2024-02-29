@@ -15,6 +15,7 @@ from config.config import *
 import cv2
 import seaborn as sns
 from retry import retry
+from omegaconf import DictConfig, OmegaConf
 from interpolators.lst_interpolator import LST_Interpolator
 from util.helper import *
 
@@ -440,8 +441,16 @@ def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
     return
 
 
-@timer
-def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
+def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: str, high_volume_api: bool):
+    """
+    Main function to export data for a region
+    :param root_path:
+    :param region_name:
+    :param scene_id:
+    :param bounding_box:
+    :param high_volume_api:
+    :return:
+    """
     global GLOBAL_REFERENCE_DATE
     ee_init(high_volume=high_volume_api)
     start_date = '20170101'
@@ -450,7 +459,7 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
 
     # for future speed up, use a pool of threads for high-volume API
-    plot_cloud_series(root_path, city_name, scene_id, start_date, cycles)
+    plot_cloud_series(root_path, region_name, scene_id, start_date, cycles)
     ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
     export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
     color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
@@ -473,11 +482,18 @@ def export_city(root_path, city_name, scene_id, bounding_box, high_volume_api):
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    generate_log(root_path=f'./data/{city_name}')
+    generate_log(root_path=f'./data/{region_name}')
     return
 
 
-def export_wrapper(city_name, high_volume_api=False, startFromScratch=True):
+def export_city_wrapper(city_name, high_volume_api=False, startFromScratch=True):
+    """
+    Wrapper function for run_export(). This function is called by main() to export data for a city.
+    :param city_name:
+    :param high_volume_api:
+    :param startFromScratch:
+    :return:
+    """
     if startFromScratch is False:
         rprint('WARNING: startFromScratch is disabled. Files may be over written.')
     cities_list_path = "./data/us_cities.csv"
@@ -503,7 +519,33 @@ def export_wrapper(city_name, high_volume_api=False, startFromScratch=True):
     else:
         os.mkdir(root_path)
 
-    export_city(root_path, city_name, scene_id, bounding_box, high_volume_api)
+    run_export(root_path, city_name, scene_id, bounding_box, high_volume_api)
+
+
+def export_surfrad_wrapper(station_id, high_volume_api=False, startFromScratch=True):
+    """
+    Wrapper function for run_export(). This function is called by main() to export data for a city.
+    :param station_id:
+    :param high_volume_api:
+    :param startFromScratch:
+    :return:
+    """
+    if startFromScratch is False:
+        rprint('WARNING: startFromScratch is disabled. Files may be over written.')
+    config = OmegaConf.load('./config/surfrad.yaml')
+    station = config['stations'][station_id]
+    scene_id = station['scene_id']
+    bounding_box = str(station['bounding_box'])
+    root_path = pjoin('./data', station_id)
+    yprint(f'station = {station_id}, scene_id = {scene_id}, bounding_box = {bounding_box}')
+    if p.exists(root_path):
+        if startFromScratch:
+            raise FileExistsError(f'Directory {root_path} already exists.')
+        else:
+            rprint(f'WARNING: Directory {root_path} already exists. Overriding existing files')
+    else:
+        os.mkdir(root_path)
+    run_export(root_path, station_id, scene_id, bounding_box, high_volume_api)
 
 
 def generate_log(root_path):
@@ -567,17 +609,31 @@ def add_missing_image(city_name, date_):
 
 
 # @monitor
+@timer
 def main():
+    ## cities
+    # parser = argparse.ArgumentParser(description='Process specify city name.')
+    # parser.add_argument('-c', nargs='+', required=True,
+    #                     help='Process specify city name.')
+    # args = parser.parse_args()
+    # CITY_NAME = ""
+    # for entry in args.c:
+    #     CITY_NAME += entry + " "
+    # CITY_NAME = CITY_NAME[:-1]
+    # export_city_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=False)
+    # alert('City {} download finished.'.format(CITY_NAME))
+
+    ## surfrad
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')
     args = parser.parse_args()
-    CITY_NAME = ""
+    station_name = ""
     for entry in args.c:
-        CITY_NAME += entry + " "
-    CITY_NAME = CITY_NAME[:-1]
-    export_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=False)
-    alert('City {} download finished.'.format(CITY_NAME))
+        station_name += entry + " "
+    station_name = station_name[:-1]
+    export_surfrad_wrapper(station_id=station_name, high_volume_api=True, startFromScratch=False)
+    alert('Station {} download finished.'.format(station_name))
 
 
 if __name__ == '__main__':
