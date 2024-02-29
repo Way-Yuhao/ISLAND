@@ -611,29 +611,23 @@ def add_missing_image(city_name, date_):
 # @monitor
 @timer
 def main():
-    ## cities
-    # parser = argparse.ArgumentParser(description='Process specify city name.')
-    # parser.add_argument('-c', nargs='+', required=True,
-    #                     help='Process specify city name.')
-    # args = parser.parse_args()
-    # CITY_NAME = ""
-    # for entry in args.c:
-    #     CITY_NAME += entry + " "
-    # CITY_NAME = CITY_NAME[:-1]
-    # export_city_wrapper(city_name=CITY_NAME, high_volume_api=True, startFromScratch=False)
-    # alert('City {} download finished.'.format(CITY_NAME))
-
-    ## surfrad
-    parser = argparse.ArgumentParser(description='Process specify city name.')
-    parser.add_argument('-c', nargs='+', required=True,
-                        help='Process specify city name.')
+    parser = argparse.ArgumentParser(description='Process specify a city name via -c or a SURFRAD station name with -s.')
+    parser.add_argument('-c', nargs='+', required=False, help='Process specify city name.')
+    parser.add_argument('-s', required=False, help='Process specify SURFRAD station name.')
     args = parser.parse_args()
-    station_name = ""
-    for entry in args.c:
-        station_name += entry + " "
-    station_name = station_name[:-1]
-    export_surfrad_wrapper(station_id=station_name, high_volume_api=True, startFromScratch=False)
-    alert('Station {} download finished.'.format(station_name))
+    if args.c is not None:
+        city_name = ""
+        for entry in args.c:
+            city_name += entry + " "
+        city_name = city_name[:-1]
+        export_city_wrapper(city_name=city_name, high_volume_api=True, startFromScratch=False)
+        alert('City {} download finished.'.format(city_name))
+    elif args.s is not None:
+        station_name = args.s
+        export_surfrad_wrapper(station_id=station_name, high_volume_api=True, startFromScratch=False)
+        alert('Station {} download finished.'.format(station_name))
+    else:
+        raise AttributeError('ERROR: No city or station specified')
 
 
 if __name__ == '__main__':
