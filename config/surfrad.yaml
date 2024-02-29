@@ -7,6 +7,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "6 hours from UTC"
     Installed: "April 1994"
     emis: 0.9751  # broadband emissivity calculated from ASTER GEDv3 at prescribed lon, lat
+    scene_id: '023032' # WRS-2 path and row
+    bounding_box: [[[-88.95478, 39.739204], [-87.828176, 39.739204], [-87.828176, 40.420096], [-88.95478, 40.420096], [-88.95478, 39.739204]]]
   TBL:
     Name: "Table Mountain, Boulder, Colorado"
     Latitude: 40.12498
@@ -15,6 +17,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "7 hours from UTC"
     Installed: "July 1995"
     emis: 0.9711
+    scene_id: '034032'
+    bounding_box: [[[-105.853271, 39.880959], [-104.787598, 39.880959], [-104.787598, 40.518693], [-105.853271, 40.518693], [-105.853271, 39.880959]]]
   DRA:
     Name: "Desert Rock, Nevada"
     Latitude: 36.62373
@@ -23,6 +27,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "8 hours from UTC"
     Installed: "March 1998"
     emis: 0.9698
+    scene_id: '040035'
+    bounding_box: [[[-116.801147, 36.032095], [-115.801392, 36.032095], [-115.801392, 36.833848], [-116.801147, 36.833848], [-116.801147, 36.032095]]]
   FPK:
     Name: "Fort Peck, Montana"
     Latitude: 48.30783
@@ -31,6 +37,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "7 hours from UTC"
     Installed: "November 1994"
     emis: 0.9791
+    scene_id: '036026'
+    bounding_box: [[[-105.963135, 48.08238], [-104.864502, 48.08238], [-104.864502, 48.868949], [-105.963135, 48.868949], [-105.963135, 48.08238]]]
   GWN:
     Name: "Goodwin Creek, Mississippi"
     Latitude: 34.2547
@@ -39,6 +47,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "6 hours from UTC"
     Installed: "December 1994"
     emis: 0.9690
+    scene_id: '023036'
+    bounding_box:
   PSU:
     Name: "Penn. State Univ., Pennsylvania"
     Latitude: 40.72012
@@ -47,6 +57,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "5 hours from UTC"
     Installed: "June 1998"
     emis: 0.9717
+    scene_id: '016032'
+    bounding_box: [[[-90.631714, 34.052339], [-89.689636, 34.052339], [-89.689636, 34.790616], [-90.631714, 34.790616], [-90.631714, 34.052339]]]
   SXF:
     Name: "Sioux Falls, South Dakota"
     Latitude: 43.73403
@@ -55,6 +67,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "6 hours from UTC"
     Installed: "June 2003"
     emis: 0.9727
+    scene_id: '029030'
+    bounding_box: [[[-97.476196, 43.168566], [-96.37207, 43.168566], [-96.37207, 43.909209], [-97.476196, 43.909209], [-97.476196, 43.168566]]]
   SGP:
     Name: "ARM Southern Great Plains Facility, Oklahoma"
     Latitude: 36.60406
@@ -62,6 +76,8 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Elevation: 314 m
     Time_Zone: "6 hours from UTC"
     emis: 0.9743
+    scene_id: '028035'
+    bounding_box: [[[-98.242493, 36.133126], [-97.23175, 36.133126], [-97.23175, 36.822168], [-98.242493, 36.822168], [-98.242493, 36.133126]]]
 
 # Define the column names based on the Fortran code variables and their quality control indicators
 column_names : [
