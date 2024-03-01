@@ -499,5 +499,5 @@ if __name__ == '__main__':
     #                                    resume=True)
     # calc_error_from_outputs(city_name='Houston', output_dir='./data/Houston/output_simeval_f75_s250_n2',
     #                         mode='full')
-    simulated_eval_with_squares_wrapper(city_name='Houston', occlusion_size=500, num_occlusions=2, spatial_kern_size=250,
+    simulated_eval_with_squares_wrapper(city_name='Houston', occlusion_size=500, num_occlusions=2, spatial_kern_size=75,
                                         resume=False)

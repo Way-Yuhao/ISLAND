@@ -1,3 +1,4 @@
+
 """
 This module is used to download and process the data from SURFRAD website.
 """
@@ -13,6 +14,17 @@ import pandas as pd
 from datetime import datetime
 from io import StringIO
 from util.equations import calc_lst, calc_broadband_emis
+
+
+def correct_station_id(station_id):
+    """
+    Corrects a naming incosistency in the SURFRAD station IDs.
+    :param station_id:
+    :return:
+    """
+    if station_id == 'BND':
+        station_id = 'BON'
+    return station_id
 
 
 def read_surfrad_file_from_url(config, url):
@@ -99,6 +111,7 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     emis = config['stations'][station_id]['emis']
     # find df for the corresponding day
     df = read_surfrad_file_from_url(config, url)
+    assert df is not None, f'Failed to read the SURFRAD data from {url}'
     # find data for the corresponding time during the day
     row = df[df['hour'] == time.hour]
     row = row[row['min'] == time.minute]
@@ -125,5 +138,5 @@ def main(surfrad_config: DictConfig):
 
 if __name__ == '__main__':
     # main()
-    lst = get_surfrad_surf_temp_at('PSU', datetime(2019, 11, 23, 15, 53))
+    lst = get_surfrad_surf_temp_at('BND', datetime(2017, 2, 3, 16, 36))
     print(lst)
