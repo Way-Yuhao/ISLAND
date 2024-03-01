@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import geopandas as gpd
 from shapely.geometry import Point
 from shapely.ops import nearest_points
+import rasterio
+from pyproj import Transformer
 
 
 def load_ee_image(url):
@@ -166,6 +168,29 @@ def cvt_lat_lon_to_path_row(lat: float, lon: float) -> dict:
         closest_path = matches.loc[closest_index, 'PATH']
         closest_row = matches.loc[closest_index, 'ROW']
         return {'path': closest_path, 'row': closest_row}
+
+
+def query_geotiff(lon, lat, geotiff_path):
+    """
+    Query the pixel value of a GeoTIFF file at a specific location.
+    :param lon:
+    :param lat:
+    :param geotiff_path:
+    :return:
+    """
+    # Open the GeoTIFF file
+    with rasterio.open(geotiff_path) as img:
+        # Initialize transformer to convert from WGS 84 (EPSG:4326) to EPSG:32613
+        transformer = Transformer.from_crs("EPSG:4326", img.crs.to_string(), always_xy=True)
+        # Transform the coordinates
+        x, y = transformer.transform(lon, lat)
+        # Since GeoTIFF might have multiple bands, assuming you're interested in the first band
+        band1 = img.read(1)
+        # Get the pixel values' row and column in the dataset
+        row, col = img.index(x, y)
+        # Query the pixel value using row and column
+        pixel_value = band1[row, col]
+    return pixel_value
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ from natsort import natsorted
 import rasterio
 from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 # from interpolators.bt_interpolator import BT_Interpolator as Interpolator
-from batch_eval import solve_all_bt, move_bt, compute_st_for_all
+# from batch_eval import solve_all_bt, move_bt, compute_st_for_all
 from util.helper import get_season, rprint, yprint, timer, monitor, alert, deprecated
 
 
@@ -36,7 +36,7 @@ def solve_all_lst(city_name, resume=False):
         yprint(f'Evaluating {d}')
         interp = Interpolator(root=root_, target_date=d)
         interp.add_occlusion(use_true_cloud=True)
-        interp.run_interpolation(spatial_kern_size=200)  # saves results to output
+        interp.run_interpolation(spatial_kern_size=75)  # saves results to output
 
         # geo reference
 
@@ -111,7 +111,6 @@ def process_city_lst():
     in advance.
     :return:
     """
-    yprint('Deprecated function. This method runs interpolation on bt and then compute lst.')
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('-c', nargs='+', required=True,
                         help='Process specify city name.')

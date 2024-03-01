@@ -42,11 +42,21 @@
 #python region_sampler.py -c Oklahoma City
 
 # python region_sampler.py -s BND
-python region_sampler.py -s TBL
-python region_sampler.py -s DRA
-python region_sampler.py -s FPK
-python region_sampler.py -s GWN
-python region_sampler.py -s PSU
-python region_sampler.py -s SXF
-python region_sampler.py -s SGP
+#python region_sampler.py -s TBL
+#python region_sampler.py -s DRA
+#python region_sampler.py -s FPK
+#python region_sampler.py -s GWN
+#python region_sampler.py -s PSU
+#python region_sampler.py -s SXF
+#python region_sampler.py -s SGP
+
+python main_lst.py -c BND
+python main_lst.py -c TBL
+python main_lst.py -c DRA
+python main_lst.py -c FPK
+python main_lst.py -c GWN
+python main_lst.py -c PSU
+python main_lst.py -c SXF
+python main_lst.py -c SGP
+
 
