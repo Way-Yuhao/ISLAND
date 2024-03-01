@@ -103,10 +103,11 @@ def get_emis_at(lon, lat):
 
 def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     assert isinstance(time, datetime), "time must be a datetime object"
+    # correct_station_id(station_id)
     year_ = time.year
     year_2 = str(time.year)[-2:]
     jday = str(time.timetuple().tm_yday).zfill(3)
-    url = f'https://gml.noaa.gov/aftp/data/radiation/surfrad/{station_id.lower()}/{year_}/{station_id.lower()}{year_2}{jday}.dat'
+    url = f'https://gml.noaa.gov/aftp/data/radiation/surfrad/{correct_station_id(station_id).lower()}/{year_}/{correct_station_id(station_id).lower()}{year_2}{jday}.dat'
     config = OmegaConf.load('../config/surfrad.yaml')
     emis = config['stations'][station_id]['emis']
     # find df for the corresponding day
@@ -123,8 +124,6 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     # print('10-m air temperature (Celcius): ', air_temp)
     surf_temp = calc_lst(emis, uw_ir, dw_ir)
     return surf_temp
-
-
 
 
 @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
