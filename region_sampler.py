@@ -174,24 +174,30 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
         projection = img.projection().getInfo()
         download_func = capture_stdout(geemap.ee_export_image)
         if scale_factor is not None or offset is not None:
-            download_func(img.multiply(scale_factor).add(offset), filename=filename, scale=30,
-                                   region=export_boundary,
-                                   crs=projection['crs'], file_per_band=False)
+            download_func(img.multiply(scale_factor).add(offset),
+                          filename=filename,
+                          scale=30,
+                          region=export_boundary,
+                          crs=projection['crs'],
+                          crs_transform=projection['transform'],
+                          file_per_band=False)
         else:
-            download_func(img, filename=filename, scale=30,
-                                   region=export_boundary,
-                                   crs=projection['crs'], file_per_band=False)
+            download_func(img,
+                          filename=filename,
+                          scale=30,
+                          region=export_boundary,
+                          crs=projection['crs'],
+                          crs_transform=projection['transform'],
+                          file_per_band=False)
     except (ee.EEException, ValueError) as e:
         if 'not found' in str(e).lower():  # acceptable error
-            # print('ERROR: ', e)
             return 1
         elif 'request size' in str(e).lower():  # critical error
             alert('ERROR: Encountered a critical error when exporting image. Request size too large.')
-            # rprint('ERROR: Encountered a critical error when exporting image. Request size too large.')
             rprint('Terminating program...')
             print(str(e))
             exit(1)
-        else:
+        else:  # unexpected error
             print('ERROR: ', e)
             alert(f'ERROR: Encountered an unexpected error when exporting image: {e}')
             return 1
@@ -475,7 +481,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
                           start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    #export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
+    # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
     # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
@@ -611,7 +617,8 @@ def add_missing_image(city_name, date_):
 # @monitor
 @timer
 def main():
-    parser = argparse.ArgumentParser(description='Process specify a city name via -c or a SURFRAD station name with -s.')
+    parser = argparse.ArgumentParser(
+        description='Process specify a city name via -c or a SURFRAD station name with -s.')
     parser.add_argument('-c', nargs='+', required=False, help='Process specify city name.')
     parser.add_argument('-s', required=False, help='Process specify SURFRAD station name.')
     args = parser.parse_args()

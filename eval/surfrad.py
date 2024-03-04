@@ -102,6 +102,13 @@ def get_emis_at(lon, lat):
 
 
 def get_surfrad_surf_temp_at(station_id: str, time: datetime):
+    """
+    Get the surface temperature at a given SURFRAD station and time.
+    May throw a ValueError if no data is available for the given time.
+    :param station_id:
+    :param time:
+    :return:
+    """
     assert isinstance(time, datetime), "time must be a datetime object"
     # correct_station_id(station_id)
     year_ = time.year
@@ -116,6 +123,8 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     # find data for the corresponding time during the day
     row = df[df['hour'] == time.hour]
     row = row[row['min'] == time.minute]
+    if len(row) == 0:
+        raise ValueError(f"No data for the given time {time} at station {station_id}")
     uw_ir = row['uw_ir'].iloc[0]
     dw_ir = row['dw_ir'].iloc[0]
     air_temp = row['temp'].iloc[0]
@@ -137,5 +146,5 @@ def main(surfrad_config: DictConfig):
 
 if __name__ == '__main__':
     # main()
-    lst = get_surfrad_surf_temp_at('BND', datetime(2017, 2, 3, 16, 36))
+    lst = get_surfrad_surf_temp_at('DRA', datetime(2021, 5, 29, 18, 22))
     print(lst)
