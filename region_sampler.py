@@ -483,14 +483,14 @@ def parse_qa_single(source, dest, affix, bit):
     return
 
 
-def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
+def plot_cloud_series(root_path, city_name, scene_id, cycles):
     # need upgrade: currently only support LANDSAT 8
     global GLOBAL_REFERENCE_DATE
     assert p.exists(root_path)
     assert GLOBAL_REFERENCE_DATE is not None
     dates = []
     cloud_coverages = []
-    cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
+    # cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
     for date_ in tqdm(cycles, desc='Parsing images for cloud coverage series'):
         img_id = f"LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{date_}"
         try:
