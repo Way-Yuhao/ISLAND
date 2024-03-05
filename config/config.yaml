@@ -1,2 +1,3 @@
-surfrad:
-  column_names: null
+nlcd:
+  default_release: '2019'
+  releases: ['1992', '2001', '2006', '2011', '2016', '2019', '2021']

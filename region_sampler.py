@@ -124,7 +124,7 @@ def generate_cycles_unified(start_date: str, end_date=None, num_days=None, num_c
 
 
 @retry(tries=10, delay=1, backoff=2)
-def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
+def export_nlcd(output_dir, export_boundary, reference_landsat_img, nlcd_year):
     """
     Export NLCD land cover data to GeoTIFF
     # TODO add support for other years
@@ -132,22 +132,28 @@ def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
     :param output_dir:
     :param export_boundary:
     :param reference_landsat_img:
-    :param date_:
+    :param nlcd_year:
     :return:
     """
-    dataset = ee.ImageCollection('USGS/NLCD_RELEASES/2019_REL/NLCD')
-    nlcd2019 = dataset.filter(ee.Filter.eq('system:index', '2019')).first()
-    landcover_2019 = nlcd2019.select('landcover')
-    filename = os.path.join(output_dir, f'nlcd_{date_}.tif')
+    config = OmegaConf.load('./config/config.yaml')
+    nlcd_releases = config.nlcd.releases
+    if nlcd_year not in nlcd_releases:
+        raise ValueError(f'ERROR: NLCD year {nlcd_year} is not supported')
+    print(f'Exporting NLCD {nlcd_year} data')
+    dataset = ee.ImageCollection(f'USGS/NLCD_RELEASES/2019_REL/NLCD')
+    nlcd = dataset.filter(ee.Filter.eq('system:index', nlcd_year)).first()
+    landcover = nlcd.select('landcover')
+    filename = os.path.join(output_dir, f'nlcd_{nlcd_year}.tif')
     download_func = capture_stdout(geemap.ee_export_image)
     try:
         projection = reference_landsat_img.projection().getInfo()
-        download_func(landcover_2019,
+        download_func(landcover,
                       filename=filename,
                       scale=30,
                       region=export_boundary,
                       crs=projection['crs'],
-                      crs_transform=projection['transform'], # must include since exporting landsat images also included this line
+                      # must include transform since exporting landsat images also included this line
+                      crs_transform=projection['transform'],
                       file_per_band=False)
     except ee.EEException as e:
         alert(f'ERROR: Encountered an error when exporting NLCD data: {e}')
@@ -499,7 +505,8 @@ def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
     return
 
 
-def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: str, high_volume_api: bool):
+def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: str, high_volume_api: bool,
+               nlcd_year=None):
     """
     Main function to export data for a region
     :param root_path:
@@ -507,6 +514,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     :param scene_id:
     :param bounding_box:
     :param high_volume_api:
+    :param nlcd_year:
     :return:
     """
     global GLOBAL_REFERENCE_DATE
@@ -517,9 +525,9 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     # num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
     ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
-    color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
-                   dest=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}_color.tif'))
+    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, nlcd_year=nlcd_year)
+    color_map_nlcd(source=pjoin(root_path, f'nlcd_{nlcd_year}.tif'),
+                   dest=pjoin(root_path, f'nlcd_{nlcd_year}_color.tif'))
 
     export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
                           start_date=start_date, num_cycles=cycles, export_boundary=bounding_box,
@@ -540,11 +548,11 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     plot_cloud_series(root_path, region_name, scene_id, start_date, cycles)
-    generate_log(root_path=f'./data/{region_name}')
+    generate_log(root_path=root_path)
     return
 
 
-def export_city_wrapper(city_name, high_volume_api=False, startFromScratch=True):
+def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, high_volume_api=False, startFromScratch=True):
     """
     Wrapper function for run_export(). This function is called by main() to export data for a city.
     :param city_name:
@@ -554,7 +562,7 @@ def export_city_wrapper(city_name, high_volume_api=False, startFromScratch=True)
     """
     if startFromScratch is False:
         rprint('WARNING: startFromScratch is disabled. Files may be over written.')
-    cities_list_path = "./data/us_cities.csv"
+    cities_list_path = "./config/us_cities.csv"
     print(f'Parsing metadata from {cities_list_path}')
     cols = list(pd.read_csv(cities_list_path, nrows=1))
     cities_meta = pd.read_csv(cities_list_path, usecols=[i for i in cols if i != 'notes'])
@@ -568,7 +576,7 @@ def export_city_wrapper(city_name, high_volume_api=False, startFromScratch=True)
     assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
     assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
     yprint(f'city = {city_name}, scene_id = {scene_id}, bounding_box = {bounding_box}')
-    root_path = pjoin('./data', city_name)
+    root_path = pjoin(dir, city_name)
     if p.exists(root_path):
         if startFromScratch:
             raise FileExistsError(f'Directory {root_path} already exists.')
@@ -577,10 +585,10 @@ def export_city_wrapper(city_name, high_volume_api=False, startFromScratch=True)
     else:
         os.mkdir(root_path)
 
-    run_export(root_path, city_name, scene_id, bounding_box, high_volume_api)
+    run_export(root_path, city_name, scene_id, bounding_box, high_volume_api, nlcd_year=nlcd_year)
 
 
-def export_surfrad_wrapper(station_id, high_volume_api=False, startFromScratch=True):
+def export_surfrad_wrapper(station_id: str,  dir: str, high_volume_api=False, startFromScratch=True, nlcd_year=None):
     """
     Wrapper function for run_export(). This function is called by main() to export data for a city.
     :param station_id:
@@ -594,7 +602,7 @@ def export_surfrad_wrapper(station_id, high_volume_api=False, startFromScratch=T
     station = config['stations'][station_id]
     scene_id = station['scene_id']
     bounding_box = str(station['bounding_box'])
-    root_path = pjoin('./data', station_id)
+    root_path = pjoin(dir, station_id)
     yprint(f'station = {station_id}, scene_id = {scene_id}, bounding_box = {bounding_box}')
     if p.exists(root_path):
         if startFromScratch:
@@ -603,7 +611,7 @@ def export_surfrad_wrapper(station_id, high_volume_api=False, startFromScratch=T
             rprint(f'WARNING: Directory {root_path} already exists. Overriding existing files')
     else:
         os.mkdir(root_path)
-    run_export(root_path, station_id, scene_id, bounding_box, high_volume_api)
+    run_export(root_path, station_id, scene_id, bounding_box, high_volume_api, nlcd_year=nlcd_year)
 
 
 def generate_log(root_path):
@@ -634,7 +642,7 @@ def generate_log(root_path):
     print('Meta info saved to ', p.join(root_path, 'meta_data.csv'))
     return
 
-
+@deprecated # have not been used in a while ... there might be compatability issues
 def add_missing_image(city_name, date_):
     """
     After downloading data for a city via export_wrapper(), run this function should any image be
@@ -671,23 +679,35 @@ def add_missing_image(city_name, date_):
 @monitor
 @timer
 def main():
+    config = OmegaConf.load('./config/config.yaml')
     parser = argparse.ArgumentParser(
         description='Process specify a city name via -c or a SURFRAD station name with -s.')
     parser.add_argument('-c', nargs='+', required=False, help='Process specify city name.')
     parser.add_argument('-s', required=False, help='Process specify SURFRAD station name.')
     parser.add_argument('-r', action='store_true', default=False,
                         help='Resume (not start from scratch) if set to True. Default is False.')
+    parser.add_argument('--dir', required=True,
+                        help='Specify directory for data download. '
+                             'Will create a new directory inside dir according to region name.')
+    parser.add_argument('--nlcd_year', required=False, default=None, help='Specify NLCD release year to use.')
     args = parser.parse_args()
+    # check if dir exists
+    assert os.path.exists(args.dir), f'Directory {args.dir} does not exist'
+    if args.nlcd_year is None:
+        args.nlcd_year = config.nlcd.default_release
+        yprint(f'Using default NLCD year {args.nlcd_year}')
     if args.c is not None:
         city_name = ""
         for entry in args.c:
             city_name += entry + " "
         city_name = city_name[:-1]
-        export_city_wrapper(city_name=city_name, high_volume_api=True, startFromScratch=not args.r)
+        export_city_wrapper(city_name=city_name, dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
+                            nlcd_year=args.nlcd_year)
         alert('City {} download finished.'.format(city_name))
     elif args.s is not None:
         station_name = args.s
-        export_surfrad_wrapper(station_id=station_name, high_volume_api=True, startFromScratch=not args.r)
+        export_surfrad_wrapper(station_id=station_name, dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
+                               nlcd_year=args.nlcd_year)
         alert('Station {} download finished.'.format(station_name))
     else:
         raise AttributeError('ERROR: No city or station specified')
