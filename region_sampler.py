@@ -16,6 +16,7 @@ import cv2
 import seaborn as sns
 from retry import retry
 from omegaconf import DictConfig, OmegaConf
+import rasterio
 from interpolators.lst_interpolator import LST_Interpolator
 from util.helper import *
 
@@ -124,30 +125,81 @@ def generate_cycles_unified(start_date: str, end_date=None, num_days=None, num_c
 
 @retry(tries=10, delay=1, backoff=2)
 def export_nlcd(output_dir, export_boundary, reference_landsat_img, date_):
+    """
+    Export NLCD land cover data to GeoTIFF
+    # TODO add support for other years
+    # TODO there is slight random shift in the output image.
+    :param output_dir:
+    :param export_boundary:
+    :param reference_landsat_img:
+    :param date_:
+    :return:
+    """
     dataset = ee.ImageCollection('USGS/NLCD_RELEASES/2019_REL/NLCD')
     nlcd2019 = dataset.filter(ee.Filter.eq('system:index', '2019')).first()
     landcover_2019 = nlcd2019.select('landcover')
     filename = os.path.join(output_dir, f'nlcd_{date_}.tif')
+    download_func = capture_stdout(geemap.ee_export_image)
     try:
         projection = reference_landsat_img.projection().getInfo()
-        geemap.ee_export_image(landcover_2019, filename=filename, scale=30, region=export_boundary,
-                               crs=projection['crs'],
-                               file_per_band=False)
+        download_func(landcover_2019,
+                      filename=filename,
+                      scale=30,
+                      region=export_boundary,
+                      crs=projection['crs'],
+                      crs_transform=projection['transform'], # must include since exporting landsat images also included this line
+                      file_per_band=False)
     except ee.EEException as e:
-        print('ERROR: ', e)
-        return 1
+        alert(f'ERROR: Encountered an error when exporting NLCD data: {e}')
+        raise e
     return 0
 
 
-def build_nlcd_lux():
-    decode_hex = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-    rgb_lut = np.zeros((256, 3), dtype=np.uint8)
-    for key, value in NLCD_2019_META['lut'].items():
-        rgb_lut[int(key), :] = np.array(decode_hex(value))
-    return rgb_lut
-
-
 def color_map_nlcd(source, dest):
+    """
+    Convert NLCD land cover data to RGB image, preserving GeoTIFF metadata
+    :param source:
+    :param dest:
+    :return:
+    """
+
+    def build_nlcd_lux():
+        decode_hex = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+        rgb_lut = np.zeros((256, 3), dtype=np.uint8)
+        for key, value in NLCD_2019_META['lut'].items():
+            rgb_lut[int(key), :] = np.array(decode_hex(value))
+        return rgb_lut
+
+    nlcd = cv2.imread(source, -1)  #
+    ref_img = rasterio.open(source)
+    lut = build_nlcd_lux()
+    nlcd_rgb = np.zeros_like(nlcd)
+    nlcd_rgb = np.dstack((nlcd_rgb, nlcd_rgb, nlcd_rgb))
+    for i in range(len(nlcd)):
+        for j in range(len(nlcd[0])):
+            nlcd_rgb[i, j, :] = lut[nlcd[i, j], :]
+    nlcd_rgb = np.transpose(nlcd_rgb, (2, 0, 1))
+    out_tif = rasterio.open(dest, 'w',
+                            driver='Gtiff', height=ref_img.height, width=ref_img.width,
+                            count=3, crs=ref_img.crs, transform=ref_img.transform,
+                            dtype=nlcd_rgb.dtype)
+    out_tif.write(nlcd_rgb)
+    ref_img.close()
+    out_tif.close()
+    print('NLCD RGB image written to ', dest)
+    return
+
+
+@deprecated # this does not produce a GeoTIFF color file
+def color_map_nlcd_old(source, dest):
+
+    def build_nlcd_lux():
+        decode_hex = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+        rgb_lut = np.zeros((256, 3), dtype=np.uint8)
+        for key, value in NLCD_2019_META['lut'].items():
+            rgb_lut[int(key), :] = np.array(decode_hex(value))
+        return rgb_lut
+
     nlcd = cv2.imread(source, -1)
     lut = build_nlcd_lux()
     nlcd_rgb = np.zeros_like(nlcd)
@@ -210,19 +262,19 @@ def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary
         os.mkdir(output_dir)
         print('Created directory ', output_dir)
     error_counter = 0
-    acquiredNLCD = False if getNLCD else True
+    # acquiredNLCD = False if getNLCD else True
     cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
     # export nlcd map using reference to the first cycle
-    for date_ in tqdm(cycles):
+    for date_ in tqdm(cycles, desc=f'Exporting {band}'):
         status = export_landsat_band(satellite=satellite, band_name=band, output_dir=output_dir, scene_id=scene_id,
                                      date_=date_, export_boundary=export_boundary, affix=affix,
                                      scale_factor=scale_factor, offset=offset)
         if status:
             error_counter += 1
-        if not status and not acquiredNLCD:
-            ref = ee.Image(f"LANDSAT/{satellite}/C02/T1_L2/{satellite}_{scene_id}_{date_}").select(band)
-            nlcd_status = export_nlcd(output_dir, export_boundary, reference_landsat_img=ref, date_=date_)
-            acquiredNLCD = 1 if nlcd_status == 0 else 0
+        # if not status and not acquiredNLCD:
+        #     ref = ee.Image(f"LANDSAT/{satellite}/C02/T1_L2/{satellite}_{scene_id}_{date_}").select(band)
+        #     nlcd_status = export_nlcd(output_dir, export_boundary, reference_landsat_img=ref, date_=date_)
+        #     acquiredNLCD = 1 if nlcd_status == 0 else 0
     print(f'Missing {error_counter}/{cycles} data entries')
 
 
@@ -461,11 +513,9 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     ee_init(high_volume=high_volume_api)
     start_date = '20170101'
     cycles = 125
+    # for future speed up, use a pool of threads for high-volume API
     # num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
-
-    # for future speed up, use a pool of threads for high-volume API
-    plot_cloud_series(root_path, region_name, scene_id, start_date, cycles)
     ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
     export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, date_=GLOBAL_REFERENCE_DATE)
     color_map_nlcd(source=pjoin(root_path, f'nlcd_{GLOBAL_REFERENCE_DATE}.tif'),
@@ -477,10 +527,11 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
 
     export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
                num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-    # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
                           start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    ## bt related, deprecated
+    # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
@@ -488,6 +539,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    plot_cloud_series(root_path, region_name, scene_id, start_date, cycles)
     generate_log(root_path=f'./data/{region_name}')
     return
 
@@ -563,17 +615,19 @@ def generate_log(root_path):
     :return:
     """
     print('Generating metadata')
-    flist = os.listdir(p.join(root_path, 'cloud'))
+    flist = os.listdir(p.join(root_path, 'lst'))
     flist = [f for f in flist if 'tif' in f]
-    dates = [f[11:-4] for f in flist]  # a list of all reference frame dates
+    dates = [f[12:-4] for f in flist]  # a list of all reference frame dates
     cloud_percentages = []
     dummy_interp = LST_Interpolator(root=root_path, target_date=dates[0], no_log=True)
     for d in tqdm(dates, desc='scanning frames'):
-        frame_valid_mask = dummy_interp.build_valid_mask(alt_date=d)
-        px_count = frame_valid_mask.shape[0] * frame_valid_mask.shape[1]
-        ref_percentage = np.count_nonzero(~frame_valid_mask) / px_count
-        cloud_percentages.append(ref_percentage)
-
+        try:
+            frame_valid_mask = dummy_interp.build_valid_mask(alt_date=d)
+            px_count = frame_valid_mask.shape[0] * frame_valid_mask.shape[1]
+            ref_percentage = np.count_nonzero(~frame_valid_mask) / px_count
+            cloud_percentages.append(ref_percentage)
+        except Exception as e:
+            alert(f'ERROR: {e}')
     df = pd.DataFrame(dates, columns=['date'])  # a list of all candidates for reference frames
     df['cloud_percentage'] = cloud_percentages
     df.to_csv(p.join(root_path, 'metadata.csv'), index=False)
@@ -614,24 +668,26 @@ def add_missing_image(city_name, date_):
                         date_=date_, export_boundary=bounding_box)
 
 
-# @monitor
+@monitor
 @timer
 def main():
     parser = argparse.ArgumentParser(
         description='Process specify a city name via -c or a SURFRAD station name with -s.')
     parser.add_argument('-c', nargs='+', required=False, help='Process specify city name.')
     parser.add_argument('-s', required=False, help='Process specify SURFRAD station name.')
+    parser.add_argument('-r', action='store_true', default=False,
+                        help='Resume (not start from scratch) if set to True. Default is False.')
     args = parser.parse_args()
     if args.c is not None:
         city_name = ""
         for entry in args.c:
             city_name += entry + " "
         city_name = city_name[:-1]
-        export_city_wrapper(city_name=city_name, high_volume_api=True, startFromScratch=False)
+        export_city_wrapper(city_name=city_name, high_volume_api=True, startFromScratch=not args.r)
         alert('City {} download finished.'.format(city_name))
     elif args.s is not None:
         station_name = args.s
-        export_surfrad_wrapper(station_id=station_name, high_volume_api=True, startFromScratch=False)
+        export_surfrad_wrapper(station_id=station_name, high_volume_api=True, startFromScratch=not args.r)
         alert('Station {} download finished.'.format(station_name))
     else:
         raise AttributeError('ERROR: No city or station specified')
