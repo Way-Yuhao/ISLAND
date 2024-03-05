@@ -144,7 +144,6 @@ def generate_cycles_unified(start_date: str, end_date=None, num_days=None, num_c
 def export_nlcd(output_dir, export_boundary, reference_landsat_img, nlcd_year):
     """
     Export NLCD land cover data to GeoTIFF
-    # TODO add support for other years
     # TODO there is slight random shift in the output image.
     :param output_dir:
     :param export_boundary:
