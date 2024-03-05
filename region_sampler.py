@@ -97,24 +97,41 @@ def find_next_valid_date(date_str: str, strictly_next=False) -> str:
     return next_valid_date
 
 
-def generate_cycles(start_date: str, end_date=None, num_days=None, num_cycles=None):
-    param_error_msg = "only allowed to specify exactly one of end_date, num_days, or num_cycles"
-    cycles = []
-    if end_date is not None:
-        assert num_days is None and num_cycles is None, param_error_msg
-        raise NotImplementedError()
-    elif num_days is not None:
-        assert end_date is None and num_cycles is None, param_error_msg
-        raise NotImplementedError()
-    elif num_cycles is not None:
-        assert end_date is None and num_days is None, param_error_msg
-        assert num_cycles >= 1, "Numer of cycles have to be >= 1"
-        cur_date = find_next_valid_date(start_date)
-        for cycle in range(num_cycles):
-            cycles.append(cur_date)
-            cur_date = find_next_valid_date(cur_date, strictly_next=True)
+# def generate_cycles(start_date: str, end_date=None, num_days=None, num_cycles=None):
+#     param_error_msg = "only allowed to specify exactly one of end_date, num_days, or num_cycles"
+#     cycles = []
+#     if end_date is not None:
+#         assert num_days is None and num_cycles is None, param_error_msg
+#         raise NotImplementedError()
+#     elif num_days is not None:
+#         assert end_date is None and num_cycles is None, param_error_msg
+#         raise NotImplementedError()
+#     elif num_cycles is not None:
+#         assert end_date is None and num_days is None, param_error_msg
+#         assert num_cycles >= 1, "Numer of cycles have to be >= 1"
+#         cur_date = find_next_valid_date(start_date)
+#         for cycle in range(num_cycles):
+#             cycles.append(cur_date)
+#             cur_date = find_next_valid_date(cur_date, strictly_next=True)
+#
+#     yprint(f'Attempting to generate {len(cycles)} cycles, with start date = {cycles[0]} and end date = {cycles[-1]}')
+#     return cycles
 
-    yprint(f'Attempting to generate {len(cycles)} cycles, with start date = {cycles[0]} and end date = {cycles[-1]}')
+def generate_cycles(start_date, end_date):
+    """
+    Generate the cycles of 8-day intervals for the given start and end date
+    :param start_date: YYYYMMDD, assumed to be the first day of a cycle
+    :param end_date:
+    :return:
+    """
+    start = datetime.strptime(start_date, '%Y%m%d')
+    end = datetime.strptime(end_date, '%Y%m%d')
+    cur = start
+    cycles = []
+    while cur < end:
+        # append the current cycle in YYYYMMDD format
+        cycles.append(cur.strftime('%Y%m%d'))
+        cur = cur + timedelta(days=16)
     return cycles
 
 
@@ -196,9 +213,8 @@ def color_map_nlcd(source, dest):
     return
 
 
-@deprecated # this does not produce a GeoTIFF color file
+@deprecated  # this does not produce a GeoTIFF color file
 def color_map_nlcd_old(source, dest):
-
     def build_nlcd_lux():
         decode_hex = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
         rgb_lut = np.zeros((256, 3), dtype=np.uint8)
@@ -262,14 +278,14 @@ def export_landsat_band(satellite, band_name, output_dir, scene_id, date_, expor
     return 0
 
 
-def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary, start_date, num_cycles, affix=None,
+def export_landsat_series(output_dir, satellite, band, scene_id, export_boundary, start_date, cycles, affix=None,
                           getNLCD=False, scale_factor=None, offset=None):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
         print('Created directory ', output_dir)
     error_counter = 0
     # acquiredNLCD = False if getNLCD else True
-    cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
+    # cycles = generate_cycles(start_date=start_date, num_cycles=num_cycles)
     # export nlcd map using reference to the first cycle
     for date_ in tqdm(cycles, desc=f'Exporting {band}'):
         status = export_landsat_band(satellite=satellite, band_name=band, output_dir=output_dir, scene_id=scene_id,
@@ -340,7 +356,7 @@ def resave_emis(source, dest):
     return
 
 
-def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num_cycles, download_monochrome=True,
+def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, cycles, download_monochrome=True,
                clip=None):
     """
     :param output_dir:
@@ -358,11 +374,11 @@ def export_rgb(output_dir, satellite, scene_id, export_boundary, start_date, num
 
     if download_monochrome:
         export_landsat_series(pjoin(output_dir, 'B4'), satellite=satellite, band='B4', scene_id=scene_id, getNLCD=False,
-                              start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary, )
+                              start_date=start_date, cycles=cycles, export_boundary=export_boundary, )
         export_landsat_series(pjoin(output_dir, 'B3'), satellite=satellite, band='B3', scene_id=scene_id, getNLCD=False,
-                              start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary)
+                              start_date=start_date, cycles=cycles, export_boundary=export_boundary)
         export_landsat_series(pjoin(output_dir, 'B2'), satellite=satellite, band='B2', scene_id=scene_id, getNLCD=False,
-                              start_date=start_date, num_cycles=num_cycles, export_boundary=export_boundary)
+                              start_date=start_date, cycles=cycles, export_boundary=export_boundary)
     # assemble
     if not p.exists(pjoin(output_dir, 'RGB')):
         os.mkdir(pjoin(output_dir, 'RGB'))
@@ -506,7 +522,7 @@ def plot_cloud_series(root_path, city_name, scene_id, start_date, num_cycles):
 
 
 def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: str, high_volume_api: bool,
-               nlcd_year=None):
+               nlcd_year: str, start_date: str, end_date: str):
     """
     Main function to export data for a region
     :param root_path:
@@ -515,28 +531,31 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     :param bounding_box:
     :param high_volume_api:
     :param nlcd_year:
+    :param start_date:
+    :param end_date:
     :return:
     """
     global GLOBAL_REFERENCE_DATE
     ee_init(high_volume=high_volume_api)
-    start_date = '20170101'
-    cycles = 125
+    # start_date = '20170101'
+    # cycles = 125
     # for future speed up, use a pool of threads for high-volume API
     # num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
+    satellite_cycles = generate_cycles(GLOBAL_REFERENCE_DATE, end_date)
     ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
     export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, nlcd_year=nlcd_year)
     color_map_nlcd(source=pjoin(root_path, f'nlcd_{nlcd_year}.tif'),
                    dest=pjoin(root_path, f'nlcd_{nlcd_year}_color.tif'))
 
     export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box,
+                          start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box,
                           scale_factor=0.00341802, offset=149.0)
 
     export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-               num_cycles=cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+               cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
     export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                          start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+                          start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box)
     ## bt related, deprecated
     # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
@@ -547,12 +566,13 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    plot_cloud_series(root_path, region_name, scene_id, start_date, cycles)
+    plot_cloud_series(root_path, region_name, scene_id, start_date, satellite_cycles)
     generate_log(root_path=root_path)
     return
 
 
-def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, high_volume_api=False, startFromScratch=True):
+def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, start_date: str, end_date: str,
+                        high_volume_api=False, startFromScratch=True):
     """
     Wrapper function for run_export(). This function is called by main() to export data for a city.
     :param city_name:
@@ -584,11 +604,12 @@ def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, high_volume_ap
             rprint(f'WARNING: Directory {root_path} already exists. Overriding existing files')
     else:
         os.mkdir(root_path)
+    run_export(root_path=root_path, region_name=city_name, scene_id=scene_id, bounding_box=bounding_box,
+               high_volume_api=high_volume_api, nlcd_year=nlcd_year, start_date=start_date, end_date=end_date)
 
-    run_export(root_path, city_name, scene_id, bounding_box, high_volume_api, nlcd_year=nlcd_year)
 
-
-def export_surfrad_wrapper(station_id: str,  dir: str, high_volume_api=False, startFromScratch=True, nlcd_year=None):
+def export_surfrad_wrapper(station_id: str, dir: str, start_date: str, end_date: str,
+                           high_volume_api=False, startFromScratch=True, nlcd_year=None):
     """
     Wrapper function for run_export(). This function is called by main() to export data for a city.
     :param station_id:
@@ -611,7 +632,8 @@ def export_surfrad_wrapper(station_id: str,  dir: str, high_volume_api=False, st
             rprint(f'WARNING: Directory {root_path} already exists. Overriding existing files')
     else:
         os.mkdir(root_path)
-    run_export(root_path, station_id, scene_id, bounding_box, high_volume_api, nlcd_year=nlcd_year)
+    run_export(root_path=root_path, region_name=station_id, scene_id=scene_id, bounding_box=bounding_box,
+               high_volume_api=high_volume_api, nlcd_year=nlcd_year, start_date=start_date, end_date=end_date)
 
 
 def generate_log(root_path):
@@ -642,7 +664,8 @@ def generate_log(root_path):
     print('Meta info saved to ', p.join(root_path, 'meta_data.csv'))
     return
 
-@deprecated # have not been used in a while ... there might be compatability issues
+
+@deprecated  # have not been used in a while ... there might be compatability issues
 def add_missing_image(city_name, date_):
     """
     After downloading data for a city via export_wrapper(), run this function should any image be
@@ -690,6 +713,8 @@ def main():
                         help='Specify directory for data download. '
                              'Will create a new directory inside dir according to region name.')
     parser.add_argument('--nlcd_year', required=False, default=None, help='Specify NLCD release year to use.')
+    parser.add_argument('--start_date', required=True, help='Specify the start date for the data.')
+    parser.add_argument('--end_date', required=True, help='Specify the end date for the data.')
     args = parser.parse_args()
     # check if dir exists
     assert os.path.exists(args.dir), f'Directory {args.dir} does not exist'
@@ -702,12 +727,12 @@ def main():
             city_name += entry + " "
         city_name = city_name[:-1]
         export_city_wrapper(city_name=city_name, dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
-                            nlcd_year=args.nlcd_year)
+                            nlcd_year=args.nlcd_year, start_date=args.start_date, end_date=args.end_date)
         alert('City {} download finished.'.format(city_name))
     elif args.s is not None:
         station_name = args.s
         export_surfrad_wrapper(station_id=station_name, dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
-                               nlcd_year=args.nlcd_year)
+                               nlcd_year=args.nlcd_year, start_date=args.start_date, end_date=args.end_date)
         alert('Station {} download finished.'.format(station_name))
     else:
         raise AttributeError('ERROR: No city or station specified')

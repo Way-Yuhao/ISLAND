@@ -1,3 +1,5 @@
 nlcd:
   default_release: '2019'
   releases: ['1992', '2001', '2006', '2011', '2016', '2019', '2021']
+landsat_8:
+  date_reaches_orbit: '20130410' # https://www.usgs.gov/landsat-missions/landsat-8#:~:text=Landsat%208%20Pre%2DWRS%2D2,orbit%20(WRS%2D2).
