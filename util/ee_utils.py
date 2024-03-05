@@ -51,6 +51,7 @@ def get_landsat_lst(lon, lat, image=None, url=None):
 def is_landsat_pixel_clear(lon, lat, image=None, url=None):
     """
     Check if a pixel in a Landsat image is clear of clouds using CFMask.
+    Only considers the clear bit (bit 6) of the QA_PIXEL band at this particular location.
     :param lon:
     :param lat:
     :param image: unscaled Landsat image
@@ -111,6 +112,10 @@ def acquire_reference_date(start_date, scene_id):
         except ee.EEException as e:  # image does not exist
             cur_date = cur_date + timedelta(days=1)
             continue
+        finally:
+            # if we have tried more than a year
+            if cur_date - datetime.strptime(start_date, '%Y%m%d') > timedelta(days=365):
+                raise ValueError(f'No valid LANDSAT 8 image found for scene {scene_id} after {start_date}')
         # image exists, in the case of no exception
         reference_date = cur_date_str
         return reference_date

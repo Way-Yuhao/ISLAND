@@ -5,15 +5,24 @@ This module is used to download and process the data from SURFRAD website.
 __author__ = 'yuhao liu'
 
 import os
+import os.path as p
 import sys
 import ee
 from omegaconf import DictConfig, OmegaConf
 import hydra
 import requests
+import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
+import seaborn as sns
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from datetime import datetime
 from io import StringIO
+from rich.progress import Progress
 from util.equations import calc_lst, calc_broadband_emis
+from util.ee_utils import (acquire_reference_date, generate_cycles,
+                           get_landsat_lst, get_landsat_capture_time, load_ee_image,
+                           is_landsat_pixel_clear, query_geotiff)
 
 
 def correct_station_id(station_id):
@@ -131,8 +140,119 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     # print('upwelling thermal infrared (Watts m^-2): ', uw_ir)
     # print('downwelling thermal infrared (Watts m^-2): ', dw_ir)
     # print('10-m air temperature (Celcius): ', air_temp)
-    surf_temp = calc_lst(emis, uw_ir, dw_ir)
+    try:
+        surf_temp = calc_lst(emis, uw_ir, dw_ir)
+    except RuntimeWarning as e:  # unable to catch RuntimeWarning ....
+        print(e)
+        print(f"Failed to calculate the surface temperature at station {station_id} and time {time}")
+        print(f'uw_ir: {uw_ir}, dw_ir: {dw_ir}, air_temp: {air_temp}')
+        surf_temp = np.nan
     return surf_temp
+
+######################## time series plot ########################
+
+
+def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir) -> pd.DataFrame:
+    """
+    Load the data points for a given SURFRAD station and time range.
+    :param station_id:
+    :param start_date:
+    :param end_date:
+    :param region_dir:
+    :return:
+    """
+    config = OmegaConf.load('../config/surfrad.yaml')
+    lon = config['stations'][station_id]['Longitude']
+    lat = config['stations'][station_id]['Latitude']
+    scene_id = config['stations'][station_id]['scene_id']
+
+    if region_dir is None:
+        read_local_files = False
+        print('No region_dir is specified. Only reading data from Google Earth Engine.')
+    else:
+        read_local_files = True
+        assert p.exists(region_dir), f"region_dir {region_dir} does not exist"
+        print(f"Reading local data from {region_dir}")
+
+    ref_date = acquire_reference_date(start_date, scene_id)
+    cycles = generate_cycles(ref_date, end_date)
+    data = []
+    with Progress() as progress:
+        task_id = progress.add_task("[cyan]Processing...", total=len(cycles))
+        for date_ in cycles:
+            try:
+                image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
+                landsat_lst = get_landsat_lst(lon, lat, image=image)
+                capture_time = get_landsat_capture_time(image=image)
+                surfrad_lst = get_surfrad_surf_temp_at(station_id, capture_time)
+                if read_local_files:
+                    img_path = p.join(region_dir, f'lst/LC08_ST_B10_{date_}.tif')
+                    download_lst = query_geotiff(lon, lat, img_path)
+                    island_path = p.join(region_dir, f'output_referenced/lst/lst_{date_}.tif')
+                    island_lst = query_geotiff(lon, lat, island_path)
+                else:
+                    download_lst = None
+                    island_lst = None
+                condition_clear = is_landsat_pixel_clear(lon, lat, image=image)
+                data.append({
+                    'date': date_,
+                    'landsat_lst': landsat_lst,
+                    'surfrad_lst': surfrad_lst,
+                    'download_lst': download_lst,
+                    'island_lst': island_lst,
+                    'condition_clear': condition_clear,
+                })
+            except (ee.EEException, ValueError) as e:
+                continue
+            progress.update(task_id, advance=1)
+        progress.update(task_id, completed=True)
+    df = pd.DataFrame(data)
+    return df
+
+
+def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_condition: str, title: str) -> None:
+    """
+    Plot a regression plot for the given DataFrame.
+    :param df:
+    :param x_label:
+    :param y_label:
+    :param title:
+    :param output_path:
+    :return:
+    """
+    # Filter the DataFrame
+    if select_condition == 'clear':
+        df_filtered = df[df['condition_clear']]
+    elif select_condition == 'cloudy':
+        df_filtered = df[df['condition_clear'] == False]
+        df_filtered = df_filtered[df_filtered['island_lst'] > 0]
+    elif select_condition == 'all':
+        df_filtered = df
+    else:
+        raise ValueError(f"Invalid select_condition: {select_condition}")
+
+    # Create a scatter plot
+    plt.figure()
+    sns.scatterplot(y=y_label, x=x_label, data=df_filtered)
+    # Add a dashed black line y = x
+    x = range(240, 340)
+    plt.plot(x, x, color='black', linestyle='--')
+    # Set x and y limits
+    plt.xlim(240, 340)
+    plt.ylim(240, 340)
+    plt.title(title)
+    plt.show()
+
+    # computing errors
+    actual = df_filtered[y_label]
+    predicted = df_filtered[x_label]
+    errors = predicted - actual
+    rmse = np.sqrt((errors ** 2).mean())
+    bias = errors.mean()
+    mae = mean_absolute_error(actual, predicted)
+    print(f"RMSE: {rmse:.2f}, Bias: {bias:.2f}, MAE: {mae:.2f}")
+    print('Num =', len(df_filtered))
+    return
 
 
 @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
@@ -145,6 +265,10 @@ def main(surfrad_config: DictConfig):
 
 
 if __name__ == '__main__':
-    # main()
-    lst = get_surfrad_surf_temp_at('DRA', datetime(2021, 5, 29, 18, 22))
-    print(lst)
+    station_id = 'PSU'
+    start_date = '20130401'
+    end_date = '20201231'
+    # region_dir = f'/home/yuhaoliu/Code/UrbanSurfTemp/data/misaligned/{station_id}/'
+    region_dir = None
+    df = load_datapoints(station_id, start_date, end_date, region_dir)
+    plot_regression(df, 'surfrad_lst', 'landsat_lst', 'clear', 'Landsat vs. SURFRAD LST')
