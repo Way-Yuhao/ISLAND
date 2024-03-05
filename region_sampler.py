@@ -551,9 +551,10 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
                           start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box,
                           scale_factor=0.00341802, offset=149.0)
+    # enable if needed
+    # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+    #            cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
 
-    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-               cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
     export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
                           start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box)
     ## bt related, deprecated
@@ -571,7 +572,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     return
 
 
-def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, start_date: str, end_date: str,
+def export_city_wrapper(city_name: str, data_dir: str, nlcd_year: str, start_date: str, end_date: str,
                         high_volume_api=False, startFromScratch=True):
     """
     Wrapper function for run_export(). This function is called by main() to export data for a city.
@@ -596,7 +597,7 @@ def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, start_date: st
     assert scene_id is not np.nan, f'scene_id for {city_name} is undefined'
     assert bounding_box is not np.nan, f'bounding_box for {city_name} is undefined'
     yprint(f'city = {city_name}, scene_id = {scene_id}, bounding_box = {bounding_box}')
-    root_path = pjoin(dir, city_name)
+    root_path = pjoin(data_dir, city_name)
     if p.exists(root_path):
         if startFromScratch:
             raise FileExistsError(f'Directory {root_path} already exists.')
@@ -608,7 +609,7 @@ def export_city_wrapper(city_name: str, dir: str, nlcd_year: str, start_date: st
                high_volume_api=high_volume_api, nlcd_year=nlcd_year, start_date=start_date, end_date=end_date)
 
 
-def export_surfrad_wrapper(station_id: str, dir: str, start_date: str, end_date: str,
+def export_surfrad_wrapper(station_id: str, data_dir: str, start_date: str, end_date: str,
                            high_volume_api=False, startFromScratch=True, nlcd_year=None):
     """
     Wrapper function for run_export(). This function is called by main() to export data for a city.
@@ -623,7 +624,7 @@ def export_surfrad_wrapper(station_id: str, dir: str, start_date: str, end_date:
     station = config['stations'][station_id]
     scene_id = station['scene_id']
     bounding_box = str(station['bounding_box'])
-    root_path = pjoin(dir, station_id)
+    root_path = pjoin(data_dir, station_id)
     yprint(f'station = {station_id}, scene_id = {scene_id}, bounding_box = {bounding_box}')
     if p.exists(root_path):
         if startFromScratch:
@@ -726,12 +727,12 @@ def main():
         for entry in args.c:
             city_name += entry + " "
         city_name = city_name[:-1]
-        export_city_wrapper(city_name=city_name, dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
+        export_city_wrapper(city_name=city_name, data_dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
                             nlcd_year=args.nlcd_year, start_date=args.start_date, end_date=args.end_date)
         alert('City {} download finished.'.format(city_name))
     elif args.s is not None:
         station_name = args.s
-        export_surfrad_wrapper(station_id=station_name, dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
+        export_surfrad_wrapper(station_id=station_name, data_dir=args.dir, high_volume_api=True, startFromScratch=not args.r,
                                nlcd_year=args.nlcd_year, start_date=args.start_date, end_date=args.end_date)
         alert('Station {} download finished.'.format(station_name))
     else:
