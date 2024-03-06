@@ -154,9 +154,15 @@ def process_city_lst():
     """
     parser = argparse.ArgumentParser(description='Process specify city name.')
     parser.add_argument('--dir', required=True, help='Specify directory for data .')
+    parser.add_argument('--remove_output', required=False, action='store_true',
+                        help='Toggle to remove existing output directory.')
+    parser.add_argument('--remove_output_ref', required=False, action='store_true',
+                        help='Toggle to remove existing output_referenced directory.')
+    parser.add_argument('--skip_to_ref', required=False, action='store_true',
+                        help='Toggle to skip to geo-reference step.')
     args = parser.parse_args()
     assert p.exists(args.dir), f'Directory {args.dir} does not exist.'
-    base_dir = os.path.basename(args.dir)
+    base_dir = os.path.basename(args.dir.rstrip('/'))
     yprint(f'-------- Processing {base_dir} --------')
     print(f'Loading from {base_dir}')
     # remove existing output directories when prompted

@@ -566,7 +566,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    plot_cloud_series(root_path, region_name, scene_id, start_date, satellite_cycles)
+    plot_cloud_series(root_path, region_name, scene_id, satellite_cycles)
     generate_log(root_path=root_path)
     return
 

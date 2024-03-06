@@ -18,8 +18,9 @@ import seaborn as sns
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from datetime import datetime
 from io import StringIO
+import geemap
 from rich.progress import Progress
-from util.equations import calc_lst, calc_broadband_emis
+from util.equations import calc_lst, calc_broadband_emis, cvt_celsius_to_kelvin
 from util.ee_utils import (acquire_reference_date, generate_cycles,
                            get_landsat_lst, get_landsat_capture_time, load_ee_image,
                            is_landsat_pixel_clear, query_geotiff)
@@ -110,7 +111,14 @@ def get_emis_at(lon, lat):
     return broadband_emis
 
 
-def get_surfrad_surf_temp_at(station_id: str, time: datetime):
+def run_qc_check(row, *args):
+    for arg in args:
+        if row[arg].iloc[0] != 0:
+            return False
+    return True
+
+
+def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = True):
     """
     Get the surface temperature at a given SURFRAD station and time.
     May throw a ValueError if no data is available for the given time.
@@ -134,9 +142,14 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime):
     row = row[row['min'] == time.minute]
     if len(row) == 0:
         raise ValueError(f"No data for the given time {time} at station {station_id}")
+    if qc_check:
+        qc = run_qc_check(row, 'qc_uwir', 'qc_dwir') # not doing qc check for air temperature
+        if qc is False:
+            raise ValueError(f"QC check failed for the given time {time} at station {station_id}")
     uw_ir = row['uw_ir'].iloc[0]
     dw_ir = row['dw_ir'].iloc[0]
-    air_temp = row['temp'].iloc[0]
+    air_temp = row['temp'].iloc[0]  # in Celcius
+    air_temp = cvt_celsius_to_kelvin(air_temp)  # in Kelvin
     # print('upwelling thermal infrared (Watts m^-2): ', uw_ir)
     # print('downwelling thermal infrared (Watts m^-2): ', dw_ir)
     # print('10-m air temperature (Celcius): ', air_temp)
@@ -147,7 +160,7 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime):
         print(f"Failed to calculate the surface temperature at station {station_id} and time {time}")
         print(f'uw_ir: {uw_ir}, dw_ir: {dw_ir}, air_temp: {air_temp}')
         surf_temp = np.nan
-    return surf_temp
+    return {'surf_temp': surf_temp, 'air_temp': air_temp}
 
 ######################## time series plot ########################
 
@@ -184,7 +197,8 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir)
                 image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
                 landsat_lst = get_landsat_lst(lon, lat, image=image)
                 capture_time = get_landsat_capture_time(image=image)
-                surfrad_lst = get_surfrad_surf_temp_at(station_id, capture_time)
+                surfrad_data = get_surfrad_surf_temp_at(station_id, capture_time, qc_check=True)
+                surfrad_lst, surfrad_air_temp = surfrad_data['surf_temp'], surfrad_data['air_temp']
                 if read_local_files:
                     img_path = p.join(region_dir, f'lst/LC08_ST_B10_{date_}.tif')
                     download_lst = query_geotiff(lon, lat, img_path)
@@ -200,12 +214,13 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir)
                     'surfrad_lst': surfrad_lst,
                     'download_lst': download_lst,
                     'island_lst': island_lst,
+                    'surfrad_air_temp': surfrad_air_temp,
                     'condition_clear': condition_clear,
                 })
             except (ee.EEException, ValueError) as e:
                 continue
             progress.update(task_id, advance=1)
-        progress.update(task_id, completed=True)
+        progress.update(task_id, completed=True, description="Datapoints loaded.")
     df = pd.DataFrame(data)
     return df
 
@@ -244,8 +259,8 @@ def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_conditi
     plt.show()
 
     # computing errors
-    actual = df_filtered[y_label]
-    predicted = df_filtered[x_label]
+    actual = df_filtered[x_label]
+    predicted = df_filtered[y_label]
     errors = predicted - actual
     rmse = np.sqrt((errors ** 2).mean())
     bias = errors.mean()
@@ -265,10 +280,11 @@ def main(surfrad_config: DictConfig):
 
 
 if __name__ == '__main__':
-    station_id = 'PSU'
-    start_date = '20130401'
-    end_date = '20201231'
-    # region_dir = f'/home/yuhaoliu/Code/UrbanSurfTemp/data/misaligned/{station_id}/'
-    region_dir = None
-    df = load_datapoints(station_id, start_date, end_date, region_dir)
-    plot_regression(df, 'surfrad_lst', 'landsat_lst', 'clear', 'Landsat vs. SURFRAD LST')
+    geemap.Map()
+    station_id = 'BND'
+    scene_id = '023032'
+    date_ = '20150521'
+    image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
+    capture_time = get_landsat_capture_time(image=image)
+    surfrad_lst = get_surfrad_surf_temp_at(station_id, capture_time, qc_check=True)
+    print(surfrad_lst)
