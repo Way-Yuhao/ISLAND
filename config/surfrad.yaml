@@ -48,7 +48,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Installed: "December 1994"
     emis: 0.9690
     scene_id: '023036'
-    bounding_box: [[[-90.277405, 34.06169], [-89.601746, 34.06169], [-89.601746, 34.635397], [-90.277405, 34.635397], [-90.277405, 34.06169]]]
+    bounding_box: [[[-90.265131, 34.175524], [-89.682856, 34.175524], [-89.682856, 34.701048], [-90.265131, 34.701048], [-90.265131, 34.175524]]]
   PSU:
     Name: "Penn. State Univ., Pennsylvania"
     Latitude: 40.72012
@@ -77,7 +77,7 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     Time_Zone: "6 hours from UTC"
     emis: 0.9743
     scene_id: '028035'
-    bounding_box: [[[-98.014526, 36.270781], [-97.319641, 36.270781], [-97.319641, 36.824608], [-98.014526, 36.824608], [-98.014526, 36.270781]]]
+    bounding_box: [[[-97.943115, 36.28417], [-97.363586, 36.28417], [-97.363586, 36.74112], [-97.943115, 36.74112], [-97.943115, 36.28417]]]
 
 # Define the column names based on the Fortran code variables and their quality control indicators
 column_names : [
@@ -89,4 +89,14 @@ column_names : [
      'netsolar', 'qc_netsolar', 'netir', 'qc_netir', 'totalnet', 'qc_totalnet', 'temp',
      'qc_temp', 'rh', 'qc_rh', 'windspd', 'qc_windspd', 'winddir', 'qc_winddir',
      'pressure', 'qc_pressure']
+
+boradband_emis_cheng:
+    BND: 0.9730
+    TBL: 0.9691
+    DRA: 0.9680
+    FPK: 0.9760
+    GWN: 0.9677
+    PSU: 0.9704
+    SXF: 0.9709
+    SGP: 0.9723
 

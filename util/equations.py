@@ -4,7 +4,19 @@ Physics related equations
 """
 
 
-def calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14):
+def calc__broadband_emis_cheng(emis_10, emis_11, emis_12, emis_13, emis_14):
+    """
+    Calculate the broadband emissivity from the ASTER emissivity bands.
+    Cheng, J., Liang, S., Yao, Y., Zhang, X., 2013.
+    Estimating the optimal broadband emissivity spectral range for calculating surface longwave net radiation.
+    IEEE Geosci. Remote Sens. Lett. 10, 401–405.
+    :return:
+    """
+    broadband_emis = 0.197 + 0.025 * emis_10 + 0.057 * emis_11 + 0.237 * emis_12 + 0.333 * emis_13 + 0.146 * emis_14
+    return broadband_emis
+
+
+def calc_broadband_emis_ogawa(emis_10, emis_11, emis_12, emis_13, emis_14):
     """
     Calculate the broadband emissivity from the ASTER emissivity bands.
     Following K. Ogawa, T. Schmugge, and S. Rokugawa, “Estimating broadband emissivity of arid regions and its

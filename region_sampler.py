@@ -17,6 +17,7 @@ import seaborn as sns
 from retry import retry
 from omegaconf import DictConfig, OmegaConf
 import rasterio
+import shutil
 from interpolators.lst_interpolator import LST_Interpolator
 from util.helper import *
 
@@ -658,6 +659,8 @@ def generate_log(root_path):
             cloud_percentages.append(ref_percentage)
         except Exception as e:
             alert(f'ERROR: {e}')
+    # remove output dir that dummy interpolator created
+    shutil.rmtree(p.join(root_path, 'output'))
     df = pd.DataFrame(dates, columns=['date'])  # a list of all candidates for reference frames
     df['cloud_percentage'] = cloud_percentages
     df.to_csv(p.join(root_path, 'metadata.csv'), index=False)

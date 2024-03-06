@@ -51,12 +51,12 @@ def get_landsat_lst(lon, lat, image=None, url=None):
 def is_landsat_pixel_clear(lon, lat, image=None, url=None):
     """
     Check if a pixel in a Landsat image is clear of clouds using CFMask.
-    Only considers the clear bit (bit 6) of the QA_PIXEL band at this particular location.
+    # old: Only considers the clear bit (bit 6) of the QA_PIXEL band at this particular location.
     :param lon:
     :param lat:
     :param image: unscaled Landsat image
     :param url: url of Landsat image
-    :return: True if the pixel is clear of clouds and dilated clouds, False otherwise
+    :return: True if the pixel is clear of clouds dilated clouds, and cloud shadow, False otherwise
     """
     if ee.Image is not None and url is None:
         assert isinstance(image, ee.Image), "image must be an ee.Image object"
@@ -69,8 +69,13 @@ def is_landsat_pixel_clear(lon, lat, image=None, url=None):
     point = ee.Geometry.Point(lon, lat)
     cloud_mask = image.select('QA_PIXEL')
     pixel_value = cloud_mask.reduceRegion(ee.Reducer.first(), point, scale=30).getInfo()['QA_PIXEL']
+    # bit 6 "clear" in CFMask
     clear_mask = 1 << 6
-    return (pixel_value & clear_mask) != 0
+    pixel_clear = (pixel_value & clear_mask) != 0
+    # bit 4 "cloud shadow" in CFMask
+    cloud_shadow_mask = 1 << 4
+    pixel_cloud_shadow = (pixel_value & cloud_shadow_mask) != 0
+    return pixel_clear and not pixel_cloud_shadow
 
 
 def get_landsat_capture_time(image=None, url=None):

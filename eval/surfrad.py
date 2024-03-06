@@ -20,7 +20,7 @@ from datetime import datetime
 from io import StringIO
 import geemap
 from rich.progress import Progress
-from util.equations import calc_lst, calc_broadband_emis, cvt_celsius_to_kelvin
+from util.equations import calc_lst, cvt_celsius_to_kelvin, calc_broadband_emis_ogawa, calc__broadband_emis_cheng
 from util.ee_utils import (acquire_reference_date, generate_cycles,
                            get_landsat_lst, get_landsat_capture_time, load_ee_image,
                            is_landsat_pixel_clear, query_geotiff)
@@ -81,18 +81,13 @@ def read_surfrad_file_from_url(config, url):
         qc_columns = [col for col in df.columns if col.startswith('qc_')]
         for col in qc_columns:
             df[col] = df[col].astype(int)
-        # DO NOT USE station metadata as new columns to the DataFrame
-        # df['station_name'] = station_name
-        # df['latitude'] = latitude
-        # df['longitude'] = longitude
-        # df['elevation'] = elevation
         return df
     else:
         print(f"Failed to download the file: HTTP {response.status_code}")
         return None
 
 
-def get_emis_at(lon, lat):
+def get_emis_at(lon, lat, use_equation='ogawa'):
     """
     Get the broadband emissivity at a given location using the ASTER GEDv3 dataset.
     :param lon:
@@ -107,7 +102,12 @@ def get_emis_at(lon, lat):
     emis_12 = info['emissivity_band12']
     emis_13 = info['emissivity_band13']
     emis_14 = info['emissivity_band14']
-    broadband_emis = calc_broadband_emis(emis_10, emis_11, emis_12, emis_13, emis_14)
+    if use_equation == 'cheng':
+        broadband_emis = calc__broadband_emis_cheng(emis_10, emis_11, emis_12, emis_13, emis_14)
+    elif use_equation == 'ogawa':
+        broadband_emis = calc_broadband_emis_ogawa(emis_10, emis_11, emis_12, emis_13, emis_14)
+    else:
+        raise ValueError(f"Invalid use_equation: {use_equation}")
     return broadband_emis
 
 
@@ -118,7 +118,7 @@ def run_qc_check(row, *args):
     return True
 
 
-def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = True):
+def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = True, use_emis_from: str = 'ogawa'):
     """
     Get the surface temperature at a given SURFRAD station and time.
     May throw a ValueError if no data is available for the given time.
@@ -133,7 +133,10 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = T
     jday = str(time.timetuple().tm_yday).zfill(3)
     url = f'https://gml.noaa.gov/aftp/data/radiation/surfrad/{correct_station_id(station_id).lower()}/{year_}/{correct_station_id(station_id).lower()}{year_2}{jday}.dat'
     config = OmegaConf.load('../config/surfrad.yaml')
-    emis = config['stations'][station_id]['emis']
+    if use_emis_from == 'ogawa':
+        emis = config['stations'][station_id]['emis']
+    elif use_emis_from == 'cheng':
+        emis = config['boradband_emis_cheng'][station_id]
     # find df for the corresponding day
     df = read_surfrad_file_from_url(config, url)
     assert df is not None, f'Failed to read the SURFRAD data from {url}'
@@ -150,9 +153,6 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = T
     dw_ir = row['dw_ir'].iloc[0]
     air_temp = row['temp'].iloc[0]  # in Celcius
     air_temp = cvt_celsius_to_kelvin(air_temp)  # in Kelvin
-    # print('upwelling thermal infrared (Watts m^-2): ', uw_ir)
-    # print('downwelling thermal infrared (Watts m^-2): ', dw_ir)
-    # print('10-m air temperature (Celcius): ', air_temp)
     try:
         surf_temp = calc_lst(emis, uw_ir, dw_ir)
     except RuntimeWarning as e:  # unable to catch RuntimeWarning ....
@@ -165,13 +165,15 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = T
 ######################## time series plot ########################
 
 
-def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir) -> pd.DataFrame:
+def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
+                    use_emis_from: str = 'ogawa') -> pd.DataFrame:
     """
     Load the data points for a given SURFRAD station and time range.
     :param station_id:
     :param start_date:
     :param end_date:
     :param region_dir:
+    :param use_emis_from: 'ogawa' (consistent with landsat 8 manual) or 'cheng'
     :return:
     """
     config = OmegaConf.load('../config/surfrad.yaml')
@@ -197,7 +199,8 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir)
                 image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
                 landsat_lst = get_landsat_lst(lon, lat, image=image)
                 capture_time = get_landsat_capture_time(image=image)
-                surfrad_data = get_surfrad_surf_temp_at(station_id, capture_time, qc_check=True)
+                surfrad_data = get_surfrad_surf_temp_at(station_id, capture_time,
+                                                        qc_check=True, use_emis_from=use_emis_from)
                 surfrad_lst, surfrad_air_temp = surfrad_data['surf_temp'], surfrad_data['air_temp']
                 if read_local_files:
                     img_path = p.join(region_dir, f'lst/LC08_ST_B10_{date_}.tif')
@@ -270,13 +273,13 @@ def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_conditi
     return
 
 
-@hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
-def main(surfrad_config: DictConfig):
-    # Example usage
-    url = 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
-    df = read_surfrad_file_from_url(surfrad_config, url)
-    if df is not None:
-        print(df.head())
+# @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
+# def main(surfrad_config: DictConfig):
+#     # Example usage
+#     url = 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
+#     df = read_surfrad_file_from_url(surfrad_config, url)
+#     if df is not None:
+#         print(df.head())
 
 
 if __name__ == '__main__':

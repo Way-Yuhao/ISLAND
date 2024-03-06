@@ -275,21 +275,7 @@ def capture_stdout(func):
         std_output = stdout_capture.getvalue()
         if ('error' in std_output.lower() or 'warning' in std_output.lower()
                 or 'failed' in std_output.lower() or 'exception' in std_output.lower()):
-            # rprint(f'Found error in suppressed stdout from {func.__name__}')
-            # print(std_output)
             raise ValueError(f'Found error in suppressed stdout from {func.__name__}\n{std_output}')
         # Return both the function's original return value and the captured output
         return retval
     return wrapper
-
-# def capture_stdout(func):
-#     @wraps(func)
-#     def wrapper(*args, **kwargs):
-#         stdout_capture = io.StringIO()
-#         with contextlib.redirect_stdout(stdout_capture):
-#             retval = func(*args, **kwargs)
-#         std_output = stdout_capture.getvalue()
-#         if 'error' in std_output.lower() or 'warning' in std_output.lower() or 'failed' in std_output.lower() or 'exception' in std_output.lower():
-#             raise ValueError(f'Found error in suppressed stdout from {func.__name__}\n{std_output}')
-#         return retval
-#     return wrapper
