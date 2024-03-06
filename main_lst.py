@@ -164,7 +164,7 @@ def process_city_lst():
     assert p.exists(args.dir), f'Directory {args.dir} does not exist.'
     base_dir = os.path.basename(args.dir.rstrip('/'))
     yprint(f'-------- Processing {base_dir} --------')
-    print(f'Loading from {base_dir}')
+    print(f'Loading from {args.dir}')
     # remove existing output directories when prompted
     if args.remove_output:
         shutil.rmtree(p.join(args.dir, 'output'))
