@@ -69,15 +69,15 @@ stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
     emis: 0.9727
     scene_id: '029030'
     bounding_box: [[[-97.176819, 43.379039], [-96.416016, 43.379039], [-96.416016, 43.933444], [-97.176819, 43.933444], [-97.176819, 43.379039]]]
-  SGP:
-    Name: "ARM Southern Great Plains Facility, Oklahoma"
-    Latitude: 36.60406
-    Longitude: -97.48525
-    Elevation: 314 m
-    Time_Zone: "6 hours from UTC"
-    emis: 0.9743
-    scene_id: '028035'
-    bounding_box: [[[-97.943115, 36.28417], [-97.363586, 36.28417], [-97.363586, 36.74112], [-97.943115, 36.74112], [-97.943115, 36.28417]]]
+#  SGP:
+#    Name: "ARM Southern Great Plains Facility, Oklahoma"
+#    Latitude: 36.60406
+#    Longitude: -97.48525
+#    Elevation: 314 m
+#    Time_Zone: "6 hours from UTC"
+#    emis: 0.9743
+#    scene_id: '028035'
+#    bounding_box: [[[-97.943115, 36.28417], [-97.363586, 36.28417], [-97.363586, 36.74112], [-97.943115, 36.74112], [-97.943115, 36.28417]]]
 
 # Define the column names based on the Fortran code variables and their quality control indicators
 column_names : [
