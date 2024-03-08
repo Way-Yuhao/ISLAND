@@ -1,3 +1,4 @@
+station_list: ['BND', 'TBL', 'DRA', 'FPK', 'GWN', 'PSU', 'SXF']
 stations: # acquired form https://gml.noaa.gov/grad/surfrad/sitepage.html
   BND:
     Name: "Bondville, Illinois"

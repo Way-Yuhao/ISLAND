@@ -166,7 +166,7 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = T
 
 
 def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
-                    use_emis_from: str = 'ogawa') -> pd.DataFrame:
+                    use_emis_from: str = 'ogawa', load_from_cache: bool = False) -> pd.DataFrame:
     """
     Load the data points for a given SURFRAD station and time range.
     :param station_id:
@@ -189,53 +189,62 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
         assert p.exists(region_dir), f"region_dir {region_dir} does not exist"
         print(f"Reading local data from {region_dir}")
 
-    ref_date = acquire_reference_date(start_date, scene_id)
-    cycles = generate_cycles(ref_date, end_date)
-    data = []
-    with Progress() as progress:
-        task_id = progress.add_task("[cyan]Processing...", total=len(cycles))
-        for date_ in cycles:
-            try:
-                image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
-                landsat_lst = get_landsat_lst(lon, lat, image=image)
-                capture_time = get_landsat_capture_time(image=image)
-                surfrad_data = get_surfrad_surf_temp_at(station_id, capture_time,
-                                                        qc_check=True, use_emis_from=use_emis_from)
-                surfrad_lst, surfrad_air_temp = surfrad_data['surf_temp'], surfrad_data['air_temp']
-                if read_local_files:
-                    img_path = p.join(region_dir, f'lst/LC08_ST_B10_{date_}.tif')
-                    download_lst = query_geotiff(lon, lat, img_path)
-                    island_path = p.join(region_dir, f'output_referenced/lst/lst_{date_}.tif')
-                    island_lst = query_geotiff(lon, lat, island_path)
-                else:
-                    download_lst = None
-                    island_lst = None
-                condition_clear = is_landsat_pixel_clear(lon, lat, image=image)
-                data.append({
-                    'date': date_,
-                    'landsat_lst': landsat_lst,
-                    'surfrad_lst': surfrad_lst,
-                    'download_lst': download_lst,
-                    'island_lst': island_lst,
-                    'surfrad_air_temp': surfrad_air_temp,
-                    'condition_clear': condition_clear,
-                })
-            except (ee.EEException, ValueError) as e:
-                continue
-            progress.update(task_id, advance=1)
-        progress.update(task_id, completed=True, description="Datapoints loaded.")
-    df = pd.DataFrame(data)
+    if load_from_cache and p.exists(p.join(region_dir, f'surfrad_datapoints.csv')):  # load from cache
+        df = pd.read_csv(p.join(region_dir, f'surfrad_datapoints.csv'))
+        assert df is not None, f"Failed to load the DataFrame from {p.join(region_dir, 'surfrad_datapoints.csv')}"
+        print(f"Loaded the DataFrame from {p.join(region_dir, 'surfrad_datapoints.csv')}")
+    else:  # fetch from server
+        ref_date = acquire_reference_date(start_date, scene_id)
+        cycles = generate_cycles(ref_date, end_date)
+        data = []
+        with Progress() as progress:
+            task_id = progress.add_task("[cyan]Processing...", total=len(cycles))
+            for date_ in cycles:
+                try:
+                    image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
+                    landsat_lst = get_landsat_lst(lon, lat, image=image)
+                    capture_time = get_landsat_capture_time(image=image)
+                    surfrad_data = get_surfrad_surf_temp_at(station_id, capture_time,
+                                                            qc_check=True, use_emis_from=use_emis_from)
+                    surfrad_lst, surfrad_air_temp = surfrad_data['surf_temp'], surfrad_data['air_temp']
+                    if read_local_files:
+                        img_path = p.join(region_dir, f'lst/LC08_ST_B10_{date_}.tif')
+                        download_lst = query_geotiff(lon, lat, img_path)
+                        island_path = p.join(region_dir, f'output_referenced/lst/lst_{date_}.tif')
+                        island_lst = query_geotiff(lon, lat, island_path)
+                    else:
+                        download_lst = None
+                        island_lst = None
+                    condition_clear = is_landsat_pixel_clear(lon, lat, image=image)
+                    data.append({
+                        'date': date_,
+                        'landsat_lst': landsat_lst,
+                        'surfrad_lst': surfrad_lst,
+                        'download_lst': download_lst,
+                        'island_lst': island_lst,
+                        'surfrad_air_temp': surfrad_air_temp,
+                        'condition_clear': condition_clear,
+                    })
+                except (ee.EEException, ValueError) as e:
+                    continue
+                progress.update(task_id, advance=1)
+            progress.update(task_id, completed=True, description="Datapoints loaded.")
+        df = pd.DataFrame(data)
+        # save the DataFrame to a csv file
+        df.to_csv(p.join(region_dir, f'surfrad_datapoints.csv'), index=False)
+        print(f"Saved the DataFrame to {p.join(region_dir, 'surfrad_datapoints.csv')}")
     return df
 
 
-def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_condition: str, title: str) -> None:
+def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_condition: str, title: str,
+                    fig_path=None, replace_axis=None) -> None:
     """
     Plot a regression plot for the given DataFrame.
     :param df:
     :param x_label:
     :param y_label:
     :param title:
-    :param output_path:
+    :param fig_path:
     :return:
     """
     # Filter the DataFrame
@@ -250,16 +259,20 @@ def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_conditi
         raise ValueError(f"Invalid select_condition: {select_condition}")
 
     # Create a scatter plot
+    sns.set_context("paper", font_scale=2.25)
     plt.figure()
-    sns.scatterplot(y=y_label, x=x_label, data=df_filtered)
+    plt.rcParams["font.family"] = "Times New Roman"
     # Add a dashed black line y = x
     x = range(240, 340)
-    plt.plot(x, x, color='black', linestyle='--')
+    plt.plot(x, x, color='black', linestyle='--', linewidth=0.5)
+    sns.scatterplot(y=y_label, x=x_label, data=df_filtered, edgecolor='none')
     # Set x and y limits
     plt.xlim(240, 340)
     plt.ylim(240, 340)
     plt.title(title)
-    plt.show()
+    if replace_axis is not None:
+        plt.xlabel(replace_axis['x_label'])
+        plt.ylabel(replace_axis['y_label'])
 
     # computing errors
     actual = df_filtered[x_label]
@@ -268,26 +281,39 @@ def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_conditi
     rmse = np.sqrt((errors ** 2).mean())
     bias = errors.mean()
     mae = mean_absolute_error(actual, predicted)
-    print(f"RMSE: {rmse:.2f}, Bias: {bias:.2f}, MAE: {mae:.2f}")
+    print(f"RMSE: {rmse:.2f} K, Bias: {bias:.2f} K, MAE: {mae:.2f} K")
     print('Num =', len(df_filtered))
+
+
+    # Add text to the plot
+    plt.text(245, 310,
+             f"RMSE: {rmse:.2f} K\nBias: {bias:.2f} K\nMAE: {mae:.2f} K\nNum: {len(df_filtered)}",
+             fontsize=14)
+
+    if fig_path is not None:
+        plt.tight_layout()
+        plt.savefig(p.join(fig_path, f'{title}.svg'), format='svg', dpi=300)
+        print(f"Saved the figure to {fig_path}")
+    plt.show()
     return
 
 
-# @hydra.main(version_base=None, config_path='../config', config_name='surfrad.yaml')
-# def main(surfrad_config: DictConfig):
-#     # Example usage
-#     url = 'https://gml.noaa.gov/aftp/data/radiation/surfrad/psu/2020/psu20184.dat'
-#     df = read_surfrad_file_from_url(surfrad_config, url)
-#     if df is not None:
-#         print(df.head())
+def cache_all_datapoints():
+    start_date = '20130411'
+    end_date = '20201231'
+    config = OmegaConf.load('../config/surfrad.yaml')
+    for station_id in config.station_list:
+        region_dir = f'/home/yuhaoliu/Data/ISLAND/surfrad_val/{station_id}'
+        load_datapoints(station_id, start_date, end_date, region_dir)
 
 
 if __name__ == '__main__':
-    geemap.Map()
-    station_id = 'BND'
-    scene_id = '023032'
-    date_ = '20150521'
-    image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
-    capture_time = get_landsat_capture_time(image=image)
-    surfrad_lst = get_surfrad_surf_temp_at(station_id, capture_time, qc_check=True)
-    print(surfrad_lst)
+    cache_all_datapoints()
+    # geemap.Map()
+    # station_id = 'BND'
+    # scene_id = '023032'
+    # date_ = '20150521'
+    # image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
+    # capture_time = get_landsat_capture_time(image=image)
+    # surfrad_lst = get_surfrad_surf_temp_at(station_id, capture_time, qc_check=True)
+    # print(surfrad_lst)

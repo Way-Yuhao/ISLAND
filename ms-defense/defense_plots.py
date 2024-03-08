@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import cv2
 
+
 def cmap(img_path):
     if '.npy' in img_path:
         img = np.load(img_path)

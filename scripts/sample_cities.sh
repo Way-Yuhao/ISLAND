@@ -22,7 +22,7 @@
 
 
 #python region_sampler.py -c New York
-# python region_sampler.py -c Los Angeles
+#python region_sampler.py -c Los Angeles
 #python region_sampler.py -c Chicago
 #python region_sampler.py -c Houston
 #python region_sampler.py -c Phoenix
@@ -41,5 +41,5 @@
 #python region_sampler.py -c Denver
 #python region_sampler.py -c Oklahoma City
 
-
+python main.py -c --dir ./data/
 

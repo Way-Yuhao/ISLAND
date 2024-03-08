@@ -1,0 +1,7 @@
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/San Diego"
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/Dallas"
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/San Jose"
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/Austin"
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/Jacksonville"
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/Fort Worth"
+python main_lst.py --dir "/home/yuhaoliu/Data/ISLAND/cities/Columbus"

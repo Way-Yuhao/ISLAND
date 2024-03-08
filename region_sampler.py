@@ -157,7 +157,7 @@ def export_nlcd(output_dir, export_boundary, reference_landsat_img, nlcd_year):
     if nlcd_year not in nlcd_releases:
         raise ValueError(f'ERROR: NLCD year {nlcd_year} is not supported')
     print(f'Exporting NLCD {nlcd_year} data')
-    dataset = ee.ImageCollection(f'USGS/NLCD_RELEASES/2019_REL/NLCD')
+    dataset = ee.ImageCollection(f'USGS/NLCD_RELEASES/2021_REL/NLCD')
     nlcd = dataset.filter(ee.Filter.eq('system:index', nlcd_year)).first()
     landcover = nlcd.select('landcover')
     filename = os.path.join(output_dir, f'nlcd_{nlcd_year}.tif')
@@ -537,8 +537,6 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     """
     global GLOBAL_REFERENCE_DATE
     ee_init(high_volume=high_volume_api)
-    # start_date = '20170101'
-    # cycles = 125
     # for future speed up, use a pool of threads for high-volume API
     # num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
@@ -564,7 +562,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
     # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     plot_cloud_series(root_path, region_name, scene_id, satellite_cycles)
