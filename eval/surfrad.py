@@ -23,7 +23,8 @@ from rich.progress import Progress
 from util.equations import calc_lst, cvt_celsius_to_kelvin, calc_broadband_emis_ogawa, calc__broadband_emis_cheng
 from util.ee_utils import (acquire_reference_date, generate_cycles,
                            get_landsat_lst, get_landsat_capture_time, load_ee_image,
-                           is_landsat_pixel_clear, query_geotiff)
+                           is_landsat_pixel_clear, query_geotiff, get_landsat_cloud_percentage)
+from util.helper import rprint, yprint
 
 
 def correct_station_id(station_id):
@@ -162,11 +163,14 @@ def get_surfrad_surf_temp_at(station_id: str, time: datetime, qc_check: bool = T
         surf_temp = np.nan
     return {'surf_temp': surf_temp, 'air_temp': air_temp}
 
+
+
 ######################## time series plot ########################
 
 
 def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
-                    use_emis_from: str = 'ogawa', load_from_cache: bool = False) -> pd.DataFrame:
+                    use_emis_from: str = 'ogawa', load_from_cache: bool = False,
+                    mode: str = 'full') -> pd.DataFrame:
     """
     Load the data points for a given SURFRAD station and time range.
     :param station_id:
@@ -189,10 +193,19 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
         assert p.exists(region_dir), f"region_dir {region_dir} does not exist"
         print(f"Reading local data from {region_dir}")
 
-    if load_from_cache and p.exists(p.join(region_dir, f'surfrad_datapoints.csv')):  # load from cache
-        df = pd.read_csv(p.join(region_dir, f'surfrad_datapoints.csv'))
-        assert df is not None, f"Failed to load the DataFrame from {p.join(region_dir, 'surfrad_datapoints.csv')}"
-        print(f"Loaded the DataFrame from {p.join(region_dir, 'surfrad_datapoints.csv')}")
+    if mode == 'full':
+        df_path = p.join(region_dir, f'surfrad_datapoints.csv')
+        rprint('Using full mode')
+    elif mode == 'temporal':
+        df_path = p.join(region_dir, f'surfrad_datapoints_temporal.csv')
+        rprint('Using temporal mode')
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
+
+    if load_from_cache and p.exists(df_path):  # load from cache
+        df = pd.read_csv(df_path)
+        assert df is not None, f"Failed to load the DataFrame from {df_path}"
+        print(f"Loaded the DataFrame from {df_path}")
     else:  # fetch from server
         ref_date = acquire_reference_date(start_date, scene_id)
         cycles = generate_cycles(ref_date, end_date)
@@ -204,13 +217,17 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
                     image = load_ee_image(f'LANDSAT/LC08/C02/T1_L2/LC08_{scene_id}_{date_}')
                     landsat_lst = get_landsat_lst(lon, lat, image=image)
                     capture_time = get_landsat_capture_time(image=image)
+                    cloud_perc = get_landsat_cloud_percentage(capture_time=capture_time, region_dir=region_dir)
                     surfrad_data = get_surfrad_surf_temp_at(station_id, capture_time,
                                                             qc_check=True, use_emis_from=use_emis_from)
                     surfrad_lst, surfrad_air_temp = surfrad_data['surf_temp'], surfrad_data['air_temp']
                     if read_local_files:
                         img_path = p.join(region_dir, f'lst/LC08_ST_B10_{date_}.tif')
                         download_lst = query_geotiff(lon, lat, img_path)
-                        island_path = p.join(region_dir, f'output_referenced/lst/lst_{date_}.tif')
+                        if mode == 'full':
+                            island_path = p.join(region_dir, f'output_referenced/lst/lst_{date_}.tif')
+                        elif mode == 'temporal':
+                            island_path = p.join(region_dir, f'output_referenced_temporal/lst/lst_{date_}.tif')
                         island_lst = query_geotiff(lon, lat, island_path)
                     else:
                         download_lst = None
@@ -224,6 +241,8 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
                         'island_lst': island_lst,
                         'surfrad_air_temp': surfrad_air_temp,
                         'condition_clear': condition_clear,
+                        'cloud_perc': cloud_perc,
+                        'error': island_lst - surfrad_lst
                     })
                 except (ee.EEException, ValueError) as e:
                     continue
@@ -231,8 +250,8 @@ def load_datapoints(station_id: str, start_date: str, end_date: str, region_dir,
             progress.update(task_id, completed=True, description="Datapoints loaded.")
         df = pd.DataFrame(data)
         # save the DataFrame to a csv file
-        df.to_csv(p.join(region_dir, f'surfrad_datapoints.csv'), index=False)
-        print(f"Saved the DataFrame to {p.join(region_dir, 'surfrad_datapoints.csv')}")
+        df.to_csv(df_path, index=False)
+        print(f"Saved the DataFrame to {df_path}")
     return df
 
 
@@ -284,7 +303,6 @@ def plot_regression(df: pd.DataFrame, x_label: str, y_label: str, select_conditi
     print(f"RMSE: {rmse:.2f} K, Bias: {bias:.2f} K, MAE: {mae:.2f} K")
     print('Num =', len(df_filtered))
 
-
     # Add text to the plot
     plt.text(245, 310,
              f"RMSE: {rmse:.2f} K\nBias: {bias:.2f} K\nMAE: {mae:.2f} K\nNum: {len(df_filtered)}",
@@ -317,3 +335,9 @@ if __name__ == '__main__':
     # capture_time = get_landsat_capture_time(image=image)
     # surfrad_lst = get_surfrad_surf_temp_at(station_id, capture_time, qc_check=True)
     # print(surfrad_lst)
+
+    # station_id = 'BND'
+    # region_dir = f'/home/yuhaoliu/Data/ISLAND/surfrad_val/BND'
+    # start_date = '20130411'
+    # end_date = '20201231'
+    # load_datapoints(station_id, start_date, end_date, region_dir)

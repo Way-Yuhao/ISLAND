@@ -141,7 +141,7 @@ def generate_cycles_unified(start_date: str, end_date=None, num_days=None, num_c
     raise NotImplementedError
 
 
-@retry(tries=10, delay=1, backoff=2)
+# @retry(tries=10, delay=1, backoff=2)
 def export_nlcd(output_dir, export_boundary, reference_landsat_img, nlcd_year):
     """
     Export NLCD land cover data to GeoTIFF
@@ -157,7 +157,8 @@ def export_nlcd(output_dir, export_boundary, reference_landsat_img, nlcd_year):
     if nlcd_year not in nlcd_releases:
         raise ValueError(f'ERROR: NLCD year {nlcd_year} is not supported')
     print(f'Exporting NLCD {nlcd_year} data')
-    dataset = ee.ImageCollection(f'USGS/NLCD_RELEASES/2021_REL/NLCD')
+    yprint(f'2021_REL is temporarily down on google earth engine, using 2019_REL instead.')
+    dataset = ee.ImageCollection(f'USGS/NLCD_RELEASES/2019_REL/NLCD')
     nlcd = dataset.filter(ee.Filter.eq('system:index', nlcd_year)).first()
     landcover = nlcd.select('landcover')
     filename = os.path.join(output_dir, f'nlcd_{nlcd_year}.tif')
@@ -172,7 +173,7 @@ def export_nlcd(output_dir, export_boundary, reference_landsat_img, nlcd_year):
                       # must include transform since exporting landsat images also included this line
                       crs_transform=projection['transform'],
                       file_per_band=False)
-    except ee.EEException as e:
+    except (ee.EEException, ValueError) as e:
         alert(f'ERROR: Encountered an error when exporting NLCD data: {e}')
         raise e
     return 0

@@ -9,6 +9,7 @@ import geopandas as gpd
 from shapely.geometry import Point
 from shapely.ops import nearest_points
 import rasterio
+import pandas as pd
 from pyproj import Transformer
 
 
@@ -97,6 +98,22 @@ def get_landsat_capture_time(image=None, url=None):
     rounded_date = ee.Date(rounded_time).format('YYYY-MM-dd HH:mm').getInfo()
     dt = datetime.strptime(rounded_date, '%Y-%m-%d %H:%M')
     return dt
+
+
+def get_landsat_cloud_percentage(capture_time: datetime, region_dir: str) -> float:
+    """
+    Checks the cloud percentage of a cropped landsat image
+    :return:
+    """
+    # load df
+    df = pd.read_csv(os.path.join(region_dir, 'metadata.csv'))
+    df['date'] = df['date'].astype(str)
+    date_ = capture_time.strftime('%Y%m%d')
+    row = df[df['date'] == date_]
+    if row.empty:
+        raise ValueError(f'No metadata found for date {date_}')
+    cloud_percentage = row['cloud_percentage'].values[0]
+    return cloud_percentage
 
 
 def acquire_reference_date(start_date, scene_id):
