@@ -76,7 +76,10 @@ def is_landsat_pixel_clear(lon, lat, image=None, url=None):
     # bit 4 "cloud shadow" in CFMask
     cloud_shadow_mask = 1 << 4
     pixel_cloud_shadow = (pixel_value & cloud_shadow_mask) != 0
-    return pixel_clear and not pixel_cloud_shadow
+    # bit 2 "cirrus" in CFMask
+    cirrus_mask = 1 << 2
+    pixel_cirrus = (pixel_value & cirrus_mask) != 0
+    return pixel_clear and not pixel_cloud_shadow and not pixel_cirrus
 
 
 def get_landsat_capture_time(image=None, url=None):
