@@ -9,10 +9,45 @@ import json
 from tqdm import tqdm
 from natsort import natsorted
 import rasterio
+from rich.progress import Progress
+import multiprocessing as mp
 from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 # from interpolators.bt_interpolator import BT_Interpolator as Interpolator
 # from batch_eval import solve_all_bt, move_bt, compute_st_for_all
-from util.helper import get_season, rprint, yprint, timer, monitor, alert, deprecated
+from util.helper import get_season, rprint, yprint, timer, monitor, alert, deprecated, capture_stdout
+
+
+@capture_stdout
+def solve_one_lst(data_dir: str, date_: str, resume: bool = False):
+    if resume:
+        existing_output_files = os.listdir(p.join(data_dir, 'output'))
+        current_date_files = [f for f in existing_output_files if date_ in f and '_st.npy' in f]
+        if len(current_date_files) > 0:
+            print(f'Found outputs for date {date_}. Skipped.')
+            return
+    yprint(f'Evaluating {date_}')
+    interp = Interpolator(root=data_dir, target_date=date_)
+    interp.add_occlusion(use_true_cloud=True)
+    interp.run_interpolation(spatial_kern_size=75)  # saves results to output
+    return
+
+
+def solve_all_lst_parallel(data_dir: str, resume: bool = False):
+    num_cores = mp.cpu_count() - 2
+    yprint('Computing LST in parallel using {} cores.'.format(num_cores))
+    df = pd.read_csv(p.join(data_dir, 'metadata.csv'))
+    dates = df['date'].values.tolist()
+    dates = natsorted([str(d) for d in dates])
+    with Progress() as progress:
+        task_id = progress.add_task("[cyan]Running ISLAND...", total=len(dates))
+        with mp.Pool(num_cores) as pool:
+            # pool.starmap(solve_one_lst, [(data_dir, d, resume) for d in dates])
+            results = [pool.apply_async(solve_one_lst, args=(data_dir, d, resume),
+                                        callback=lambda _: progress.update(task_id, advance=1)) for d in dates]
+            # Wait for all tasks to complete
+            for result in results:
+                result.get()
+    return
 
 
 def solve_all_lst(data_dir: str, resume: bool = False):
@@ -22,7 +57,6 @@ def solve_all_lst(data_dir: str, resume: bool = False):
     :param resume: skip existing outputs and resume at the next frame
     :return:
     """
-    # root_ = f'./data/{city_name}/'
     df = pd.read_csv(p.join(data_dir, 'metadata.csv'))
     dates = df['date'].values.tolist()
     dates = natsorted([str(d) for d in dates])
@@ -138,7 +172,8 @@ def process_city_lst():
         os.mkdir(p.join(args.dir, 'output_referenced'))
     # run interpolation
     if not args.skip_to_ref:
-        solve_all_lst(data_dir=args.dir, resume=False)
+        # solve_all_lst(data_dir=args.dir, resume=False)
+        solve_all_lst_parallel(data_dir=args.dir, resume=False)
     # geo_reference_lst(data_dir=args.dir)
     geo_reference_lst(data_dir=args.dir, mode='full', output_dir='output_referenced')
     if not p.exists(p.join(args.dir, 'output_referenced_temporal')):

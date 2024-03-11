@@ -26,12 +26,15 @@ def sequential():
 
 
 def parallel():
-    cycles = 10
+    cycles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     with Progress() as progress:
-        task_id = progress.add_task("[cyan]Processing...", total=cycles)
-        with mp.Pool(mp.cpu_count()) as pool:
-            pool.starmap(foo, [(i,) for i in range(cycles)])
-            progress.update(task_id, completed=cycles)
+        task_id = progress.add_task("[cyan]Processing...", total=len(cycles))
+        with mp.Pool(2) as pool:
+            results = [pool.apply_async(foo, args=(i,), callback=lambda _: progress.update(task_id, advance=1)) for i in
+                       cycles]
+            # Wait for all tasks to complete
+            for result in results:
+                result.get()
 
 
 if __name__ == '__main__':
