@@ -28,7 +28,7 @@ def solve_one_lst(data_dir: str, date_: str, resume: bool = False):
     yprint(f'Evaluating {date_}')
     interp = Interpolator(root=data_dir, target_date=date_)
     interp.add_occlusion(use_true_cloud=True)
-    interp.run_interpolation(spatial_kern_size=250, temporal_kern_size=75)  # saves results to output
+    interp.run_interpolation(spatial_kern_size=75, temporal_kern_size=75)  # saves results to output
     return
 
 
