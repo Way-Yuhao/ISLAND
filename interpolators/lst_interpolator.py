@@ -32,7 +32,7 @@ class LST_Interpolator(BaseInterpolator):
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         return 1 - occlusion_percentage
 
-    def run_interpolation(self, spatial_global_cutoff=.5, spatial_kern_size=75):
+    def run_interpolation(self, spatial_global_cutoff=.5, spatial_kern_size=75, temporal_ken_size=75):
         print('Running spatial & temporal channel...')
 
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]

@@ -17,7 +17,7 @@ from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from util.helper import get_season, rprint, yprint, timer, monitor, alert, deprecated, capture_stdout
 
 
-@capture_stdout
+# @capture_stdout
 def solve_one_lst(data_dir: str, date_: str, resume: bool = False):
     if resume:
         existing_output_files = os.listdir(p.join(data_dir, 'output'))
@@ -28,11 +28,18 @@ def solve_one_lst(data_dir: str, date_: str, resume: bool = False):
     yprint(f'Evaluating {date_}')
     interp = Interpolator(root=data_dir, target_date=date_)
     interp.add_occlusion(use_true_cloud=True)
-    interp.run_interpolation(spatial_kern_size=75)  # saves results to output
+    interp.run_interpolation(spatial_kern_size=250, temporal_ken_size=75)  # saves results to output
     return
 
 
 def solve_all_lst_parallel(data_dir: str, resume: bool = False):
+    """
+    Computes LST for all available input frames in parallel.
+    # FIXME: there is a timeout issue for the last few subprocesses.
+    :param data_dir:
+    :param resume:
+    :return:
+    """
     num_cores = mp.cpu_count() - 2
     yprint('Computing LST in parallel using {} cores.'.format(num_cores))
     df = pd.read_csv(p.join(data_dir, 'metadata.csv'))
@@ -178,11 +185,11 @@ def process_city_lst():
     geo_reference_lst(data_dir=args.dir, mode='full', output_dir='output_referenced')
     if not p.exists(p.join(args.dir, 'output_referenced_temporal')):
         os.mkdir(p.join(args.dir, 'output_referenced_temporal'))
-    geo_reference_lst(data_dir=args.dir, mode='temporal', output_dir='output_referenced_temporal')
-    if not p.exists(p.join(args.dir, 'output_referenced_spatial')):
-        os.mkdir(p.join(args.dir, 'output_referenced_spatial'))
-    geo_reference_lst(data_dir=args.dir, mode='spatial', output_dir='output_referenced_spatial')
-    alert(f'Interpolation for {base_dir} finished.')
+    # geo_reference_lst(data_dir=args.dir, mode='temporal', output_dir='output_referenced_temporal')
+    # if not p.exists(p.join(args.dir, 'output_referenced_spatial')):
+    #     os.mkdir(p.join(args.dir, 'output_referenced_spatial'))
+    # geo_reference_lst(data_dir=args.dir, mode='spatial', output_dir='output_referenced_spatial')
+    # alert(f'Interpolation for {base_dir} finished.')
 
 
 def main():
