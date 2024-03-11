@@ -220,9 +220,28 @@ def query_geotiff(lon, lat, geotiff_path):
     return pixel_value
 
 
+def clean_aux_files(data_dir: str) -> None:
+    """
+    Clean any file that contain name 'aux.xml' in the data directory
+    :param data_dir:
+    :return:
+    """
+    count = 0
+    for root, dirs, files in os.walk(data_dir):
+        for file in files:
+            if 'aux.xml' in file:
+                os.remove(os.path.join(root, file))
+                print(f'Removed {file}.')
+                count += 1
+    print(f'Total {count} files removed.')
+    return
+
+
+
 if __name__ == '__main__':
-    # Test the function cvt_lat_lon_to_path_row
-    lon = -95.096
-    lat = 31.230
-    patch = cvt_lat_lon_to_path_row(lat, lon)
-    print(patch)
+    # # Test the function cvt_lat_lon_to_path_row
+    # lon = -95.096
+    # lat = 31.230
+    # patch = cvt_lat_lon_to_path_row(lat, lon)
+    # print(patch)
+    clean_aux_files('/home/yuhaoliu/Data/ISLAND/surfrad_val')

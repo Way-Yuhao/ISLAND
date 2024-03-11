@@ -541,32 +541,32 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     # for future speed up, use a pool of threads for high-volume API
     # num_procs = 10  # number of CPU cores to be allocated, for high-volume API only
     GLOBAL_REFERENCE_DATE = acquire_reference_date(start_date, scene_id)
-    satellite_cycles = generate_cycles(GLOBAL_REFERENCE_DATE, end_date)
-    ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
-    export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, nlcd_year=nlcd_year)
-    color_map_nlcd(source=pjoin(root_path, f'nlcd_{nlcd_year}.tif'),
-                   dest=pjoin(root_path, f'nlcd_{nlcd_year}_color.tif'))
-
-    export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
-                          start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box,
-                          scale_factor=0.00341802, offset=149.0)
-    # enable if needed
-    # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-    #            cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
-
-    export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
-                          start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box)
-    ## bt related, deprecated
-    # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
-    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
-    #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
-    # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
-    # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
+    # satellite_cycles = generate_cycles(GLOBAL_REFERENCE_DATE, end_date)
+    # ref_img = ee.Image(f'LANDSAT/LC08/C02/T1_TOA/LC08_{scene_id}_{GLOBAL_REFERENCE_DATE}').select('B1')
+    # export_nlcd(root_path, bounding_box, reference_landsat_img=ref_img, nlcd_year=nlcd_year)
+    # color_map_nlcd(source=pjoin(root_path, f'nlcd_{nlcd_year}.tif'),
+    #                dest=pjoin(root_path, f'nlcd_{nlcd_year}_color.tif'))
+    #
+    # export_landsat_series(pjoin(root_path, 'lst'), satellite='LC08', band='ST_B10', scene_id=scene_id,
+    #                       start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box,
+    #                       scale_factor=0.00341802, offset=149.0)
+    # # enable if needed
+    # # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+    # #            cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    #
+    # export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
+    #                       start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box)
+    # ## bt related, deprecated
+    # # export_landsat_series(pjoin(root_path, 'bt_series'), satellite='LC08', band='B10', scene_id=scene_id,
+    # #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # # export_landsat_series(pjoin(root_path, 'emis'), satellite='LC08', band='ST_EMIS', scene_id=scene_id,
+    # #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
+    # # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
+    # # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
-    plot_cloud_series(root_path, region_name, scene_id, satellite_cycles)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
+    # plot_cloud_series(root_path, region_name, scene_id, satellite_cycles)
     generate_log(root_path=root_path)
     return
 
@@ -662,6 +662,7 @@ def generate_log(root_path):
     shutil.rmtree(p.join(root_path, 'output'))
     df = pd.DataFrame(dates, columns=['date'])  # a list of all candidates for reference frames
     df['cloud_percentage'] = cloud_percentages
+    df = df.sort_values('date')
     df.to_csv(p.join(root_path, 'metadata.csv'), index=False)
     print('Meta info saved to ', p.join(root_path, 'meta_data.csv'))
     return

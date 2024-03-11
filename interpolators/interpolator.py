@@ -63,6 +63,8 @@ class BaseInterpolator(ABC):
             pass
         elif mode == 'shadow':
             pass
+        elif mode == 'cirrus':
+            pass
         else:
             raise ValueError(f'Unexpected mode encountered. Got {mode}')
         parent_dir = p.join(self.root, mode)
@@ -96,11 +98,32 @@ class BaseInterpolator(ABC):
         self.target_valid_mask = self.build_valid_mask()
         self.target[self.target < 0] = 0  # overwrite np.nan or -inf with 0
 
+    # def build_valid_mask(self, alt_date=None):
+    #     """
+    #     computers a binary bitmask representing the validity of pixel values for a BT map on a given day. Pixels marked
+    #     as True are valid pixels. Valid pixels satisfy (1) no cloud, and (2) no cloud shadow, and (3) bt reading greater
+    #     than 0 K.
+    #     :param alt_date:
+    #     :return:
+    #     """
+    #     if alt_date is None:  # using default target date
+    #         temp_img = self.target.copy()
+    #         cloud_img = self.get_frame(frame_date=self.target_date, mode='cloud')
+    #         shadow_img = self.get_frame(frame_date=self.target_date, mode='shadow')
+    #     else:
+    #         temp_img = self.get_frame(frame_date=alt_date, mode=self.interp_mode)
+    #         cloud_img = self.get_frame(frame_date=alt_date, mode='cloud')
+    #         shadow_img = self.get_frame(frame_date=alt_date, mode='shadow')
+    #     valid_mask = cloud_img + shadow_img
+    #     valid_mask = ~np.array(valid_mask, dtype=np.bool_)
+    #     valid_mask[temp_img < 0] = False
+    #     return valid_mask
+
     def build_valid_mask(self, alt_date=None):
         """
         computers a binary bitmask representing the validity of pixel values for a BT map on a given day. Pixels marked
-        as True are valid pixels. Valid pixels satisfy (1) no cloud, and (2) no cloud shadow, and (3) bt reading greater
-        than 0 K.
+        as True are valid pixels. Valid pixels satisfy (1) no cloud, and (2) no cloud shadow, (3) no cirrus,
+        and (4) bt reading greater than 0 K.
         :param alt_date:
         :return:
         """
@@ -108,15 +131,16 @@ class BaseInterpolator(ABC):
             temp_img = self.target.copy()
             cloud_img = self.get_frame(frame_date=self.target_date, mode='cloud')
             shadow_img = self.get_frame(frame_date=self.target_date, mode='shadow')
+            cirrus_img = self.get_frame(frame_date=self.target_date, mode='cirrus')
         else:
             temp_img = self.get_frame(frame_date=alt_date, mode=self.interp_mode)
             cloud_img = self.get_frame(frame_date=alt_date, mode='cloud')
             shadow_img = self.get_frame(frame_date=alt_date, mode='shadow')
-        valid_mask = cloud_img + shadow_img
+            cirrus_img = self.get_frame(frame_date=alt_date, mode='cirrus')
+        valid_mask = cloud_img + shadow_img + cirrus_img
         valid_mask = ~np.array(valid_mask, dtype=np.bool_)
         valid_mask[temp_img < 0] = False
         return valid_mask
-
     def get_nlcd(self):
         """
         Load a pre-aligned NLCD land cover map corresponding to a target LANDSAT temperature map
