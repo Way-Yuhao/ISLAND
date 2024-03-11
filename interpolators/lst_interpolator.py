@@ -32,7 +32,7 @@ class LST_Interpolator(BaseInterpolator):
         occlusion_percentage = np.count_nonzero(self.synthetic_occlusion) / px_count
         return 1 - occlusion_percentage
 
-    def run_interpolation(self, spatial_global_cutoff=.5, spatial_kern_size=75, temporal_ken_size=75):
+    def run_interpolation(self, spatial_global_cutoff=.5, spatial_kern_size=75, temporal_kern_size=75):
         print('Running spatial & temporal channel...')
 
         px_count = self.synthetic_occlusion.shape[0] * self.synthetic_occlusion.shape[1]
@@ -64,16 +64,16 @@ class LST_Interpolator(BaseInterpolator):
             self.reconstructed_target = None
             try:
                 self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=2, max_cloud_perc=.1,
-                                                 spatial_kern_size=spatial_kern_size)
+                                                 spatial_kern_size=temporal_kern_size)
             except ArithmeticError:
                 yprint('Retrying temporal reference with max_delta_cycle = 4')
                 try:
                     self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.1,
-                                                     spatial_kern_size=spatial_kern_size)
+                                                     spatial_kern_size=temporal_kern_size)
                 except ArithmeticError:
                     yprint('Retrying temporal reference with max_delta_cycle = 4 and max_cloud_prec = .2')
                     self.temporal_interp_multi_frame(num_frames=3, max_delta_cycle=4, max_cloud_perc=.2,
-                                                     spatial_kern_size=spatial_kern_size)
+                                                     spatial_kern_size=temporal_kern_size)
             # assume temporal computation is successful
             self.save_timelapse_frame(suffix='temporal')
             reconst_temporal = self.reconstructed_target.copy()
