@@ -400,8 +400,10 @@ class BaseInterpolator(ABC):
             print(f'cLass {c} | average temp = {t:.2f} | freq = {p_count * 100 / overall_p_count: .2f}%')
 
     def plot_violins(self, show=True, include_class_agnostic=False):
+        # modify target
+        self.target[self.target < 200] = 0
         plt.figure(figsize=(16, 5))
-        df = pd.DataFrame({'class': [], 'bt': []})
+        df = pd.DataFrame({'class': [], 'lst': []})
         palette = []
         i = 0
         for c, _ in NLCD_2019_META['lut'].items():
@@ -411,7 +413,7 @@ class BaseInterpolator(ABC):
             dp = temp_for_c[np.where(temp_for_c != 0)]
             if len(dp > 0):
                 x = len(dp) * [NLCD_2019_META['class_names'][str(c)] + f'\n({np.var(dp):.2f})']
-                new_df = pd.DataFrame({'class': x, 'bt': dp})
+                new_df = pd.DataFrame({'class': x, 'lst': dp})
                 df = pd.concat([df, new_df], ignore_index=True)
                 palette += ['#' + NLCD_2019_META['lut'][str(c)]]
                 print(f'class = {x[0]}, var = {np.var(dp):.2f}')
@@ -419,15 +421,15 @@ class BaseInterpolator(ABC):
         if include_class_agnostic:
             dp = self.target[np.where(self.target != 0)]
             x = len(dp) * ['All classes' + f'\n({np.var(dp):.2f})']
-            new_df = pd.DataFrame({'class': x, 'bt': dp})
+            new_df = pd.DataFrame({'class': x, 'lst': dp})
             df = pd.concat([df, new_df], ignore_index=True)
             palette += ['#FFFFFF']
             print(f'class = all, var = {np.var(dp):.2f}')
-        ax = sns.violinplot(x='class', y='bt', data=df, palette=palette)
+        ax = sns.violinplot(x='class', y='lst', data=df, palette=palette)
         ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         plt.xlabel('NLCD Land Cover Class', fontsize=18)
-        plt.ylabel('Temperature (K)', fontsize=18)
+        plt.ylabel('Land Surface Temperature (K)', fontsize=18)
         plt.tight_layout()
         if show:
             plt.show()

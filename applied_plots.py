@@ -897,15 +897,15 @@ def motivation_temporal2(city='Houston'):
 
 def motivation_spatial():
     sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
-    # city = 'San Antonio'
-    # date_ = '20190816'
+    city = 'San Antonio'
+    date_ = '20190816'
+    # date_ = '20230710'
     # interp = Interpolator(root=f'./data/{city}', target_date=date_)
-    city = 'Ausin'
-    date_ = '20200707'
     interp = Interpolator(root=f'/home/yuhaoliu/Data/ISLAND/cities/{city}', target_date=date_)
     interp.plot_violins(show=False, include_class_agnostic=True)
-    plt.show()
+    # plt.show()
     # plt.savefig('./data/general/motivation_spatial.pdf')
+    plt.savefig(f'./plots/motivation_spatial.pdf')
 
 
 def hot_zone_wrapper():
@@ -1001,7 +1001,7 @@ def vis_uhie_wrt_baseline(city, hash_code=None):
     sns.lineplot(data=df, x=x_dates, y='diff')
     plt.show()
 
-# def vis_wetland(city='Jacksonville'):
+
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
@@ -1017,8 +1017,8 @@ def main():
     # performance_degradation_graph()
     # performance_degradation_wrapper()
     # motivation_temporal()
-    # motivation_temporal2()
-    motivation_spatial()
+    motivation_temporal2()
+    # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
     # vis_wetland()
