@@ -157,6 +157,7 @@ def process_city_lst():
                         help='Toggle to skip to geo-reference step.')
     args = parser.parse_args()
     assert p.exists(args.dir), f'Directory {args.dir} does not exist.'
+
     base_dir = os.path.basename(args.dir.rstrip('/')) if args.dir.endswith('/') else os.path.basename(args.dir)
     yprint(f'-------- Processing {base_dir} --------')
     print(f'Loading from {args.dir}')
@@ -183,13 +184,13 @@ def process_city_lst():
         solve_all_lst_parallel(data_dir=args.dir, resume=True)
     # geo_reference_lst(data_dir=args.dir)
     geo_reference_lst(data_dir=args.dir, mode='full', output_dir='output_referenced')
-    if not p.exists(p.join(args.dir, 'output_referenced_temporal')):
-        os.mkdir(p.join(args.dir, 'output_referenced_temporal'))
+    # if not p.exists(p.join(args.dir, 'output_referenced_temporal')):
+    #     os.mkdir(p.join(args.dir, 'output_referenced_temporal'))
     # geo_reference_lst(data_dir=args.dir, mode='temporal', output_dir='output_referenced_temporal')
     # if not p.exists(p.join(args.dir, 'output_referenced_spatial')):
     #     os.mkdir(p.join(args.dir, 'output_referenced_spatial'))
     # geo_reference_lst(data_dir=args.dir, mode='spatial', output_dir='output_referenced_spatial')
-    # alert(f'Interpolation for {base_dir} finished.')
+    alert(f'Interpolation for {base_dir} finished.')
 
 
 def main():

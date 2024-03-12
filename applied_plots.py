@@ -15,7 +15,8 @@ import wandb
 from datetime import date, timedelta, datetime
 from rich.progress import track
 from config import *
-from bt_interpolator import Interpolator
+# from bt_interpolator import Interpolator
+from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
 from util.geo_reference import save_geotiff
 from util.occlusion_sampler import OcclusionSampler
@@ -896,12 +897,15 @@ def motivation_temporal2(city='Houston'):
 
 def motivation_spatial():
     sns.set(style='whitegrid', context='paper', font='Times New Roman', font_scale=1.5)
-    city = 'San Antonio'
-    date_ = '20190816'
-    interp = Interpolator(root=f'./data/{city}', target_date=date_)
+    # city = 'San Antonio'
+    # date_ = '20190816'
+    # interp = Interpolator(root=f'./data/{city}', target_date=date_)
+    city = 'Ausin'
+    date_ = '20200707'
+    interp = Interpolator(root=f'/home/yuhaoliu/Data/ISLAND/cities/{city}', target_date=date_)
     interp.plot_violins(show=False, include_class_agnostic=True)
-    # plt.show()
-    plt.savefig('./data/general/motivation_spatial.pdf')
+    plt.show()
+    # plt.savefig('./data/general/motivation_spatial.pdf')
 
 
 def hot_zone_wrapper():
@@ -1014,8 +1018,8 @@ def main():
     # performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
-    # motivation_spatial()
-    hot_zone_wrapper()
+    motivation_spatial()
+    # hot_zone_wrapper()
     # results_figure()
     # vis_wetland()
 
