@@ -11,6 +11,7 @@ from shapely.ops import nearest_points
 import rasterio
 import pandas as pd
 from pyproj import Transformer
+import shutil
 
 
 def load_ee_image(url):
@@ -241,6 +242,24 @@ def clean_aux_files(data_dir: str) -> None:
     return
 
 
+def export_island_output(working_dir: str, export_dir: str) -> None:
+    assert os.path.exists(working_dir), f"Directory {working_dir} does not exist."
+    assert not os.path.exists(export_dir), f"Directory {export_dir} already exists."
+    os.mkdir(export_dir)
+    clean_aux_files(working_dir)
+    # get all cities in us_cities.csv list
+    cities_list_path = "../config/us_cities.csv"
+    cities_meta = pd.read_csv(cities_list_path)
+    cities = cities_meta['city']
+    for city in cities:
+        os.mkdir(os.path.join(export_dir, city))
+        output_files = os.listdir(os.path.join(working_dir, city, 'output_referenced', 'lst'))
+        # copy all files to export_dir
+        for f in output_files:
+            shutil.copy(os.path.join(working_dir, city, 'output_referenced', 'lst', f), os.path.join(export_dir, city, f))
+        print(f'Exported {len(output_files)} files to {os.path.join(export_dir, city)}')
+    return
+
 
 if __name__ == '__main__':
     # # Test the function cvt_lat_lon_to_path_row
@@ -248,4 +267,5 @@ if __name__ == '__main__':
     # lat = 31.230
     # patch = cvt_lat_lon_to_path_row(lat, lon)
     # print(patch)
-    clean_aux_files('/home/yuhaoliu/Data/ISLAND/cities')
+    # clean_aux_files('/home/yuhaoliu/Data/ISLAND/cities')
+    export_island_output('/home/yuhaoliu/Data/ISLAND/cities', '/home/yuhaoliu/Data/ISLAND/island_output_20240311')

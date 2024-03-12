@@ -41,6 +41,7 @@ def solve_all_lst_parallel(data_dir: str, resume: bool = False):
     :return:
     """
     num_cores = mp.cpu_count() - 2
+    timeout = 60 * 3
     yprint('Computing LST in parallel using {} cores.'.format(num_cores))
     df = pd.read_csv(p.join(data_dir, 'metadata.csv'))
     dates = df['date'].values.tolist()
@@ -53,7 +54,10 @@ def solve_all_lst_parallel(data_dir: str, resume: bool = False):
                                         callback=lambda _: progress.update(task_id, advance=1)) for d in dates]
             # Wait for all tasks to complete
             for result in results:
-                result.get()
+                try:
+                    result.get(timeout=timeout)
+                except mp.TimeoutError:
+                    alert(f"A task has exceeded the timeout of {timeout} seconds.")
     return
 
 
