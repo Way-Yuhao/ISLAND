@@ -13,9 +13,11 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import wandb
-from bt_interpolator import Interpolator
+# from bt_interpolator import Interpolator
+from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from util.helper import rprint, yprint, parse_csv_dates
-from batch_eval import timelapse_with_synthetic_occlusion, calc_error_from_outputs
+# from batch_eval import timelapse_with_synthetic_occlusion, calc_error_from_outputs
+from eval_lst import timelapse_with_synthetic_occlusion, calc_error_from_outputs
 
 
 def move_output_to(city_name, to_dir):
