@@ -53,6 +53,7 @@ class BaseInterpolator(ABC):
         """
         Loads an image corresponding to a specified date.
         :param frame_date:
+        :param mode: 'bt', 'lst', 'cloud', 'shadow', 'cirrus'
         :return: ndarray for the target bt image
         """
         if mode in ['bt', 'bt_series']:
@@ -81,6 +82,8 @@ class BaseInterpolator(ABC):
         # clean up
         frame[np.isnan(frame)] = -1
         frame[np.isinf(frame)] = -1
+        if mode == 'lst':
+            frame[frame < 200] = -1
         if np.any(frame == -1):
             pass
         return frame
@@ -141,6 +144,7 @@ class BaseInterpolator(ABC):
         valid_mask = ~np.array(valid_mask, dtype=np.bool_)
         valid_mask[temp_img < 0] = False
         return valid_mask
+
     def get_nlcd(self):
         """
         Load a pre-aligned NLCD land cover map corresponding to a target LANDSAT temperature map
@@ -400,8 +404,6 @@ class BaseInterpolator(ABC):
             print(f'cLass {c} | average temp = {t:.2f} | freq = {p_count * 100 / overall_p_count: .2f}%')
 
     def plot_violins(self, show=True, include_class_agnostic=False):
-        # modify target
-        self.target[self.target < 200] = 0
         plt.figure(figsize=(16, 5))
         df = pd.DataFrame({'class': [], 'lst': []})
         palette = []
@@ -416,7 +418,7 @@ class BaseInterpolator(ABC):
                 new_df = pd.DataFrame({'class': x, 'lst': dp})
                 df = pd.concat([df, new_df], ignore_index=True)
                 palette += ['#' + NLCD_2019_META['lut'][str(c)]]
-                print(f'class = {x[0]}, var = {np.var(dp):.2f}')
+                # print(f'class = {x[0]}, var = {np.var(dp):.2f}')
             i += 1
         if include_class_agnostic:
             dp = self.target[np.where(self.target != 0)]
@@ -424,7 +426,7 @@ class BaseInterpolator(ABC):
             new_df = pd.DataFrame({'class': x, 'lst': dp})
             df = pd.concat([df, new_df], ignore_index=True)
             palette += ['#FFFFFF']
-            print(f'class = all, var = {np.var(dp):.2f}')
+            # print(f'class = all, var = {np.var(dp):.2f}')
         ax = sns.violinplot(x='class', y='lst', data=df, palette=palette)
         ax.set_xticklabels(textwrap.fill(x.get_text(), 11) for x in ax.get_xticklabels())
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
@@ -571,4 +573,3 @@ class BaseInterpolator(ABC):
         except ValueError as e:
             rprint(f'ERROR: {e}.\n Current error map not saved.')
         plt.close()
-

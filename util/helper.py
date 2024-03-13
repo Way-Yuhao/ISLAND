@@ -239,6 +239,7 @@ def monitor(func):
             raise e
     return inner
 
+
 def monitor_complete(func):
     """
     Decorator to monitor the execution of a function. If the function fails, the stack trace is printed.

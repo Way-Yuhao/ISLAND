@@ -563,7 +563,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     #                       start_date=start_date, num_cycles=cycles, export_boundary=bounding_box)
     # resave_emis(source=pjoin(root_path, 'emis'), dest=pjoin(root_path, 'emis_png'))
     # resaves_bt_png(source=pjoin(root_path, 'bt_series'), dest=pjoin(root_path, 'bt_series_png'))
-    parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
+    # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cirrus'), affix='cirrus', bit=2)
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     # plot_cloud_series(root_path, region_name, scene_id, satellite_cycles)

@@ -233,7 +233,7 @@ def clean_aux_files(data_dir: str) -> None:
     count = 0
     for root, dirs, files in os.walk(data_dir):
         for file in files:
-            if 'aux.xml' in file:
+            if 'aux.xml' in file or file.startswith("._"):
                 os.remove(os.path.join(root, file))
                 print(f'Removed {file}.')
                 count += 1
@@ -267,5 +267,5 @@ if __name__ == '__main__':
     # lat = 31.230
     # patch = cvt_lat_lon_to_path_row(lat, lon)
     # print(patch)
-    # clean_aux_files('/home/yuhaoliu/Data/ISLAND/cities')
-    export_island_output('/home/yuhaoliu/Data/ISLAND/cities', '/home/yuhaoliu/Data/ISLAND/island_output_20240311')
+    clean_aux_files('/home/yuhaoliu/Data/ISLAND/cities/Houston')
+    # export_island_output('/home/yuhaoliu/Data/ISLAND/cities', '/home/yuhaoliu/Data/ISLAND/island_output_20240311')

@@ -108,7 +108,8 @@ def geo_reference_lst(data_dir: str, mode: str = 'full', output_dir: str = 'outp
         raise ValueError(f'Invalid mode {mode}.')
     for f in st_files:
         geo_ref_copy_lst(data_dir, f, p.join(output_dir, f'lst_{f[8:16]}.tif'))
-    print(f'Geo-reference finished for {os.path.basename(data_dir)}.')
+    base_dir = os.path.basename(data_dir.rstrip('/')) if data_dir.endswith('/') else os.path.basename(data_dir)
+    print(f'Geo-reference finished for {base_dir}.')
 
 
 def geo_ref_copy_lst(data_dir, npy_filename, out_path='default'):

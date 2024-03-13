@@ -14,7 +14,7 @@ import cv2
 import wandb
 from datetime import date, timedelta, datetime
 from rich.progress import track
-from config import *
+from config.config import *
 # from bt_interpolator import Interpolator
 from interpolators.lst_interpolator import LST_Interpolator as Interpolator
 from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
@@ -76,7 +76,7 @@ def vis_heat(path):
         plt.close()
 
 
-def calc_avg_temp_per_class_over_time(city=""):
+def calc_avg_temp_per_class_over_time(city: str):
     """
     Generates a line graph of average temperature of a given land cover class over time,
     for a particular city.
@@ -88,23 +88,23 @@ def calc_avg_temp_per_class_over_time(city=""):
     """
     # scanning files
     yprint(f'Building temperature trend per class for {city}...')
-    timelapse_dir = f'./data/{city}/output_referenced/st/'
+    timelapse_dir = f'/home/yuhaoliu/Data/ISLAND/cities/{city}/output_referenced/lst/'
     assert p.exists(timelapse_dir)
-    output_dir = f'./data/{city}/analysis/'
+    output_dir = f'/home/yuhaoliu/Data/ISLAND/cities/{city}/analysis/'
     if not p.exists(output_dir):
         os.mkdir(output_dir)
     print('saving outputs to ', output_dir)
     files = [f for f in os.listdir(timelapse_dir) if '.tif' in f]
     files = [f for f in files if 'aux' not in f]
     files = natsorted(files)
-    print(f'Got {len(files)} files, with dates ranging from {files[0][3:11]} to {files[-1][3:11]}')
+    print(f'Got {len(files)} files, with dates ranging from {files[0][4:12]} to {files[-1][4:12]}')
     f0 = files[0]
     # print(f0)
-    interp0 = Interpolator(root=f'./data/{city}/', target_date=f0[3:11])
+    interp0 = Interpolator(root=f'/home/yuhaoliu/Data/ISLAND/cities/{city}/', target_date=f0[4:12])
     nlcd = interp0.nlcd
     df = pd.DataFrame()
     for f in tqdm(files, desc='Scanning predicted frames'):
-        new_row = {'date': f[3:11]}
+        new_row = {'date': f[4:12]}
         prediction = cv2.imread(p.join(timelapse_dir, f), -1)
         # all classes
         if not np.all(np.isnan(prediction)) and np.any(prediction):
@@ -152,14 +152,14 @@ def calc_avg_temp_per_class_over_time(city=""):
     print(f'Data frame saved to average_temp_trend_{hash_()}.csv')
 
 
-def plot_avg_temp_per_class_over_time(city="", hash_code=None):
+def plot_avg_temp_per_class_over_time(city="", hash_code=None, exclude_dates=None):
     """
     Generates a plot from .csv file produced by calc_avg_temp_per_class_over_time().
     :param city:
     :return:
     """
     sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
-    output_dir = f'./data/{city}/analysis/'
+    output_dir = f'/home/yuhaoliu/Data/ISLAND/cities/{city}/analysis/'
     if not p.exists(output_dir):
         raise FileNotFoundError()
     files = os.listdir(output_dir)
@@ -182,8 +182,13 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     assert(len(files) == 1)
     yprint(f'Parsing dataframe from {files[0]}')
     df = pd.read_csv(p.join(output_dir, files[0]))
-    # clean up date
-
+    # convert date to str
+    df['date'] = df['date'].astype(str)
+    # exclude dates
+    if exclude_dates is not None:
+        df = df[~df['date'].isin(exclude_dates)]
+    # convert date back to int
+    df['date'] = df['date'].astype(int)
     # df.replace(-1, np.inf)
     df[df < 2] = np.nan
     plt.figure(figsize=(13, 8))
@@ -200,12 +205,12 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None):
     # plt.title(f'Mean brightness temperature of each land cover class for {city}')
     # plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), markerscale=5)
     plt.legend(loc='lower center', markerscale=5, ncol=4, bbox_to_anchor=(0.5, -0.45), frameon=False)
-    plt.ylabel('Surface Temperature (K)')
+    plt.ylabel('LST (K)')
     plt.xlabel('Date')
     plt.tight_layout()
     # ax.set_xticklabels(labels=x_dates, rotation=45, ha='right')
     # plt.show()
-    plt.savefig(f'./data/general/{city}_temp_trend.pdf')
+    plt.savefig(f'./plots/{city}_temp_trend.pdf')
 
 
 def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295, vmin=0, vmax=50):
@@ -831,11 +836,11 @@ def plot_mean_trend_bt_two_dates(city, date1, date2):
     # print(df)
     plt.figure(figsize=(8, 5))
     sns.barplot(data=df, y='class', x='delta', palette=palette)
-    plt.xlabel(u'Difference in Mean Brightness Temperature (K)')
+    plt.xlabel(u'Difference in Mean LST (K)')
     plt.ylabel('NLCD Land Cover Classes')
-    plt.title(f'Changes in Mean Brightness Temperature\nfrom {date1} to {date2} in {city}')
+    plt.title(f'Changes in Mean LST\nfrom {date1} to {date2} in {city}')
     plt.tight_layout()
-    plt.savefig('./data/general/temporal_motivation_p1.svg', dpi=300)
+    plt.savefig(f'./plots/temporal_motivation_p1.svg', dpi=300)
     # plt.show()
 
 
@@ -850,7 +855,8 @@ def motivation_temporal():
 
 def motivation_temporal2(city='Houston'):
     sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
-    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    # df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    df_path = f'/home/yuhaoliu/Data/ISLAND/cities/{city}/analysis/averages_by_date.csv'
     if not p.exists(df_path):
         root_ = f'./data/{city}'
         df = pd.read_csv(p.join(root_, 'metadata.csv'))
@@ -880,7 +886,7 @@ def motivation_temporal2(city='Houston'):
         seasons = [get_season(x) for x in x_dates]
         sns.scatterplot(ax=axes[0], data=df, x=x_dates, y='avg', hue=seasons)
         axes[0].legend(loc='upper right', bbox_to_anchor=(1.21, 1.03))
-        axes[0].set_ylabel('Average Brightness Temperature (K)')
+        axes[0].set_ylabel('Average LST (K)')
         axes[0].set_xlabel('Date')
         # axes[0].legend(loc='upper center', ncols=4, bbox_to_anchor=(0.5, 1.2))
         # plt.tight_layout()
@@ -892,7 +898,8 @@ def motivation_temporal2(city='Houston'):
         axes[1].get_xaxis().set_visible(False)
         plt.tight_layout()
         # plt.show()
-        plt.savefig('./data/general/temporal_motivation_p2.svg')
+        # plt.savefig('./data/general/temporal_motivation_p2.svg')
+        plt.savefig(f'./plots/temporal_motivation_p2.svg', dpi=300)
 
 
 def motivation_spatial():
@@ -903,9 +910,9 @@ def motivation_spatial():
     # interp = Interpolator(root=f'./data/{city}', target_date=date_)
     interp = Interpolator(root=f'/home/yuhaoliu/Data/ISLAND/cities/{city}', target_date=date_)
     interp.plot_violins(show=False, include_class_agnostic=True)
-    # plt.show()
+    plt.show()
     # plt.savefig('./data/general/motivation_spatial.pdf')
-    plt.savefig(f'./plots/motivation_spatial.pdf')
+    # plt.savefig(f'./plots/motivation_spatial.pdf')
 
 
 def hot_zone_wrapper():
@@ -1002,12 +1009,69 @@ def vis_uhie_wrt_baseline(city, hash_code=None):
     plt.show()
 
 
+def crop_center(img):
+    # Get the dimensions of the image
+    h, w = img.shape[:2]
+
+    # Calculate the size of the square crop
+    crop_size = min(h, w)
+
+    # Calculate the top-left corner coordinates of the square crop
+    start_y = (h - crop_size) // 2
+    start_x = (w - crop_size) // 2
+
+    # Use slicing to extract the square crop
+    if img.ndim == 2:  # For 2D images
+        return img[start_y:start_y+crop_size, start_x:start_x+crop_size]
+    else:  # For 3D images
+        return img[start_y:start_y+crop_size, start_x:start_x+crop_size, :]
+
+
+def save_crops_for_overview():
+    # vmin, vmax = 270, 330
+    vmin, vmax = 250, 310
+    region_dir = '/home/yuhaoliu/Data/ISLAND/cities/Houston'
+    # date_ = '20230712' # used in paper, Mar 12 2024
+    date_ = '20231219' # anamoly
+    cloud = cv2.imread(p.join(region_dir, 'cloud', f'LC08_cloud_{date_}.tif'), -1)
+    shadow = cv2.imread(p.join(region_dir, 'shadow', f'LC08_shadow_{date_}.tif'), -1)
+    cirrus = cv2.imread(p.join(region_dir, 'cirrus', f'LC08_cirrus_{date_}.tif'), -1)
+    occlusion = cloud + shadow + cirrus
+    occlusion[occlusion != 0] = 255
+    input_lst = cv2.imread(p.join(region_dir, 'lst', f'LC08_ST_B10_{date_}.tif'), -1)
+    output_lst = cv2.imread(p.join(region_dir, 'output_referenced/lst', f'lst_{date_}.tif'), -1)
+    nlcd = cv2.imread(p.join(region_dir, 'nlcd_2021_color.tif'))
+    # generate a 1:1 square crop at the center of each image, where crop size is the height of the image
+    cloud = crop_center(cloud)
+    shadow = crop_center(shadow)
+    cirrus = crop_center(cirrus)
+    occlusion = crop_center(occlusion)
+    input_lst = crop_center(input_lst)
+    output_lst = crop_center(output_lst)
+    nlcd = crop_center(nlcd)
+    # save the crops
+    out_dir = p.join('./plots/', 'overview_crops')
+    if not p.exists(out_dir):
+        os.mkdir(out_dir)
+    cv2.imwrite(p.join(out_dir, 'cloud.png'), cloud)
+    cv2.imwrite(p.join(out_dir, 'shadow.png'), shadow)
+    cv2.imwrite(p.join(out_dir, 'cirrus.png'), cirrus)
+    cv2.imwrite(p.join(out_dir, 'occlusion.png'), occlusion)
+    cv2.imwrite(p.join(out_dir, 'nlcd.png'), nlcd)
+
+    # save camp lst
+    save_cmap(input_lst, p.join(out_dir, 'input_lst.png'), palette='inferno', vmin=vmin, vmax=vmax)
+    save_cmap(output_lst, p.join(out_dir, 'output_lst.png'), palette='inferno', vmin=vmin, vmax=vmax)
+    print('crops saved to ', out_dir)
+
+
 
 def main():
     # read_npy_stack(path='data/Houston/output_timelapse/')
     # vis_heat(path='data/Houston/output_timelapse/')
     # calc_avg_temp_per_class_over_time(city='Jacksonville')
-    # plot_avg_temp_per_class_over_time(city='Houston', hash_code='f44b')
+    # calc_avg_temp_per_class_over_time(city='Houston')
+    # plot_avg_temp_per_class_over_time(city='Houston', exclude_dates=['20230914', '20230218', '20231219'])
     # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=315)
     # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=300)
@@ -1017,13 +1081,14 @@ def main():
     # performance_degradation_graph()
     # performance_degradation_wrapper()
     # motivation_temporal()
-    motivation_temporal2()
+    # motivation_temporal2()
     # motivation_spatial()
     # hot_zone_wrapper()
     # results_figure()
     # vis_wetland()
 
     # vis_uhie_wrt_baseline('New York')
+    # save_crops_for_overview()
 
 if __name__ == '__main__':
     main()
