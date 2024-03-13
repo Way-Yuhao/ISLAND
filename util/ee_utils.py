@@ -253,10 +253,10 @@ def export_island_output(working_dir: str, export_dir: str) -> None:
     cities = cities_meta['city']
     for city in cities:
         os.mkdir(os.path.join(export_dir, city))
-        output_files = os.listdir(os.path.join(working_dir, city, 'output_referenced', 'lst'))
+        output_files = os.listdir(os.path.join(working_dir, city, 'output_referenced_temporal', 'lst'))
         # copy all files to export_dir
         for f in output_files:
-            shutil.copy(os.path.join(working_dir, city, 'output_referenced', 'lst', f), os.path.join(export_dir, city, f))
+            shutil.copy(os.path.join(working_dir, city, 'output_referenced_temporal', 'lst', f), os.path.join(export_dir, city, f))
         print(f'Exported {len(output_files)} files to {os.path.join(export_dir, city)}')
     return
 
@@ -267,5 +267,5 @@ if __name__ == '__main__':
     # lat = 31.230
     # patch = cvt_lat_lon_to_path_row(lat, lon)
     # print(patch)
-    clean_aux_files('/home/yuhaoliu/Data/ISLAND/cities/Houston')
-    # export_island_output('/home/yuhaoliu/Data/ISLAND/cities', '/home/yuhaoliu/Data/ISLAND/island_output_20240311')
+    # clean_aux_files('/home/yuhaoliu/Data/ISLAND/cities/Houston')
+    export_island_output('/home/yuhaoliu/Data/ISLAND/cities', '/home/yuhaoliu/Data/ISLAND/island_output_20240313_temporal')

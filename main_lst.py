@@ -188,10 +188,10 @@ def process_city_lst():
         # solve_all_lst(data_dir=args.dir, resume=False)
         solve_all_lst_parallel(data_dir=args.dir, resume=True)
     # geo_reference_lst(data_dir=args.dir)
-    geo_reference_lst(data_dir=args.dir, mode='full', output_dir='output_referenced')
-    # if not p.exists(p.join(args.dir, 'output_referenced_temporal')):
-    #     os.mkdir(p.join(args.dir, 'output_referenced_temporal'))
-    # geo_reference_lst(data_dir=args.dir, mode='temporal', output_dir='output_referenced_temporal')
+    # geo_reference_lst(data_dir=args.dir, mode='full', output_dir='output_referenced')
+    if not p.exists(p.join(args.dir, 'output_referenced_temporal')):
+        os.mkdir(p.join(args.dir, 'output_referenced_temporal'))
+    geo_reference_lst(data_dir=args.dir, mode='temporal', output_dir='output_referenced_temporal')
     # if not p.exists(p.join(args.dir, 'output_referenced_spatial')):
     #     os.mkdir(p.join(args.dir, 'output_referenced_spatial'))
     # geo_reference_lst(data_dir=args.dir, mode='spatial', output_dir='output_referenced_spatial')

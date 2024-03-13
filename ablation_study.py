@@ -135,7 +135,7 @@ if __name__ == '__main__':
     occlusion_size = 75
     num_occlusions = 2
     mode = None
-    # ablation(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions)
+    ablation(city_name, occlusion_size=occlusion_size, num_occlusions=num_occlusions)
     calc_error_ablation(city_name,
                         f'./data/{city_name}/ablation_s{occlusion_size}_n{num_occlusions}/output_naive_average',
                         mode)
