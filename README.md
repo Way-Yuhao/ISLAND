@@ -21,23 +21,19 @@ Once data is downloaded and processed, you should see files being populated at `
 
     .
     ├── ...
-    ├── Houston                 # name of the region
+    ├── REGOIN_NAME             # name of the region
     │   ├── analysis            # directory storing analysis outputs, if any
-    │   ├── bt_series           # brightness temperature input GeoTIFF files
-    │   ├── bt_series_png       # brightness temperature input, rescaled PNG
     │   ├── cloud               # cloud bitmask
-    │   ├── output              # placeholder directory storing all ISLAND outputs
-    │   ├── output_bt           # temporary directory, storing all BT outputs of ISLAND
-    │   ├── output_st           # temporal directory, storing all LST outputs of ISLAND
+    │   ├── lst                 # land surface temperature (LST) input
+    │   ├── output              # placeholder directory storing intermediate (non geo-referenced) ISLAND outputs
     │   ├── output_referenced   # directory for geo-referenced output GeoTIFF files from ISLAND
-    │   │   ├── bt              # geo-referenced BT output
-    │   │   ├── st              # geo-referenced LST output
+    │   │   ├── lst             # geo-referenced LST output
     │   ├── qa_series           # quality assessment bitmask
     │   ├── shadow              # cloud shadow bitmask
-    │   ├── TOA_RGB             # top-of-atmosphere rescaled RGB images
+    │   ├── TOA_RGB             # top-of-atmosphere rescaled RGB images (optional)
     │   ├── metadata.csv        # a csv file containing list of Landsat 8 revisit dates for this site
-    │   ├── nlcd_YYYYMMDD_color.tif # GeoTIFF file containing NLCD land cover lables, color mapped to RGB
-    │   ├── nlcd_YYYYMMDD.tif   # GroTIFF file containing NLCD land cover labels
+    │   ├── nlcd_YYYY_color.tif # GeoTIFF file containing NLCD land cover lables, color mapped to RGB
+    │   ├── nlcd_YYYY.tif       # GroTIFF file containing NLCD land cover labels
     │   └── ...                 
     └── ...
 
