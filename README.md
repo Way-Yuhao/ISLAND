@@ -1,4 +1,4 @@
-# ISLAND: Informing Brightness and Surface Temperature Through a Land Cover-based Interpolator
+# [RSASE 2024] ISLAND: Interpolating Land Surface Temperature using land cover
 
 ## Public Available Dataset
 Please refer to the following Design-Safe link for the public available dataset:
