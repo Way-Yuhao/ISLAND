@@ -13,14 +13,16 @@ class OcclusionSampler:
     Requires
     * an averages_by_date.csv file stored in ../data/[CITY]/analysis
     """
-    def __init__(self, city_list):
+    def __init__(self, data_dir, city_list):
+        self.data_dir = data_dir
         self.city_list = city_list
         self.df = self.build_df()
 
     def build_df(self):
         df = pd.DataFrame()
         for city in self.city_list:
-            log_path = f'./data/{city}/analysis/averages_by_date.csv'
+            # log_path = f'./data/{city}/analysis/averages_by_date.csv'
+            log_path = pjoin(self.data_dir, city, 'analysis', 'averages_by_date.csv')
             if not p.exists(log_path):
                 rprint(f'File for {city} does not exist')
                 continue
@@ -43,9 +45,12 @@ class OcclusionSampler:
         k = random.randint(0, n-1)
         row = rows.iloc[k]
         city, d = row['city'], row['date']
-        cloud = cv2.imread(f'./data/{city}/cloud/LC08_cloud_{d}.tif', -1)
-        shadow = cv2.imread(f'./data/{city}/shadow/LC08_shadow_{d}.tif', -1)
-        occlusion = cloud + shadow
+        # cloud = cv2.imread(f'./data/{city}/cloud/LC08_cloud_{d}.tif', -1)
+        # shadow = cv2.imread(f'./data/{city}/shadow/LC08_shadow_{d}.tif', -1)
+        cloud = cv2.imread(pjoin(self.data_dir, city, 'cloud', f'LC08_cloud_{d}.tif'), -1)
+        shadow = cv2.imread(pjoin(self.data_dir, city, 'shadow', f'LC08_shadow_{d}.tif'), -1)
+        cirrus = cv2.imread(pjoin(self.data_dir, city, 'cirrus', f'LC08_cirrus_{d}.tif'), -1)
+        occlusion = cloud + shadow + cirrus
         occlusion[occlusion != 0] = 255
         occlusion = occlusion.astype(np.float32)
         occlusion = self.augment(occlusion)

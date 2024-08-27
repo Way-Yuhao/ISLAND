@@ -260,7 +260,7 @@ def plot_temporal_cycle(city_name):
 
 @timer
 @monitor
-def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, spatial_kern_size, resume=False):
+def timelapse_with_synthetic_occlusion(city_name, occlusion_size, num_occlusions, spatial_kern_size=75, resume=False):
     """
     Generates timelapses of BT for a given city while adding random synthetic occlusion.
     Evaluates loss only on synthetically occluded areas.
@@ -317,7 +317,8 @@ def calc_error_from_outputs(city_name, output_dir, mode=None):
     :return:
     """
     invalid_frame = False
-    root_ = f'./data/{city_name}'
+    # root_ = f'./data/{city_name}'
+    root_ = f'/home/yuhaoliu/Data/ISLAND/cities/{city_name}'
     # output_dir = f'./data/{city_name}/ablation_s750_n3/output_eval_full'
     assert p.exists(output_dir)
     yprint(f'Calculating error using files found in {output_dir}')

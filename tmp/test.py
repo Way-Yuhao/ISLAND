@@ -156,4 +156,5 @@ def dims():
 if __name__ == '__main__':
     # download_nlcd()
     # dims()
-    check_nlcd()
+    # check_nlcd()
+    print(0)

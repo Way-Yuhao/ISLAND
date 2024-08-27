@@ -551,8 +551,8 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     #                       start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box,
     #                       scale_factor=0.00341802, offset=149.0)
     # enable if needed
-    # export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
-    #            cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
+    export_rgb(pjoin(root_path, 'TOA_RGB'), satellite='LC08', scene_id=scene_id, start_date=start_date,
+               cycles=satellite_cycles, export_boundary=bounding_box, download_monochrome=True, clip=0.3)
 
     # export_landsat_series(pjoin(root_path, 'qa_series'), satellite='LC08', band='QA_PIXEL', scene_id=scene_id,
     #                       start_date=start_date, cycles=satellite_cycles, export_boundary=bounding_box)
@@ -567,7 +567,7 @@ def run_export(root_path: str, region_name: str, scene_id: str, bounding_box: st
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'cloud'), affix='cloud', bit=3)
     # parse_qa_single(source=pjoin(root_path, 'qa_series'), dest=pjoin(root_path, 'shadow'), affix='shadow', bit=4)
     # plot_cloud_series(root_path, region_name, scene_id, satellite_cycles)
-    generate_log(root_path=root_path)
+    # generate_log(root_path=root_path)
     return
 
 

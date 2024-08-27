@@ -17,7 +17,7 @@ from rich.progress import track
 from config.config import *
 # from bt_interpolator import Interpolator
 from interpolators.lst_interpolator import LST_Interpolator as Interpolator
-from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated
+from util.helper import rprint, yprint, hash_, pjoin, save_cmap, get_season, deprecated, alert
 from util.geo_reference import save_geotiff
 from util.occlusion_sampler import OcclusionSampler
 
@@ -213,7 +213,7 @@ def plot_avg_temp_per_class_over_time(city="", hash_code=None, exclude_dates=Non
     plt.savefig(f'./plots/{city}_temp_trend.pdf')
 
 
-def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295, vmin=0, vmax=50):
+def count_hotzones_freq_for(city='Houston', temp_type='lst', threshold = 295, vmin=0, vmax=50):
     """
     Produce a map where the pixel values represent number of days that this location exceeds
     temperature threshold. Requires data to be store under .../city/output_referenced/
@@ -222,10 +222,11 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295, vmi
     :return:
     """
     sns.set(style='whitegrid', context='paper', font='Times New Roman')
-    if temp_type not in {'st', 'bt'}:
+    if temp_type not in {'lst'}:
         raise NotImplementedError()
     else:
-        timelapse_dir = f'./data/{city}/output_referenced/{temp_type}/'
+        # timelapse_dir = f'./data/{city}/output_referenced/{temp_type}/'
+        timelapse_dir = f'/home/yuhaoliu/Data/ISLAND/cities/{city}/output_referenced/{temp_type}/'
         assert p.exists(timelapse_dir)
         files = natsorted(os.listdir(timelapse_dir))
         # f0 = np.load(p.join(timelapse_dir, files[0]))
@@ -243,18 +244,21 @@ def count_hotzones_freq_for(city='Houston', temp_type='st', threshold = 295, vmi
             aggregate += this_frame
         plt.imshow(aggregate, cmap='cividis', vmin=vmin, vmax=vmax)
         plt.colorbar(label=f'Number of day exceeding {threshold} Kelvin')
+        # cbar = plt.colorbar(orientation='horizontal')
+        # cbar.set_label(label=f'Number of day exceeding {threshold} Kelvin', labelpad=-40, y=0.40)
         plt.title(f'Hot zones '
                   f'from {files[0][3:11]} to {files[-1][3:11]} in {city}')
         plt.xticks([])
         plt.yticks([])
-        # plt.show()
         plt.tight_layout()
+        plt.show()
 
-        if not p.exists(f'./data/{city}/analysis/'):
-            os.mkdir(f'./data/{city}/analysis/')
-        # np.save(f'./data/general/{city}_hotzones_{threshold}k.npy', aggregate)
-        plt.savefig(f'./data/general/{city}_hotzones_{threshold}k.pdf', dpi=1000)
-        save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k_nws.tif')
+        # if not p.exists(f'./data/{city}/analysis/'):
+        #     os.mkdir(f'./data/{city}/analysis/')
+        np.save(f'./data/general/{city}_hotzones_{threshold}k.npy', aggregate)
+        print('max hot zone count = ', np.max(aggregate))
+        # plt.savefig(f'./plots/{city}_hotzones_{threshold}k.pdf', dpi=900)
+        # save_geotiff(city, aggregate, files[0][3:11], out_path=f'./data/{city}/analysis/hotzones_{threshold}k_nws.tif')
         plt.close()
 ##############################################################################
 
@@ -360,7 +364,7 @@ def find_dates_at_interval_theta(city, theta_intervals):
     return selected_dates
 
 deprecated
-def how_performance_decreases_as_synthetic_occlusion_increases2(city, date_, added_cloud_dates):
+def how_performance_decreases_as_synthetic_occlusion_increases2(region_dir, city, date_, added_cloud_dates):
     """
     Instead of using random occlusion, we use real occlusions from another date.
     :param city:
@@ -369,28 +373,30 @@ def how_performance_decreases_as_synthetic_occlusion_increases2(city, date_, add
     """
     # added_cloud_dates = [20180728, 20200514, 20200530, 20180813, 20220520, 20211227]
     # added_cloud_dates = [20211227]
-    root_ = f'./data/{city}/'
-    out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}')
+    # root_ = f'./data/{city}/'
+    out_dir = p.join(region_dir, 'analysis', f'occlusion_progression_{date_}')
     log_fpath = p.join(out_dir, 'log.csv')
-    if p.exists(p.join(root_, 'output')):
+    if p.exists(p.join(region_dir, 'output')):
         raise FileExistsError('Output directory exists. Please rename the directory to preserve contents.')
-    if not p.exists(p.join(root_, 'analysis')):
-        os.mkdir(p.join(root_, 'analysis'))
+    if not p.exists(p.join(region_dir, 'analysis')):
+        os.mkdir(p.join(region_dir, 'analysis'))
     if not p.exists(out_dir):
         os.mkdir(out_dir)
     log = []
     # real occlusion (a minimal amount)
-    interp = Interpolator(root_, date_)
+    interp = Interpolator(region_dir, date_)
     real_occlusion_perc = interp.add_occlusion(use_true_cloud=True)
     print('real occlusion % = ', real_occlusion_perc)
     interp.run_interpolation()
-    output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+    # output_file = f'./data/{city}/output/reconst_{date_}_st.npy'
+    output_file = p.join(region_dir, 'output', f'reconst_{date_}_st.npy')
     shutil.copyfile(output_file, p.join(out_dir, f'r_occlusion{real_occlusion_perc:.2f}%.npy'))
-    shutil.rmtree(p.join(root_, 'output'))
+    shutil.rmtree(p.join(region_dir, 'output'))
     # synthetic occlusions
     for d in added_cloud_dates:
-        interp = Interpolator(root_, date_)
-        interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
+        interp = Interpolator(region_dir, date_)
+        # interp.add_occlusion(fpath=f'./data/{city}/cloud/LC08_cloud_{d}.tif')
+        interp.add_occlusion(fpath=p.join(region_dir, 'cloud', f'LC08_cloud_{d}.tif'))
         syn_occlusion = interp.synthetic_occlusion
         real_occlusion = ~interp.build_valid_mask()
         added_occlusion = syn_occlusion.copy()
@@ -411,7 +417,7 @@ def how_performance_decreases_as_synthetic_occlusion_increases2(city, date_, add
     df.to_csv(log_fpath, index=False)
     print(df)
     print('real occlusion % = ', real_occlusion_perc)
-    shutil.rmtree(p.join(root_, 'output'))
+    shutil.rmtree(p.join(region_dir, 'output'))
     return
 
 
@@ -567,7 +573,7 @@ def how_performance_decreases_as_synthetic_occlusion_increases4(city, date_):
     return
 
 
-def how_performance_decreases_as_synthetic_occlusion_increases5(city, date_, sampler):
+def how_performance_decreases_as_synthetic_occlusion_increases5(data_dir, city, date_, sampler):
     """
     Now with data augmentation
     :param city:
@@ -576,9 +582,11 @@ def how_performance_decreases_as_synthetic_occlusion_increases5(city, date_, sam
     """
     wandb.init()
     SAMPLES_PER_BIN = 10
-    df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    # df_path = f'./data/{city}/analysis/averages_by_date.csv'
+    df_path = p.join(data_dir, 'city', 'analysis', 'averages_by_date.csv')
     if not p.exists(df_path):
-        root_ = f'./data/{city}'
+        # root_ = f'./data/{city}'
+        root_ = p.join(data_dir, city)
         df = pd.read_csv(p.join(root_, 'metadata.csv'))
         dates = df['date'].values.tolist()
         dates = [str(d) for d in dates]
@@ -597,7 +605,8 @@ def how_performance_decreases_as_synthetic_occlusion_increases5(city, date_, sam
         df.to_csv(df_path, index=False)
         print('csv file saved to ', df_path)
     df = pd.read_csv(df_path)
-    root_ = f'./data/{city}/'
+    # root_ = f'./data/{city}/'
+    root_ = p.join(data_dir, city)
     out_dir = p.join(root_, 'analysis', f'occlusion_progression_{date_}_sample')
     log_fpath = p.join(out_dir, 'log.csv')
     if p.exists(p.join(root_, 'output')) and len(os.listdir(p.join(root_, 'output'))) > 1:
@@ -649,10 +658,11 @@ def how_performance_decreases_as_synthetic_occlusion_increases5(city, date_, sam
     print(df)
     print('real occlusion % = ', real_occlusion_perc)
     shutil.rmtree(p.join(root_, 'output'))
-    wandb.alert(
-        title='Process finished',
-        text=f'Data for region {city} finished processing.'
-    )
+    # wandb.alert(
+    #     title='Process finished',
+    #     text=f'Data for region {city} finished processing.'
+    # )
+    alert('Process finished', f'Data for region {city} finished processing.')
     return
 
 def recalculate_degradation_error(city, date_):
@@ -772,12 +782,13 @@ def performance_degradation_wrapper():
     # date_list = [('Oklahoma City', '20180719'), ('San Diego', '20181112')]
 
     city_list = [entry[0] for entry in date_list]
-    sampler = OcclusionSampler(city_list)
-    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[0][0], date_=date_list[0][1], sampler=sampler)
-    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[1][0], date_=date_list[1][1], sampler=sampler)
-    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[2][0], date_=date_list[2][1], sampler=sampler)
-    # how_performance_decreases_as_synthetic_occlusion_increases5(city=date_list[3][0], date_=date_list[3][1], sampler=sampler)
-    performance_degradation_graph2(date_list, y_axis_metric='mape')
+    date_dir = '/home/yuhaoliu/Data/ISLAND/cities'
+    sampler = OcclusionSampler(data_dir=date_dir, city_list=city_list)
+    # how_performance_decreases_as_synthetic_occlusion_increases5(data_dir=date_dir, city=[0][0], date_=date_list[0][1], sampler=sampler)
+    how_performance_decreases_as_synthetic_occlusion_increases5(data_dir=date_dir, city=date_list[1][0], date_=date_list[1][1], sampler=sampler)
+    # how_performance_decreases_as_synthetic_occlusion_increases5(data_dir=date_dir, city=date_list[2][0], date_=date_list[2][1], sampler=sampler)
+    # how_performance_decreases_as_synthetic_occlusion_increases5(data_dir=date_dir, city=date_list[3][0], date_=date_list[3][1], sampler=sampler)
+    # performance_degradation_graph2(date_list, y_axis_metric='mape')
     # vis_performance_deg_results()
 
 
@@ -921,9 +932,10 @@ def hot_zone_wrapper():
     # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=320)
     # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=305)
     # using NWS extreme danger definition
-    count_hotzones_freq_for(city='Houston', temp_type='st', threshold=306, vmin=0, vmax=80)
-    count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=311, vmin=30, vmax=80)
-    count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=308, vmin=0, vmax=40)
+    vmax = 60
+    count_hotzones_freq_for(city='Houston', temp_type='lst', threshold=306, vmin=0, vmax=50)
+    # count_hotzones_freq_for(city='Los Angeles', temp_type='lst', threshold=311, vmin=0, vmax=60)
+    # count_hotzones_freq_for(city='Chicago', temp_type='lst', threshold=308, vmin=0, vmax=25)
 
 
 def results_figure():
@@ -934,26 +946,26 @@ def results_figure():
     * color mapped input
     :return:
     """
-    def _export_row(city, date_, vmin=None, vmax=None):
+    def _export_row(data_dir, city, date_, vmin=None, vmax=None):
         palette = 'inferno'
-        b10 = cv2.imread(f'./data/{city}/bt_series/LC08_B10_{date_}.tif', -1)
-        bt = cv2.imread(f'./data/{city}/output_referenced/bt/bt_{date_}.tif', -1)
-        st = cv2.imread(f'./data/{city}/output_referenced/st/st_{date_}.tif', -1)
-        assert b10 is not None
-        assert bt is not None
-        assert st is not None
+        landsat_lst = cv2.imread(p.join(data_dir, city, 'lst', f'LC08_ST_B10_{date_}.tif'), -1)
+        island_lst = cv2.imread(p.join(data_dir, city, 'output_referenced/lst', f'lst_{date_}.tif'), -1)
+        assert landsat_lst is not None, f'landsat_lst is None for {city} on {date_}'
+        assert island_lst is not None, f'island_lst is None for {city} on {date_}'
         # out_dir = f'./data/{city}/analysis/cmap_out_{date_}/'
-        out_dir = f'./data/general/results_{city}_{date_}/'
+        out_dir = f'./plots/results_{city}_{date_}/'
         if not p.exists(out_dir):
             os.mkdir(out_dir)
         # copy image that do not need cmap
-        shutil.copyfile(src=f'./data/{city}/TOA_RGB/RGB/LC08_RGB_{date_}.png', dst=p.join(out_dir, f'rgb_{date_}.png'))
-        save_cmap(b10, p.join(out_dir, f'b10_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
-        save_cmap(bt, p.join(out_dir, f'bt_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
-        save_cmap(st, p.join(out_dir, f'st_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        # shutil.copyfile(src=p.join(data_dir, city, f'TOA_RGB/RGB/LC08_RGB_{date_}.png'), dst=p.join(out_dir, f'rgb_{date_}.png'))
+        save_cmap(landsat_lst, p.join(out_dir, f'landsat_lst_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
+        save_cmap(island_lst, p.join(out_dir, f'island_lst_{date_}.png'), palette=palette, vmin=vmin, vmax=vmax)
         # metadata
-        interp = Interpolator(root=f'./data/{city}', target_date=date_)
+        interp = Interpolator(root=p.join(data_dir, city), target_date=date_)
         theta = interp.add_occlusion(use_true_cloud=True)
+        # get occlusion mask
+        occlusion_mask = interp.synthetic_occlusion
+        cv2.imwrite(p.join(out_dir, f'occlusion_{date_}.png'), occlusion_mask.astype(float) * 255)
         with open(p.join(out_dir, 'readme.txt'), 'w') as f:
             f.write(f'theta = {theta:.2f}')
         # save color bar
@@ -971,12 +983,30 @@ def results_figure():
         print('files saved to directory ', out_dir)
         return
 
+    # first submission
     # _export_row('Houston', '20220114', vmin=280, vmax=310)
     # _export_row('New York', '20170723', vmin=280, vmax=320)
-    _export_row('Jacksonville', '20171203', vmin=290, vmax=320)
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Jacksonville', '20171203', vmin=290, vmax=320)
     # _export_row('San Francisco', '20200606', vmin=280, vmax=320)
     # _export_row('Phoenix', '20180107', vmin=280, vmax=320)
 
+    # resubmission
+    _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Houston', '20220114', vmin=280, vmax=310) # ok, as bad example of cirrus
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Houston', '20220826', vmin=290, vmax=340) # ok, blurry becuase theta=0.5
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Houston', '20210924', vmin=290, vmax=340) # ok, small clouds
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Houston', '20210807', vmin=290, vmax=340)  # ok
+
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'San Francisco', '20200606', vmin=270, vmax=320) # original date, but artifacts
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'San Francisco', '20200724', vmin=285, vmax=325) # ok, old rgb
+
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'New York', '20230419', vmin=275, vmax=310) # ok
+
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Phoenix', '20210811', vmin=290, vmax=340) # artifacts
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Phoenix', '20190416', vmin=290, vmax=340)  # yet to test
+
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Jacksonville', '20210808', vmin=290, vmax=335) # ok
+
+    # _export_row('/home/yuhaoliu/Data/ISLAND/cities', 'Los Angeles', '20190514', vmin=280, vmax=315) # ok
 
 def vis_uhie_wrt_baseline(city, hash_code=None):
     sns.set(style='white', context='paper', font='Times New Roman', font_scale=1.5)
@@ -1072,14 +1102,11 @@ def main():
     # calc_avg_temp_per_class_over_time(city='Jacksonville')
     # calc_avg_temp_per_class_over_time(city='Houston')
     # plot_avg_temp_per_class_over_time(city='Houston', exclude_dates=['20230914', '20230218', '20231219'])
-    # count_hotzones_freq_for(city='Houston', temp_type='st', threshold=310)
-    # count_hotzones_freq_for(city='Los Angeles', temp_type='st', threshold=315)
-    # count_hotzones_freq_for(city='Chicago', temp_type='st', threshold=300)
     # how_performance_decreases_as_synthetic_occlusion_increases2('Austin', '20190816', added_cloud_dates=[20180728, 20200514, 20200530, 20180813, 20220520, 20211227])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Seattle', '20210420', [20171205, 20180615, 20201026, 20171002, 20200604, 20170308, 20170612])
     # how_performance_decreases_as_synthetic_occlusion_increases2('Houston', '20180103', [20220319, 20190701, 20190717, 20210706, 20211010, 20210316, 20220420])
     # performance_degradation_graph()
-    # performance_degradation_wrapper()
+    performance_degradation_wrapper()
     # motivation_temporal()
     # motivation_temporal2()
     # motivation_spatial()
@@ -1090,5 +1117,9 @@ def main():
     # vis_uhie_wrt_baseline('New York')
     # save_crops_for_overview()
 
+    # how_performance_decreases_as_synthetic_occlusion_increases2('/home/yuhaoliu/Data/ISLAND/cities/Austin',
+    #                                                             'Austin', '20190816',
+    #                                                             added_cloud_dates=[20200514, 20200530,
+    #                                                                                20180813, 20220520, 20211227])
 if __name__ == '__main__':
     main()
