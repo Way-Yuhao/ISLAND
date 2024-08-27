@@ -8,10 +8,10 @@ https://doi.org/10.17603/ds2-3rf5-sd58
 ## Generate Your Own Land Surface Temperature (LST) Maps
 Below are the instructions on how to generate LST maps for any region in the CONUS.
 ### Download data from EarthEngine
-1. Identify a region, call it `city`
+1. Identify a region, e.g., `CITY`
 2. Navigate to `./jupyter/8 - ROI Extractor.ipynb ` to obtain `scene_id` associated with a LADNSAT image. The notebook will also ask you to you 4 coordinates defining a polygon within that LANDSAT image. 
-3. Navigate to `./data/us_cities.csv`, append a new row in the format of `city | state | scene_id | coordinates` that you obtained from previous steps. 
-4. Navigate to the root directory for this project, run `python region_sampler -c CITY`, replace `city` with value from above. This will strip all relevant data from Google EarthEngine.
+3. Navigate to `./config/us_cities.csv`, append a new row in the format of `CITY | state | scene_id | coordinates` that you obtained from previous steps. 
+4. Navigate to the root directory for this project, run `python region_sampler -c CITY`, replace `CITY` with value from above. This will strip all relevant data from Google EarthEngine.
 
 ### Process data
 Once data is downloaded, run `python main -c CITY`, where `CITY` is defined as above. This will generate both timelapses of brightness temperature (BT) and land surface temperature (LST).  
@@ -21,7 +21,7 @@ Once data is downloaded and processed, you should see files being populated at `
 
     .
     ├── ...
-    ├── REGOIN_NAME             # name of the region
+    ├── CITY                    # name of the region
     │   ├── analysis            # directory storing analysis outputs, if any
     │   ├── cloud               # cloud bitmask
     │   ├── lst                 # land surface temperature (LST) input
