@@ -1,4 +1,5 @@
-# [RSASE 2024] ISLAND: Interpolating Land Surface Temperature using land cover
+# ISLAND: Interpolating Land Surface Temperature using land cover
+[Paper](https://doi.org/10.1016/j.rsase.2024.101332) | [Public Data Products](https://doi.org/10.17603/ds2-3rf5-sd58)
 
 ## Public Available Dataset
 Please refer to the following Design-Safe link for the public available dataset:
