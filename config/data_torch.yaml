@@ -1,0 +1,6 @@
+_target_: util.torch_dataloader.OccludedLSTDataSet
+data_dir: ??
+dir_structure:
+  - 'qa_series'
+  - 'lst'
+  -
