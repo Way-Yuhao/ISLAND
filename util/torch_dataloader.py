@@ -139,7 +139,7 @@ class OccludedLSTDataSet(Dataset):
 
 if __name__ == '__main__':
     data_root_dir = '/home/yuhaoliu/Data/ISLAND/'
-    regions = ['Charlotte']
+    regions = ['Charlotte'] # ['Houston']
     # regions = 'all'
     a = OccludedLSTDataSet(data_root_dir, regions, filter_cp_above=0.9, use_color_nlcd=False)
     sample = a[0]
